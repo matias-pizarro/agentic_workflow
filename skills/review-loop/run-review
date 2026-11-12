@@ -11,8 +11,31 @@
 # interactive bash so it gets the user's .bashrc environment (DISPLAY among
 # it), and the caller blocks until the pane finishes; outside tmux it runs in place. Either way
 # the exit status is the reviewer's, or 124 when the thirty-minute limit is hit.
+#
+# It refuses, with exit 2, a prompt that lacks a part the skill makes fixed: the
+# `# Na.` title instruction, the Sources list, the three closing sentences. On
+# a reviewer exit of 0 it strips trailing whitespace and trailing blank lines
+# from the review file and ends it with a newline, as end-of-file-fixer wants.
 set -eu
 [ "$#" -eq 2 ] || { echo "usage: $0 <review file> <prompt file>" >&2; exit 2; }
+
+refuse() { echo "run-review: prompt $REVIEW_PROMPT: $1; not started" >&2; exit 2; }
+REVIEW_PROMPT="$2"
+[ -r "$REVIEW_PROMPT" ] || refuse "unreadable"
+# The pattern is literal backquote, hash, digits, 'a. '.
+# shellcheck disable=SC2016
+grep -Eq '`# [0-9]+a\. ' "$REVIEW_PROMPT" || refuse "no '# Na.' title instruction"
+# The Sources list: the brief's 'Read them against:' line, then a '- ' item.
+awk '/^Read them against:/ { s = 1; next }
+  s && /^[[:space:]]*$/ { next }
+  s { exit !/^- / }
+  END { if (!s) exit 1 }' "$REVIEW_PROMPT" ||
+  refuse "no Sources list after 'Read them against:'"
+closing='If nothing is above low severity, say so plainly.
+Do not edit files.
+Produce a markdown report ordered by severity, citing every file as the Citations section says.'
+[ "$(grep -v '^[[:space:]]*$' "$REVIEW_PROMPT" | tail -n 3)" = "$closing" ] ||
+  refuse "does not end with the three closing sentences"
 
 export REVIEW_OUT="$1" REVIEW_PROMPT="$2" REVIEW_LIMIT=1800
 export REVIEW_MODEL="${REVIEW_MODEL:-openai/gpt-5.3-codex}"
@@ -30,8 +53,24 @@ else
     -o "$REVIEW_OUT" - < "$REVIEW_PROMPT"'
 fi
 
+# On success: no trailing whitespace or trailing blank lines, and a final
+# newline, which awk's print always writes.
+finish() {
+  if [ "$1" -eq 0 ] && [ -f "$REVIEW_OUT" ]; then
+    tidy=$(mktemp)
+    awk '{ sub(/[[:space:]]+$/, "") }
+      /^$/ { blank++; next }
+      { while (blank) { print ""; blank-- } print }' "$REVIEW_OUT" > "$tidy" &&
+      cat "$tidy" > "$REVIEW_OUT"
+    rm -f "$tidy"
+  fi
+  exit "$1"
+}
+
 if [ -z "${TMUX:-}" ]; then
-  exec sh -c "$review"
+  status=0
+  sh -c "$review" || status=$?
+  finish "$status"
 fi
 
 export REVIEW_CHANNEL="review-loop-$$" REVIEW_STATUS REVIEW_KEY
@@ -53,4 +92,4 @@ tmux split-window -d ${TMUX_PANE:+-t "$TMUX_PANE"} -c "$PWD" \
 # The pane signals even when the reviewer fails, exits or times out, since it
 # runs in a subshell; the outer limit only covers a pane killed by hand.
 timeout $((REVIEW_LIMIT + 60)) tmux wait-for "$REVIEW_CHANNEL" || exit 124
-exit "$(cat "$REVIEW_STATUS")"
+finish "$(cat "$REVIEW_STATUS")"
