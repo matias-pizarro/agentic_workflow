@@ -20,18 +20,20 @@ A **turn** is one pass through the three phases, **submit**, **discuss** and **c
 ## Invocation
 
 - `/review-loop`: run turns until a review has no findings, at most five.
-- `/review-loop <n>`: the same, with `<n>` turns as the cap. `once` is the spelling for one turn.
+- `/review-loop <n>`: the same, with the cap at round `<n>` of the loop, the k in the titles, however many invocations the loop has taken. `once` is the spelling for one turn.
 - `/review-loop [<n>] auto`: unattended discuss; see the discuss phase for what auto does and where it still waits.
 - `/review-loop submit`, `/review-loop discuss`, `/review-loop close`: one phase, then stop.
 
-A turn whose review has any finding, low included, is followed by another turn; a review with none ends the loop. When the cap is reached with findings still open, say the topic has not converged and stop; the next invocation continues from the last close.
+A turn whose review has any finding, low included, is followed by another turn; a review with none ends the loop. The cap counts per loop, never per topic. When the cap is reached with findings still open, say the loop has not converged and stop; the next invocation continues from the last close.
 
 ## Vocabulary
 
 - **Topic**: a directory under `.scratch/` holding one set of artefacts, such as a spec and its tickets. Named by the user, or inferred from the artefacts touched since the last review; ask when two topics are touched.
 - **Review file**: `.scratch/<topic>/reviews/review-codex-<YYYYmmddHHMM>-<hash>[-<suffix>]-findings.md`, written by Codex. The suffix names the artefact kind when a topic has more than one (`spec`, `tickets`); design docs carry none.
 - **Response file**: the review file's path with `-response` in place of `-findings`, written in discuss. The prior response is the newest `*-response.md` in the topic's `reviews/`. Review and response files live in `reviews/`; the topic brief stays at the topic's top level. The two words are chosen so the review sorts before its response by filename.
+- **Loop**: the run of turns on one artefact of a topic that ends with a review without findings. Named by the suffix, or `design` when there is none, or by the user (`code`, `DAG check`).
 - **Round number**: N, the topic's round count including this turn: one more than the highest number in the H1s under the topic's `reviews/`. The review's H1 starts `# Na. ` and the response's `# Nb. `, so a listing by title reads 1a, 1b, 2a and so on.
+- **Loop round**: k, the loop's round count including this turn: one more than the k in the newest review H1 naming this loop, or 1 when there is none or that review had no findings. Review and response H1s end with ` (<loop> round <k>)`: `# 23a. Cloud-sandbox code review (code round 7)`.
 - **Topic brief**: `.scratch/<topic>/review-brief.md`, the durable part of the review prompt. Created from [`brief-template.md`](brief-template.md) on a topic's first run.
 - **Finding**: one numbered item in a review.
 - **Deliberate choice**: a finding the user resolves by accepting the risk or cost.
@@ -45,14 +47,21 @@ A turn whose review has any finding, low included, is followed by another turn; 
    - the prior response file by path and its finding count, read from the file, with the disposition-table instruction naming that count; on a first run, omit both;
    - the brief's do-not-re-raise list plus any deliberate choice recorded in the prior response;
    - a check for whatever this turn changed that the brief's standing checks do not name;
-   - the round number, with the instruction to title the report `# Na. <title>`.
-   The prompt always ends with three fixed sentences: say so plainly if nothing is above low severity; do not edit files; produce a markdown report ordered by severity, citing every file as the brief's Citations section says.
+   - the round number, with the instruction to title the report `# Na. <title> (<loop> round <k>)`, N and k written out;
+   - the brief's Sources section, its `Read them against:` line and list kept as they are.
+
+   The prompt always ends with these three lines, verbatim:
+   ```
+   If nothing is above low severity, say so plainly.
+   Do not edit files.
+   Produce a markdown report ordered by severity, citing every file as the Citations section says.
+   ```
 4. Write the prompt to a temporary file and run the review as a subagent with [`run-review`](run-review), which sits beside this file, from the repo root:
    ```
    <this skill's directory>/run-review <review file> <prompt file>
    ```
-   Run it with a tool timeout of at least thirty-two minutes, since the script enforces thirty itself. A non-zero exit (124 for the time limit) means no review: report the exit status and stop the turn.
-5. Before the first commit, check the review's first line is an H1 starting `# Na. `; if Codex wrote none or left the number off, add it. Commit the review file alone: `docs: record codex <topic> review`. If a commit hook refuses it for a link, bring the link to the brief's citation format and the citation rules in the project's `AGENTS.md`, changing only its target, plus the line number in its text when the target carried one the text lacks. Commit again.
+   Run it with a tool timeout of at least thirty-two minutes, since the script enforces thirty itself. `run-review` refuses to start, with exit 2, a prompt lacking the title instruction, the Sources list or the three closing lines; fix the prompt and run it again. After a review it strips trailing whitespace and ends the file with a newline. Any other non-zero exit (124 for the time limit) means no review: report the exit status and stop the turn.
+5. Before the first commit, check the review's first line is an H1 starting `# Na. ` and ending ` (<loop> round <k>)`; if Codex wrote none or left either off, add it. Commit the review file alone: `docs: record codex <topic> review`. If a commit hook refuses it for a link, bring the link to the brief's citation format and the citation rules in the project's `AGENTS.md`, changing only its target, plus the line number in its text when the target carried one the text lacks. Commit again.
 6. Completion: the review file exists, is committed, and has been read; report its finding count and severities in one line.
 
 ## discuss
@@ -62,17 +71,18 @@ Load the `grilling` and `domain-modeling` skills. Then, for each finding in seve
 1. State in one or two sentences whether the finding is right, and the fact that settles it.
 2. Put exactly one question in the grilling format, with a recommended answer the user can accept with "yes". When two findings share one root cause, one question may cover both and must say so.
 3. Wait. Edit nothing before the answer. In `auto` mode, do not wait: take the recommended answer as the answer and say so in the response entry. The one exception is a recommended answer that is a deliberate choice; auto mode stops at that finding and waits, because a recorded acceptance of a risk or cost carries the user's name and an edit does not.
-4. Apply the answer to every file it touches, then append the finding's entry to the response file, created with an H1 starting `# Nb. `: its number and title, what was decided, and where it landed.
-5. A finding that is a transcription error against a decision already made is applied without a question and reported as such.
+4. Apply the answer to every file it touches, then append the finding's entry to the response file, created with an H1 starting `# Nb. ` and ending ` (<loop> round <k>)`: its number and title, what was decided, and where it landed.
+5. Sweep the class: after fixing a finding, search the code for other instances of its class (a failed read taken as absence, a missing rollback, a quoting error) and fix them in the same turn; name them in the response entry.
+6. A finding that is a transcription error against a decision already made is applied without a question and reported as such.
 
-After the last finding: run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise in the form the user has seen all session: one bullet per finding, nothing committed, the next phase named. Print it and continue into close without waiting.
+After the last finding: check each finding's class was swept as in step 5, run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise in the form the user has seen all session: one bullet per finding, nothing committed, the next phase named. Print it and continue into close without waiting.
 
-Completion: every finding has a response entry, every edit the entries name exists in the tree, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed.
+Completion: every finding has a response entry, every edit the entries name exists in the tree, each finding's class has been swept, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed.
 
 ## close
 
 1. Commit everything the discuss phase touched, response file included: `docs: respond to the Codex <topic> review of <hash>`, body one line per finding.
-2. If the review just closed had no findings, say the topic has converged and stop. Otherwise, if the turn cap is not reached, print the commit line and start the next turn's submit without waiting. If it is reached, or the invocation was a single phase or `once`, print the next `/review-loop` command for this topic, ready to paste, and stop.
+2. If the review just closed had no findings, say the loop has converged and stop. Otherwise, if the turn cap is not reached, print the commit line and start the next turn's submit without waiting. If it is reached, or the invocation was a single phase or `once`, print the next `/review-loop` command for this topic, ready to paste, and stop.
 
 ## Guardrails
 

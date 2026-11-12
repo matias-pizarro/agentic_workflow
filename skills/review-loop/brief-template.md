@@ -22,6 +22,7 @@ Read them against:
 Check for:
 - whether each of the prior review's <n> findings is genuinely resolved, recorded as a deliberate choice, or only reworded (left out until a topic has a prior review);
 - <topic-specific check, one per line>
+- when a finding is an instance of a class (a failed read taken as absence, a missing rollback, a quoting error), every instance in the diff, listed under that one finding;
 - anything that contradicts `AGENTS.md` or a recorded decision beyond the recorded deliberate choices.
 
 ## Citations
