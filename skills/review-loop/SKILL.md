@@ -15,6 +15,7 @@ A **turn** is one pass through the three phases, **submit**, **discuss** and **c
 - A git repo that keeps work under `.scratch/<topic>/`.
 - A reviewer: `codex`, logged in, or `pi` with `OPENAI_API_KEY` set. tmux is optional.
 - The `grilling` and `domain-modeling` skills, which discuss loads.
+- A backlog, `.scratch/backlog.md`, created by discuss the first time a finding goes there.
 - Commit subjects below are conventional commits; where the project's commit style differs, follow the project.
 
 ## Invocation
@@ -37,6 +38,9 @@ A turn whose review has any finding, low included, is followed by another turn; 
 - **Topic brief**: `.scratch/<topic>/review-brief.md`, the durable part of the review prompt. Created from [`brief-template.md`](brief-template.md) on a topic's first run.
 - **Finding**: one numbered item in a review.
 - **Deliberate choice**: a finding the user resolves by accepting the risk or cost.
+- **Impact**: high, medium or low, by what goes wrong, and for whom, if the finding stays. The Pareto few, the findings carrying most of the harm, are the important ones.
+- **Backlog**: `.scratch/backlog.md`, the project's visible list of parked items, one entry each: the date, the item, its impact, its source (the review file and finding number) and the user's words with their time.
+- **Drift**: a finding in lines an earlier round of this loop added or changed, or two rounds of this loop finding gaps in the same check. A loop that drifts has likely lost its way; drift is a signal to bring to the user, never to suppress.
 
 ## submit
 
@@ -45,7 +49,7 @@ A turn whose review has any finding, low included, is followed by another turn; 
 3. Build the prompt from the brief, adapting it to this turn:
    - the commit hash and `git show --stat <hash>` line;
    - the prior response file by path and its finding count, read from the file, with the disposition-table instruction naming that count; on a first run, omit both;
-   - the brief's do-not-re-raise list plus any deliberate choice recorded in the prior response;
+   - the brief's do-not-re-raise list plus any deliberate choice recorded in the prior response and any finding this loop sent to the backlog;
    - a check for whatever this turn changed that the brief's standing checks do not name;
    - the round number, with the instruction to title the report `# Na. <title> (<loop> round <k>)`, N and k written out;
    - the brief's Sources section, its `Read them against:` line and list kept as they are.
@@ -66,18 +70,18 @@ A turn whose review has any finding, low included, is followed by another turn; 
 
 ## discuss
 
-Load the `grilling` and `domain-modeling` skills. Then, for each finding in severity order:
+Load the `grilling` and `domain-modeling` skills. Before the first finding, check this round's findings for drift. When any drifts, the first question is `❓ DRIFT-Qn`: which findings drift and the earlier rounds they trace to, then three options, the recommended one first: step back and delete or simplify the code the rounds keep returning to, saying what goes; stop, sending the open findings to the backlog; continue. Then, for each finding in severity order:
 
-1. State in one or two sentences whether the finding is right, and the fact that settles it.
-2. Put exactly one question in the grilling format, with a recommended answer the user can accept with "yes". When two findings share one root cause, one question may cover both and must say so.
+1. State in one or two sentences whether the finding is right, and the fact that settles it, then its impact.
+2. Put exactly one question in the grilling format, with a recommended answer the user can accept with "yes". Its options are fix, delete and backlog: delete removes the code, check or option the finding sits in, saying what that removes, or says why nothing can go; backlog parks the finding there. Recommend fixing the important findings only, or deleting where that answers the finding as well; recommend the backlog for the rest. When two findings share one root cause, one question may cover both and must say so.
 3. Wait. Edit nothing before the answer. In `auto` mode, do not wait: take the recommended answer as the answer and say so in the response entry. The one exception is a recommended answer that is a deliberate choice; auto mode stops at that finding and waits, because a recorded acceptance of a risk or cost carries the user's name and an edit does not.
-4. Apply the answer to every file it touches, then append the finding's entry to the response file, created with an H1 starting `# Nb. ` and ending ` (<loop> round <k>)`: its number and title, what was decided, and where it landed.
+4. Apply the answer to every file it touches, a backlog answer as an entry in the backlog, then append the finding's entry to the response file, created with an H1 starting `# Nb. ` and ending ` (<loop> round <k>)`: its number and title, what was decided, and where it landed.
 5. Sweep the class: after fixing a finding, search the code for other instances of its class (a failed read taken as absence, a missing rollback, a quoting error) and fix them in the same turn; name them in the response entry.
 6. A finding that is a transcription error against a decision already made is applied without a question and reported as such.
 
-After the last finding: check each finding's class was swept as in step 5, run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise in the form the user has seen all session: one bullet per finding, nothing committed, the next phase named. Print it and continue into close without waiting.
+After the last finding: check each finding's class was swept as in step 5, run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise in the form the user has seen all session. The summary opens with the loop's running cost on one line, `<topic> · <loop> round k · findings so far F · questions so far Q`, counted over this loop's reviews and responses, this round included; then one bullet per finding with its impact and answer, nothing committed, the next phase named. Print it and continue into close without waiting.
 
-Completion: every finding has a response entry, every edit the entries name exists in the tree, each finding's class has been swept, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed.
+Completion: drift was checked, and DRIFT-Qn asked when any finding drifts; every finding has a response entry, every edit the entries name exists in the tree, every backlog answer has its backlog entry, each finding's class has been swept, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed, opening with the running-cost line.
 
 ## close
 
@@ -88,4 +92,4 @@ Completion: every finding has a response entry, every edit the entries name exis
 
 - Review and response files are committed in separate commits, never together with design edits, so `git log` shows what Codex said and what was decided as two events.
 - The prompt names files, never pastes them; Codex reads the tree.
-- A finding is resolved by a change, or by a deliberate choice written, marked as such, where the project records decisions (the ticket or ADR it concerns), as well as in the response. Rewording alone resolves nothing.
+- A finding is resolved by a change, by a deliberate choice written, marked as such, where the project records decisions (the ticket or ADR it concerns), or by a backlog entry, as well as in the response. Rewording alone resolves nothing.
