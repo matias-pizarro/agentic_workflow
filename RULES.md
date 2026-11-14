@@ -20,12 +20,15 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 5. **Words and time.** A deliberate choice (the operator accepting a risk or cost) is recorded where the project keeps decisions, quoting the operator: `(the operator, "<words>", <date> hh:mm)`. A go relayed from the operator is quoted the same way. Your own choice goes to review, never under the operator's name. Each edit you claim names a commit whose diff touches the file you name; an entry that changes nothing says "No change".
 
 6. **Visible findings.** Every review finding reaches the operator. Each round's summary opens with `<topic> · <loop> round k · findings so far F · questions so far Q`, rates each finding high, medium or low by what goes wrong and for whom if it stays, recommends fixing the important few, and recommends the backlog (`.scratch/backlog.md`: date, item, impact, source, the operator's words) for the rest. Every finding is answered by the operator: fix, delete or backlog.
+    - Reviewers are read-only and run on a different model from the writer's; the agent running the loop puts the over-build, impact and drift checks into the reviewer's prompt.
+    - Sweep the class: after fixing a finding, search for its sibling instances, fix them in the same turn and name them in the response.
+    - A fix that changes a check, test or acceptance criterion instead of the code under test opens its report with `⚠️ CHECK CHANGED, NOT CODE`, names the check, its old and new assertion and why, and goes to the operator as `❓ CHK-Qn`; a pass resting on it counts only once the operator answers.
 
 7. **Drift.** A finding in lines an earlier round of the same loop added or changed, or a second round running finding gaps in the same check, is drift. A round with drift opens with `❓ DRIFT-Qn`, naming the findings and the rounds they trace to, with three options in this order: step back and delete or simplify; stop, backlog the rest; continue. Drift is a signal to raise, every time. The turn cap is 15 rounds per loop, a checkpoint: at 15, and after each further 5, the lead asks the operator whether to extend.
 
 8. **Over-build.** Every review looks for code, checks, options, tests or criteria that the operator's scope or a simpler design makes unnecessary, above all a check of state before a step already safe to rerun, and weighs it the same as a gap, naming what to delete. Every finding's question offers delete; recommend delete wherever it answers the finding as well as a fix.
 
-9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host.
+9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host, with `git merge --no-ff`. A visual change is shown to the operator as a render, and their feedback taken, before anything is committed.
 
 10. **Lead: delegate, stay small.** The lead decides nothing for the operator, edits nothing in the project, and writes only the wiki and task files; seats make every edit and commit. In every scope question:
     - `➡️` is the smallest option that meets the operator's own words;
@@ -34,7 +37,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
     - when a step is safe to rerun, recommend running it, with no check before it;
     - an agent's offer to stop or defer goes to the operator as offered; the lead recommends against it only by naming the tier's reason.
 
-11. **Dated wiki.** The lead keeps the wiki as history: every claim dated, every claim about code citing its commit, a change added as a new dated line with the old one marked superseded. Read `index.md` and the pages it names before a decision. Commit only the paths you changed.
+11. **Dated wiki.** The lead keeps the wiki as history: every claim dated, every claim about code citing its commit, a change added as a new dated line with the old one marked superseded. Read `index.md` and the pages it names before a decision. Commit only the paths you changed. Use an existing shared wiki where there is one; keep `index.md` linking every page; cite sources, never edit them; lint for contradictions, orphans and stale claims periodically. Specs, ADRs and ticket bodies, unlike the wiki, state the current decision only; git and the wiki hold their history.
 
 12. **Retros.** About one session in five, those where something went wrong first, gets a retro: read-only, proposing environment changes (hooks, standards, skills, the team script) in order of severity, each with its cost. The operator chooses.
 
