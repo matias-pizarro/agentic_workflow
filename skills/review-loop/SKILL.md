@@ -75,18 +75,31 @@ A turn whose review has any finding, low included, is followed by another turn; 
 
 ## discuss
 
-Load the `grilling` and `domain-modeling` skills. Before the first finding, check this round's findings for drift. When any drifts, the first question is `❓ DRIFT-Qn`: which findings drift and the earlier rounds they trace to, then three options, the recommended one first: step back and delete or simplify the code the rounds keep returning to, saying what goes; stop, sending the open findings to the backlog; continue. A stop answer writes a backlog entry and a response entry for each finding, then goes to close, which commits and ends the loop. Otherwise, for each finding in severity order:
+Load the `grilling` and `domain-modeling` skills.
+
+### Summary rules
+
+Every summary of a round follows these four rules, in this order: the summary printed after the last finding, and any summary that carries the round's questions to the user or to whoever relays them, before they are answered.
+
+1. **Tally first.** The summary's first line is the loop's running cost: `<topic> · <loop> round k · findings so far F · questions so far Q`, F and Q counted over this loop's reviews and responses, this round included.
+2. **Drift next.** Check this round's findings for drift before asking about any of them. When any drifts, the first question is `❓ DRIFT-Qn`: which findings drift and the earlier rounds they trace to, then three options, the recommended one first: step back and delete or simplify the code the rounds keep returning to, saying what goes; stop, sending the open findings to the backlog; continue. A stop answer writes a backlog entry and a response entry for each finding, then goes to close, which commits and ends the loop.
+3. **Impact and Pareto.** Rate every finding's impact (see Vocabulary). Recommend fixing only the important ones; recommend the backlog for the rest.
+4. **Delete offered.** Every finding's question offers three answers: fix; delete, which removes the code, check or option the finding sits in and says what that removes, or says why nothing can go; backlog. Recommend delete over fix wherever deleting answers the finding as well.
+
+### Per finding
+
+For each finding in severity order, once DRIFT-Qn is answered or there is none:
 
 1. State in one or two sentences whether the finding is right, and the fact that settles it, then its impact.
-2. Put exactly one question in the grilling format, with a recommended answer the user can accept with "yes". Its options are fix, delete and backlog: delete removes the code, check or option the finding sits in, saying what that removes, or says why nothing can go; backlog parks the finding there. Recommend fixing the important findings only, or deleting where that answers the finding as well; recommend the backlog for the rest. When two findings share one root cause, one question may cover both and must say so.
+2. Put exactly one question in the grilling format, offering fix, delete and backlog as the summary rules say, with a recommended answer the user can accept with "yes". When two findings share one root cause, one question may cover both and must say so.
 3. Wait. Edit nothing before the answer. In `auto` mode, do not wait: take the recommended answer as the answer and say so in the response entry. The exceptions are a recommended answer that is a deliberate choice or the backlog; auto mode stops at that finding and waits, because a recorded acceptance of a risk or cost, and a backlog entry, carry the user's words and an edit does not.
 4. Apply the answer to every file it touches, a backlog answer as an entry in the backlog, then append the finding's entry to the response file, created with an H1 starting `# Nb. ` and ending ` (<loop> round <k>)`: its number and title, what was decided, and where it landed.
 5. Sweep the class: after fixing a finding, search the code for other instances of its class (a failed read taken as absence, a missing rollback, a quoting error) and fix them in the same turn; name them in the response entry.
 6. A finding that is a transcription error against a decision already made is applied without a question and reported as such.
 
-After the last finding: check each finding's class was swept as in step 5, run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise in the form the user has seen all session. The summary opens with the loop's running cost on one line, `<topic> · <loop> round k · findings so far F · questions so far Q`, counted over this loop's reviews and responses, this round included; then one bullet per finding with its impact and answer, nothing committed, the next phase named. Print it and continue into close without waiting.
+After the last finding: check each finding's class was swept as in step 5, run a grep for wording the round made stale, fix what it finds, end the response file with a one-line agreement or disagreement with the review's disposition table, and summarise by the summary rules: the tally line, then one bullet per finding with its impact and answer, nothing committed, the next phase named. Print it and continue into close without waiting.
 
-Completion: drift was checked, and DRIFT-Qn asked when any finding drifts; every finding has a response entry, every edit the entries name exists in the tree, every backlog answer has its backlog entry, each finding's class has been swept, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed, opening with the running-cost line.
+Completion: drift was checked, and DRIFT-Qn asked when any finding drifts; every finding has a response entry, every edit the entries name exists in the tree, every backlog answer has its backlog entry, each finding's class has been swept, the stale-wording grep is clean, the response file ends with its disposition line, and the summary is printed, following the summary rules.
 
 ## close
 
