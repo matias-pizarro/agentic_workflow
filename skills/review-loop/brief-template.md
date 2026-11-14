@@ -21,8 +21,6 @@ Read them against:
 
 Check for:
 - whether each of the prior review's <n> findings is genuinely resolved, recorded as a deliberate choice, or only reworded (left out until a topic has a prior review);
-- over-build, a finding of the same weight as a gap: code, a check, an option, a test or a criterion that the scope the user asked for, or a simpler design, makes unnecessary, above all a check of state before a step that is already idempotent; name what to delete;
-- for every finding, its impact, high, medium or low, by what goes wrong and for whom if it stays; and drift: whether it sits in lines an earlier round of this loop added or changed, or in a check an earlier round of this loop also found a gap in, naming that round;
 - <topic-specific check, one per line>
 - when a finding is an instance of a class (a failed read taken as absence, a missing rollback, a quoting error), every instance in the diff, listed under that one finding;
 - anything that contradicts `AGENTS.md` or a recorded decision beyond the recorded deliberate choices.

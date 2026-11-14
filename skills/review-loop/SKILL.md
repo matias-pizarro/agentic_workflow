@@ -51,6 +51,11 @@ A turn whose review has any finding, low included, is followed by another turn; 
    - the prior response file by path and its finding count, read from the file, with the disposition-table instruction naming that count; on a first run, omit both;
    - the brief's do-not-re-raise list plus any deliberate choice recorded in the prior response and any finding this loop sent to the backlog;
    - a check for whatever this turn changed that the brief's standing checks do not name;
+   - these two checks, verbatim, beside the brief's standing checks:
+     ```
+     - over-build, a finding of the same weight as a gap: code, a check, an option, a test or a criterion that the scope the user asked for, or a simpler design, makes unnecessary, above all a check of state before a step that is already idempotent; name what to delete;
+     - for every finding, its impact, high, medium or low, by what goes wrong and for whom if it stays; and drift: whether it sits in lines an earlier round of this loop added or changed, or in a check an earlier round of this loop also found a gap in, naming that round;
+     ```
    - the round number, with the instruction to title the report `# Na. <title> (<loop> round <k>)`, N and k written out;
    - the brief's Sources section, its `Read them against:` line and list kept as they are.
 
@@ -70,11 +75,11 @@ A turn whose review has any finding, low included, is followed by another turn; 
 
 ## discuss
 
-Load the `grilling` and `domain-modeling` skills. Before the first finding, check this round's findings for drift. When any drifts, the first question is `❓ DRIFT-Qn`: which findings drift and the earlier rounds they trace to, then three options, the recommended one first: step back and delete or simplify the code the rounds keep returning to, saying what goes; stop, sending the open findings to the backlog; continue. Then, for each finding in severity order:
+Load the `grilling` and `domain-modeling` skills. Before the first finding, check this round's findings for drift. When any drifts, the first question is `❓ DRIFT-Qn`: which findings drift and the earlier rounds they trace to, then three options, the recommended one first: step back and delete or simplify the code the rounds keep returning to, saying what goes; stop, sending the open findings to the backlog; continue. A stop answer writes a backlog entry and a response entry for each finding, then goes to close, which commits and ends the loop. Otherwise, for each finding in severity order:
 
 1. State in one or two sentences whether the finding is right, and the fact that settles it, then its impact.
 2. Put exactly one question in the grilling format, with a recommended answer the user can accept with "yes". Its options are fix, delete and backlog: delete removes the code, check or option the finding sits in, saying what that removes, or says why nothing can go; backlog parks the finding there. Recommend fixing the important findings only, or deleting where that answers the finding as well; recommend the backlog for the rest. When two findings share one root cause, one question may cover both and must say so.
-3. Wait. Edit nothing before the answer. In `auto` mode, do not wait: take the recommended answer as the answer and say so in the response entry. The one exception is a recommended answer that is a deliberate choice; auto mode stops at that finding and waits, because a recorded acceptance of a risk or cost carries the user's name and an edit does not.
+3. Wait. Edit nothing before the answer. In `auto` mode, do not wait: take the recommended answer as the answer and say so in the response entry. The exceptions are a recommended answer that is a deliberate choice or the backlog; auto mode stops at that finding and waits, because a recorded acceptance of a risk or cost, and a backlog entry, carry the user's words and an edit does not.
 4. Apply the answer to every file it touches, a backlog answer as an entry in the backlog, then append the finding's entry to the response file, created with an H1 starting `# Nb. ` and ending ` (<loop> round <k>)`: its number and title, what was decided, and where it landed.
 5. Sweep the class: after fixing a finding, search the code for other instances of its class (a failed read taken as absence, a missing rollback, a quoting error) and fix them in the same turn; name them in the response entry.
 6. A finding that is a transcription error against a decision already made is applied without a question and reported as such.
@@ -86,7 +91,7 @@ Completion: drift was checked, and DRIFT-Qn asked when any finding drifts; every
 ## close
 
 1. Commit everything the discuss phase touched, response file included: `docs: respond to the Codex <topic> review of <hash>`, body one line per finding.
-2. If the review just closed had no findings, say the loop has converged and stop. Otherwise, if the turn cap is not reached, print the commit line and start the next turn's submit without waiting. If it is reached, or the invocation was a single phase or `once`, print the next `/review-loop` command for this topic, ready to paste, and stop.
+2. If the review just closed had no findings, say the loop has converged and stop. If the user answered stop to DRIFT-Qn, say the loop stopped on drift, name the backlog entries, and stop. Otherwise, if the turn cap is not reached, print the commit line and start the next turn's submit without waiting. If it is reached, or the invocation was a single phase or `once`, print the next `/review-loop` command for this topic, ready to paste, and stop.
 
 ## Guardrails
 
