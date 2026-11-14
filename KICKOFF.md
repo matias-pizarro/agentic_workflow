@@ -1,64 +1,66 @@
 # Kickoff: the first hour
 
-A checklist. The why behind each step is in [README.md](README.md).
+A checklist. `<root>` is defined at the top of [README.md](README.md); the why behind each step is there too.
 
 ## Before the lead starts
 
-1. **Install Pi with subagents and a second model for reviews.** Pi itself, `pi install npm:pi-subagents`, and a reviewer model from another vendor than the writer's (e.g. `pi install npm:pi-gpt` with `codex login`, or Pi's `/login`). On FreeBSD, follow the sandbox project's `docs/install-pi.md`; it includes the heredoc guard extension. Also needed: `git`, `tmux`.
+1. **Install Pi, its subagents extension, `git` and `tmux`.** `pi install npm:pi-subagents`. On FreeBSD, the sandbox project's `docs/install-pi.md` lists every step.
 
-2. **Install the skills globally**:
+2. **Set up the reviewer.** The `review-loop` skill reviews with either the Codex CLI, installed and logged in (`codex login`), or, when `OPENAI_API_KEY` is set, Pi itself on an OpenAI model. Check one of them before the first review: `codex login status`, or `echo $OPENAI_API_KEY`.
+
+3. **Install the skills globally**:
    ```sh
    npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling
    npx -y skills@latest add matias-pizarro/skills -g -a pi -y --skill review-loop
    ```
-   Check: `ls ~/.agents/skills`.
+   `review-loop` must be at `matias-pizarro/skills` commit `ec04983` or later: earlier versions lack the impact ratings, backlog, drift question and delete option. Check: `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` prints a number above 0.
 
-3. **Lay out the directories** side by side, each its own git repository:
+4. **Lay out `<root>`.** `src`, `wiki` and `playbook` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
    ```
-   <project>/
+   <root>/
      src/        the project repo
      wiki/       the lead's memory: private, never inside src
-     playbook/   a clone of this repo, shared across projects
-     worktrees/  one per branch, created by seats
+     playbook/   a clone of this repo
+     worktrees/  linked worktrees of src
    ```
-   In `wiki/`: `git init`, a `tools/` directory, and a copy of `team.sh` from an existing wiki's `tools/` (e.g. the sandbox project's `wiki/tools/team.sh`).
+   In `<root>/wiki`: `git init`. The team script runs from `<root>/playbook/tools/team.sh` and keeps its queue and agent list beside it, git-ignored.
 
-4. **Give `src` its agent docs**, each short:
-   - `AGENTS.md`, with this line: `Process rules: ../playbook/RULES.md. Read them before any ticket, review or question.`;
-   - `docs/agents/issue-tracker.md`: tickets as `.scratch/<feature>/issues/NN-<slug>.md`, each with a `**Ceremony:**` line and an `**If it fails:**` line; the tier table from README.md;
-   - `.scratch/backlog.md`: an empty backlog, one dated entry per parked item;
+5. **Give `<root>/src` its agent docs**, each short:
+   - `AGENTS.md`, with this line, `<root>` written out as the real path: `Process rules: <root>/playbook/RULES.md, beside this repo's main checkout. Read them before any ticket, review or question.`;
+   - `docs/agents/issue-tracker.md`: tickets as `.scratch/<feature>/issues/NN-<slug>.md`, shaped as [RULES.md](RULES.md) rule 1 says;
+   - `.scratch/backlog.md`: an empty backlog;
    - `CODING_STANDARDS.md`: the judgement rules a reviewer enforces; anything mechanical goes in a hook instead;
    - an ADR for the threat model (every agent assumed compromised) and one for simplicity (no option, layer or generality without a concrete second case).
 
-5. **Install the lead's commit guard** in `src/.git/hooks/pre-commit`: refuse any commit when `TEAM_ROLE=lead`, else run the usual hooks (e.g. the sandbox project's `wiki/tools/src-pre-commit`).
+6. **Install the lead's commit guard:** copy `<root>/playbook/tools/src-pre-commit` to `<root>/src/.git/hooks/pre-commit`, executable. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated` (with none, drop its last line).
 
-6. **Have an expendable host ready**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
+7. **Have an expendable host ready**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
 
 ## Start the lead
 
-7. In a tmux window:
+8. In a tmux window:
    ```sh
-   cd <project>/wiki && TEAM_ROLE=lead pi
+   cd <root>/wiki && TEAM_ROLE=lead pi
    ```
    then, in that pane's shell or with `!` in Pi: `tmux set -p @role lead`.
 
-8. Type:
+9. Type, with `<root>` written out:
    ```
    /skill:chief-of-staff
    Goal: <one paragraph, in your words>.
-   Follow ../playbook/RULES.md. The wiki is this directory; the project is ../src.
+   Follow <root>/playbook/RULES.md. The wiki is <root>/wiki; the project is <root>/src; the team script is <root>/playbook/tools/team.sh. Every task file names the rules by that absolute path.
    Start the wiki (index.md, goal.md), then ask me the sizing question for the first piece of work.
    ```
 
 ## The first exchange
 
-9. **Check the wiki start.** `goal.md` holds your goal with a date; `index.md` lists it.
+10. **Check the wiki start.** `goal.md` holds your goal with a date; `index.md` lists it.
 
-10. **Answer the first sizing question.** It quotes your words, says what each tier would build and recommends the lowest. If an option is labelled `widens:`, it adds something you did not ask for. Pick consciously.
+11. **Answer the first sizing question.** It quotes your words, says what each tier would build and recommends the lowest. An option labelled `widens:` adds something you did not ask for. Pick consciously.
 
-11. **Watch the first seat spawn.** Its task file's first line is `Ceremony: <tier> (the operator, "<your words>", <date> hh:mm)`. `tools/team.sh status` shows its `STATUS` line.
+12. **Watch the first seat spawn.** Its task file's first line is `Ceremony: <tier> (the operator, "<your words>", <date> hh:mm)`. `team.sh status` shows its `STATUS` line.
 
-12. **Answer in the format.** `yes`, `no`, your own words, `ok` (trust without full understanding) or `why?`, by ID. A go typed in a seat's pane counts.
+13. **Answer in the format.** `yes`, `no`, your own words, `ok` (trust without full understanding) or `why?`, by ID. A go typed in a seat's pane counts.
 
 ## Signs it is working
 
