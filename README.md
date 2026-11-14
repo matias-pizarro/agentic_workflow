@@ -68,7 +68,7 @@ Every round's summary opens with its running cost:
 install-pi · code round 4 · findings so far 9 · questions so far 7
 ```
 
-Then, when it applies, a drift question comes first (see rule 7). Then each finding, rated high, medium or low by what goes wrong and for whom if it stays. Each finding offers three answers: **fix**, **delete** (remove the code the finding sits in) or **backlog** (park it in the project's `.scratch/backlog.md`). The summary recommends fixing only the few findings that carry most of the harm; the rest are recommended for the backlog. You can overrule any of it.
+Then, when it applies, a drift question comes first (see rule 7). Then each finding, rated for impact (high, medium or low, by what goes wrong and for whom if it stays) and for effort (very low to high). Each finding offers three answers: **fix**, **delete** (remove the code the finding sits in) or **backlog** (park it in the project's `.scratch/backlog.md`). The summary recommends fixing the few findings that carry most of the harm, and fixing now any minor one that costs a word or a line; only minor findings with real effort are recommended for the backlog. You can overrule any of it.
 
 ## How to answer
 
@@ -98,7 +98,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 3. **Every sandbox and agent is assumed compromised.** *Why: agents did run host commands by accident (a shell heredoc slip ran lines of a file as root commands; none took effect); damage stays small only where the environment is built for it.*
 4. **Questions carry unique IDs and a recommendation; `ok` is recorded as trust.** *Why: unique IDs let you answer ten questions in one line without ambiguity; recording `ok` apart from `yes` keeps your informed decisions from being confused with your trust.*
 5. **A deliberate choice carries your words and the time; a claimed edit names its commit.** *Why: agents have called their own shortcuts "deliberate choices" and claimed edits they never made; a quote with a time, and a commit that touches the file, can be checked by a hook or by you.*
-6. **Every review finding reaches you, rated by impact, with a backlog for the rest.** *Why: applying small fixes silently would hide the problem rather than solve it; rating by impact lets you stop fixing everything without losing sight of anything.*
+6. **Every review finding reaches you, rated by impact and effort; a cheap fix is made now, a costly minor one goes to the backlog.** *Why: applying small fixes silently would hide the problem rather than solve it; rating by impact lets you stop fixing everything without losing sight of anything, and rating effort keeps one-line fixes out of the backlog, where recording them costs more than making them.*
 7. **A long review loop is a drift signal to pick up, never capped by tier.** *Why: a loop finding a gap in the previous round's fix, four rounds running, has lost its way; capping it would hide that, flagging it lets you act.*
 8. **Over-build is a finding; "delete it" is always offered.** *Why: reviews that hunt only for gaps only ever add code; on install-pi, 22 rounds produced one deletion, and the next round added the check back.*
 9. **Live checks pass before any merge.** *Why: a converged review loop says nothing about whether code runs; install-pi's converged loop failed its first real run at the package step.*
