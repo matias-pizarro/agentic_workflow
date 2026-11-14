@@ -41,7 +41,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 12. **Retros.** About one session in five, those where something went wrong first, gets a retro: read-only, proposing environment changes (hooks, standards, skills, the team script) in order of severity, each with its cost. The operator chooses.
 
-13. **Outward steps.** A push, a publication, spend beyond the stated cap, or content sent off the machine waits for the operator's go.
+13. **Outward steps.** A push, a publication, spend beyond the stated cap, or content sent off the machine waits for the operator's go. A standing go the operator gave for one operation (e.g. pushing the integration branch after a lead-authorised merge, one ref, the push-time secret scan passing) counts as their go for that operation only; the project's own notes list every standing go, with the operator's words and time.
 
 14. **Checks changed, not code.** Any change to a check, test, fixture, check setup or acceptance criterion, by anyone (seat, worker, a fix driven by review or by a live run), at any time:
     - opens its report with `⚠️ CHECK CHANGED, NOT CODE`, names the check, its old and new assertion and why, and goes to the operator as `❓ CHK-Qn`; a pass resting on it counts only once the operator answers;
