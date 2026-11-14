@@ -24,6 +24,9 @@
 # messages in order, each only once the input box is empty, retrying every
 # TEAM_POLL (3) seconds for up to TEAM_WAIT (1800) seconds; then the message
 # moves to tools/spool/<target>/failed. Log: tools/spool/log.
+# tools/ is the directory of the path the script was invoked by, not of its
+# resolved target: a symlink <root>/wiki/tools/team.sh to the playbook's copy
+# keeps the spool and tools/agents in the wiki (14 Nov 2026).
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 self=$here/$(basename "$0")
