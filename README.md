@@ -106,6 +106,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 11. **The wiki is dated history.** *Why: the lead's context is lost at compaction, at a restart, or when a new lead takes over; the wiki is what survives, and undated claims rot without anyone noticing.*
 12. **Retros on about one session in five.** *Why: most of these rules came out of retros; without them the same failure recurs with a new name.*
 13. **Outward-facing steps wait for your go.** *Why: a push, a publication or money spent cannot be taken back.*
+14. **A change to a check, not the code, is flagged loudly and asked; a new check must first fail on the broken code.** *Why: changing a check to make it pass is the easiest way to hide a real failure, and a weakened check silently weakens everything resting on it.*
 
 ## Keeping the team running
 

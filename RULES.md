@@ -22,7 +22,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 6. **Visible findings.** Every review finding reaches the operator. Each round's summary opens with `<topic> · <loop> round k · findings so far F · questions so far Q`, rates each finding's impact (high, medium or low: what goes wrong and for whom if it stays) and effort (very low, low, medium or high; very low is a word or a line, cheaper than a backlog entry), and recommends: fix for the important few; fix now for low impact at very low effort; the backlog (`.scratch/backlog.md`: date, item, impact, source, the operator's words) only for the rest, low impact with real effort. Every finding is answered by the operator: fix, delete or backlog.
     - Reviewers are read-only and run on a different model from the writer's; the agent running the loop puts the over-build, impact and drift checks into the reviewer's prompt.
     - Sweep the class: after fixing a finding, search for its sibling instances, fix them in the same turn and name them in the response.
-    - A fix that changes a check, test or acceptance criterion instead of the code under test opens its report with `⚠️ CHECK CHANGED, NOT CODE`, names the check, its old and new assertion and why, and goes to the operator as `❓ CHK-Qn`; a pass resting on it counts only once the operator answers.
+    - A fix that changes a check instead of the code follows rule 14.
 
 7. **Drift.** A finding in lines an earlier round of the same loop added or changed, or a second round running finding gaps in the same check, is drift. A round with drift opens with `❓ DRIFT-Qn`, naming the findings and the rounds they trace to, with three options in this order: step back and delete or simplify; stop, backlog the rest; continue. Drift is a signal to raise, every time. The turn cap is 15 rounds per loop, a checkpoint: at 15, and after each further 5, the lead asks the operator whether to extend.
 
@@ -42,6 +42,12 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 12. **Retros.** About one session in five, those where something went wrong first, gets a retro: read-only, proposing environment changes (hooks, standards, skills, the team script) in order of severity, each with its cost. The operator chooses.
 
 13. **Outward steps.** A push, a publication, spend beyond the stated cap, or content sent off the machine waits for the operator's go.
+
+14. **Checks changed, not code.** Any change to a check, test, fixture, check setup or acceptance criterion, by anyone (seat, worker, a fix driven by review or by a live run), at any time:
+    - opens its report with `⚠️ CHECK CHANGED, NOT CODE`, names the check, its old and new assertion and why, and goes to the operator as `❓ CHK-Qn`; a pass resting on it counts only once the operator answers;
+    - a new or changed check is first shown to fail on the broken code; only then does its pass count.
+
+    Why: changing a check to make it pass is the easiest way to hide a real failure, and checks are the source of truth, so a weakened check silently weakens everything resting on it. Examples: a live check's timeout relaxed until it passed; a bridge step that passed on code failing open.
 
 ## Team mechanics
 
