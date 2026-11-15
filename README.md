@@ -56,7 +56,7 @@ Turn on the repo's hooks once per clone; they refuse a commit that empties a fil
 git config core.hooksPath .githooks
 ```
 
-Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/`.
+Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/` or `tools/check_empty_files`.
 
 Branches: work starts on a feature branch from `integration` and returns to it with `git merge --no-ff` once its live checks pass. `main` moves only at a release.
 
