@@ -1,0 +1,61 @@
+#!/usr/bin/env sh
+# Refuse a commit that empties a file: a path with content in HEAD and empty
+# in the index, as an interrupted or racing write leaves it. Run by a
+# pre-commit hook on the staged files; depends on nothing else in the repo,
+# so it can be copied as is into another.
+#
+# Usage: check_empty_files <path>...
+#   Paths are relative to the current directory, as pre-commit passes them.
+#   ALLOW_EMPTY="<path> <path>"  paths, relative to the repo root and
+#   separated by spaces, that this commit empties on purpose. A path with a
+#   space in it cannot be named there: commit it with --no-verify instead.
+#
+# A path HEAD lacks is new and passes, empty or not; a path the index lacks
+# is being deleted and passes. A failed read of HEAD or the index refuses.
+# Every refusal is reported; exit 1 if any, 2 on a usage error.
+set -u
+set -o pipefail
+set -f # ALLOW_EMPTY is split on spaces, never globbed
+
+git() { command git --literal-pathspecs "$@"; }
+
+[ $# -gt 0 ] || { echo "usage: check_empty_files <path>..." >&2; exit 2; }
+prefix=$(git rev-parse --show-prefix) || exit 1
+top=$(git rev-parse --show-toplevel) || exit 1
+CDPATH='' cd -- "$top" || exit 1
+# On an unborn branch (HEAD names a branch with no ref yet; show-ref --exists,
+# git 2.43, exits 2 only for that) nothing has content in HEAD; any other HEAD
+# that does not resolve to a commit is a failed read.
+if ! git rev-parse -q --verify 'HEAD^{commit}' > /dev/null; then
+  ref=$(git symbolic-ref -q HEAD) && { git show-ref --exists "$ref" 2> /dev/null; [ $? = 2 ]; } && exit 0
+  echo "check_empty_files: cannot read HEAD; not committed" >&2
+  exit 1
+fi
+
+allowed() { # path
+  IFS=' '
+  for a in ${ALLOW_EMPTY:-}; do [ "$a" = "$1" ] && return 0; done
+  return 1
+}
+
+failed=0
+for f; do
+  case $f in "$top"/*) f=${f#"$top"/} ;; /*) ;; *) f=$prefix$f ;; esac
+  # HEAD: "<mode> <type> <object> <size>\t<path>", or nothing when absent.
+  head=$(git ls-tree -l HEAD -- "$f") ||
+    { echo "$f: cannot read it in HEAD; not committed" >&2; failed=1; continue; }
+  [ -n "$head" ] || continue
+  [ "$(printf '%s\n' "$head" | awk '{ print (($2 == "blob" && $4 > 0) ? "full" : "skip") }')" = full ] || continue
+  # Index: "<mode> <object> <stage>\t<path>", or nothing when being deleted.
+  index=$(git ls-files -s -- "$f") ||
+    { echo "$f: cannot read it in the index; not committed" >&2; failed=1; continue; }
+  [ -n "$index" ] || continue
+  case $index in 160000\ *) continue ;; esac # a submodule, not a file
+  size=$(git cat-file -s "$(printf '%s\n' "$index" | awk 'NR == 1 { print $2 }')") ||
+    { echo "$f: cannot read its staged size; not committed" >&2; failed=1; continue; }
+  [ "$size" = 0 ] || continue
+  allowed "$f" && continue
+  echo "$f: empty in the index but not in HEAD, as an unfinished write leaves it; commit again once it is written, or with ALLOW_EMPTY=$f if emptying it is meant" >&2
+  failed=1
+done
+exit "$failed"

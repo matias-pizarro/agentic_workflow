@@ -1,0 +1,107 @@
+#!/usr/bin/env sh
+# Copied from the freebsd sandbox project's tests/check_empty_files (its
+# commit 9366924), with its scratch_git helper inlined and the checker's path
+# changed.
+#
+# Test .githooks/check_empty_files with real commits in a scratch repository: the
+# checker runs as its pre-commit hook, on the staged files as pre-commit
+# passes them (added, copied, modified, renamed, type-changed; no deletions).
+# An emptied file is refused and named, the same with ALLOW_EMPTY passes, a
+# new empty file and an unborn branch pass, a HEAD that does not resolve
+# refuses. No network.
+set -eu
+set -o pipefail
+# A commit hook names the shared repository in git's variables; the scratch
+# repository must never reach it.
+unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE \
+  GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE \
+  GIT_CEILING_DIRECTORIES GIT_PREFIX GIT_CONFIG GIT_CONFIG_PARAMETERS \
+  GIT_CONFIG_COUNT
+repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+EMPTY_CHECK=$repo/.githooks/check_empty_files
+export EMPTY_CHECK
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+cd "$tmp"
+git init -q
+git config user.email test@example.invalid
+git config user.name test
+git config commit.gpgsign false
+# The hook expands $EMPTY_CHECK itself.
+# shellcheck disable=SC2016
+printf '%s\n' '#!/bin/sh' \
+  'git diff --cached --name-only -z --diff-filter=ACMRTUXB | xargs -0 -r "$EMPTY_CHECK"' \
+  > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+
+fails=0
+# expect <0|1> <case> <command>...: run the command and compare its exit
+# status (any refusal counts as 1); a refusal must name what it refuses.
+expect() {
+  want=$1 name=$2
+  shift 2
+  rc=0
+  "$@" > out 2>&1 || rc=1
+  if [ "$rc" != "$want" ]; then
+    echo "FAIL: $name: expected exit $want, got $rc: $(cat out)" >&2
+    fails=$((fails + 1))
+  fi
+}
+names() { # case word: the last refusal names the word
+  grep -qF -- "$2" out || { echo "FAIL: $1: the refusal does not name $2: $(cat out)" >&2; fails=$((fails + 1)); }
+}
+commit() { git commit -q -m "$1"; }
+
+mkdir sub
+echo hi > a.txt
+echo x > 'sub/b c.txt'
+echo y > keep.txt
+: > born-empty.txt
+git add -A
+expect 0 "first commit, unborn branch, an empty file" commit init
+
+: > a.txt
+git add a.txt
+expect 1 "a file emptied" commit e1
+names "a file emptied" a.txt
+expect 0 "the same with ALLOW_EMPTY" env ALLOW_EMPTY=a.txt git commit -q -m e2
+
+: > new.txt
+git add new.txt
+expect 0 "a new empty file" commit e3
+
+: > 'sub/b c.txt'
+git add 'sub/b c.txt'
+expect 1 "a path with a space emptied, from a subdirectory" sh -c 'cd sub && git commit -q -m e4'
+names "a path with a space emptied" 'sub/b c.txt'
+git reset -q --hard
+
+echo more >> keep.txt
+git add keep.txt
+expect 0 "an ordinary change" commit e5
+git rm -q keep.txt
+expect 0 "a deletion" commit e6
+
+echo filled > born-empty.txt
+git add born-empty.txt
+expect 0 "a file empty in HEAD given content" commit e7
+: > born-empty.txt
+git add born-empty.txt
+expect 1 "... and emptied again" commit e8
+names "... and emptied again" born-empty.txt
+
+# git commit itself stops on a HEAD it cannot parse, so the checker is run
+# directly here.
+branch=$(git rev-parse --git-path "$(git symbolic-ref HEAD)")
+printf '%s\n' 0123456789012345678901234567890123456789 > "$branch"
+expect 1 "a HEAD pointing at a missing object" "$EMPTY_CHECK" born-empty.txt
+names "a HEAD pointing at a missing object" HEAD
+printf '%s\n' garbage > "$branch"
+expect 1 "a HEAD whose branch ref is broken" "$EMPTY_CHECK" born-empty.txt
+names "a HEAD whose branch ref is broken" HEAD
+
+expect 1 "no path: usage" "$EMPTY_CHECK"
+
+[ "$fails" = 0 ] || { echo "check_empty_files: $fails failed" >&2; exit 1; }
+echo "check_empty_files: ok"
