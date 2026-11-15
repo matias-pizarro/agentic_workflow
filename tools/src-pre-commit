@@ -1,6 +1,7 @@
 #!/bin/sh
-# Lead commit guard: src/.git/hooks/pre-commit, untracked, installed from the
-# wiki's tools/src-pre-commit (13 Nov 2026; see env-git-hooks.md). It refuses
+# Lead commit guard: src/.git/hooks/pre-commit, untracked, a copy of or a
+# symlink to <root>/agentic_workflow/tools/src-pre-commit (docs/kickoff.md
+# step 6). It refuses
 # a commit when TEAM_ROLE=lead (the lead delegates edits in src to agents),
 # then runs the hook that pre-commit installed, kept unchanged as
 # pre-commit.generated. If a later `pre-commit install` moves this file to

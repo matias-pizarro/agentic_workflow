@@ -2,14 +2,16 @@
 
 This is how to run software work with a team of [Pi](https://github.com/earendil-works/pi) agents, one lead and several workers, with you deciding everything that matters. It keeps what worked on a multi-day project and guards against what went wrong there. Reading it takes about 20 minutes.
 
-**`<root>`** in all paths here is the directory holding the project's three repositories side by side: `<root>/src` (the project), `<root>/wiki` (the lead's memory) and `<root>/playbook` (a clone of this repo), plus `<root>/worktrees` for the project's branch worktrees.
+**`<root>`** in all paths here is the directory holding the project's three repositories side by side: `<root>/src` (the project), `<root>/wiki` (the lead's memory) and `<root>/agentic_workflow` (a clone of this repo, at a release tag), plus `<root>/worktrees` for the project's branch worktrees.
 
 The repo holds:
 
-- **README.md** (this file): what the process is, who does what, and why each rule exists.
-- **[KICKOFF.md](KICKOFF.md)**: a checklist for your first hour.
-- **[RULES.md](RULES.md)**: the rules, worded for agents. Point every agent at it.
+- **`docs/index.md`** (this page): what the process is, who does what, and why each rule exists.
+- **[kickoff.md](kickoff.md)**: a checklist for your first hour.
+- **[rules.md](rules.md)**: the rules, worded for agents. Point every agent at it.
 - **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard.
+- **`skills/`**: the skills this process adds to the ones it installs from elsewhere, such as `review-loop`.
+- **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
 
 ## What the process is
 
@@ -33,7 +35,7 @@ It goes wrong in one recognisable way: work grows past what you asked for, one r
 | **Worker** | a subagent a seat starts (with `pi-subagents`), e.g. one implementer per ticket in its own git worktree | one ticket or one investigation | outlives its task |
 | **Reviewer** | a different model from the writer's (e.g. GPT reviewing Claude's code), started by the `review-loop` or `code-review` skill | a findings report | edits files |
 
-Why a lead who edits nothing: when the lead fixes things by hand, nobody reviews them and its context fills with detail it needs for deciding. A commit guard enforces it (see KICKOFF.md).
+Why a lead who edits nothing: when the lead fixes things by hand, nobody reviews them and its context fills with detail it needs for deciding. A commit guard enforces it (see [kickoff.md](kickoff.md)).
 
 Why a separate reviewer model: a second model has different blind spots, and reading a diff with no exploration to do is cheap.
 
@@ -90,7 +92,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 
 ## The rules, and why
 
-[RULES.md](RULES.md) is the one full statement of the rules, numbered as here. This list gives each rule's reason.
+[rules.md](rules.md) is the one full statement of the rules, numbered as here. This list gives each rule's reason.
 
 0. **The rules override broader skill defaults.** *Why: the installed skills were written for other teams; some fix every finding, run reviews regardless of tier, or act on retro proposals without asking.*
 1. **You choose each ticket's ceremony tier, before it is written.** *Why: left alone, the full ceremony becomes everyone's habit, and a 15-command job gets two tickets and 22 review rounds.*
@@ -110,8 +112,8 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 
 ## Keeping the team running
 
-The lead starts seats and passes messages with `<root>/playbook/tools/team.sh` (`spawn`, `send`, `go`, `report`, `status`, `revive --all` after a tmux restart; run it without arguments for the list). Messages wait until the receiving pane's input box is empty, so a report never lands in your half-typed sentence. Every agent turn ends with a `STATUS` line, so the lead knows who needs what without polling; `waiting-for-PM` means waiting for you. After each Pi upgrade, run `team.sh selftest`: a Pi interface change can otherwise leave every message stuck.
+The lead starts seats and passes messages with `<root>/agentic_workflow/tools/team.sh` (`spawn`, `send`, `go`, `report`, `status`, `revive --all` after a tmux restart; run it without arguments for the list). Messages wait until the receiving pane's input box is empty, so a report never lands in your half-typed sentence. Every agent turn ends with a `STATUS` line, so the lead knows who needs what without polling; `waiting-for-PM` means waiting for you. After each Pi upgrade, run `team.sh selftest`: a Pi interface change can otherwise leave every message stuck.
 
 ## Changing this playbook
 
-The same way the rules were made: a retro proposes, you decide, and the files state only the rules as they now stand.
+The same way the rules were made: a retro proposes, you decide, and the files state only the rules as they now stand. Each change ships in a release, a `vX.Y.Z` tag; `CHANGELOG.md` says what each one asks of a project.

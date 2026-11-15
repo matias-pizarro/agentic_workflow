@@ -1,6 +1,6 @@
 # Rules
 
-Process rules for every agent on a team run by this playbook: the lead, seats, workers and reviewers. "The operator" is the human who decides. Each rule's reason is in [README.md](README.md) under the same number; read it when a case is unclear. `<root>` is defined at the top of README.md.
+Process rules for every agent on a team run by this playbook: the lead, seats, workers and reviewers. "The operator" is the human who decides. Each rule's reason is in [index.md](index.md) under the same number; read it when a case is unclear. `<root>` is defined at the top of index.md.
 
 0. **Precedence.** Where a skill prescribes broader or automatic action than these rules (fixing every finding, a review the tier doesn't call for, acting on retro candidates, `review-loop`'s `auto` mode), these rules and the ticket's tier govern. Run `review-loop` without `auto`.
 
@@ -52,7 +52,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 ## Team mechanics
 
 - End every turn with one line: `STATUS seat=<name> state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [ask="<one sentence>"] [pointer=<path or commit>]`. "PM" is the operator.
-- The team script is `<root>/playbook/tools/team.sh`. After each Pi upgrade, run `team.sh selftest`; `team.sh status` lists any message stuck in `failed/`.
+- The team script is `<root>/agentic_workflow/tools/team.sh`. After each Pi upgrade, run `team.sh selftest`; `team.sh status` lists any message stuck in `failed/`.
 - Seats report with `team.sh report "<name>: <one or two sentences> <pointer>"`, then end the turn. The lead sends with `team.sh send`, and relays a go only with `team.sh go`.
 - Messages, task files and reports carry pointers (a path or a commit), never pasted contents.
 - The lead's session stays free for the operator: long work runs in seats and background subagents, and nobody waits in a polling loop.
