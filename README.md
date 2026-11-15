@@ -41,11 +41,13 @@ git config core.hooksPath .githooks
 
 Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/`.
 
+Branches: work starts on a feature branch from `integration` and returns to it with `git merge --no-ff` once its live checks pass. `main` moves only at a release.
+
 To cut a release:
 
-1. Read `git log <last tag>..main`.
-2. Add a section to `CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)), naming under each Changed or Removed entry that forces a major what a project must do; pick the version by the rules above.
-3. Commit it on `main` and tag it: `git tag -a vX.Y.Z -m vX.Y.Z`.
-4. Push `main` and the tag once the owner says go.
+1. Read `git log <last tag>..integration`.
+2. On `integration`, add a section to `CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)), naming under each Changed or Removed entry that forces a major what a project must do; pick the version by the rules above; commit it.
+3. Merge `integration` into `main` and tag the merge: `git switch main && git merge --no-ff integration -m vX.Y.Z && git tag -a vX.Y.Z -m vX.Y.Z`.
+4. Push `main`, `integration` and the tag once the owner says go.
 
 MIT licensed; see `LICENSE`.
