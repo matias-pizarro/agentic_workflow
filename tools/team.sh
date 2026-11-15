@@ -9,7 +9,7 @@
 #   team.sh send <name> "<text>"             queue one message for an agent's pane
 #   team.sh go <name> "<words>" "<instr>"    queue "Lead: the user's go, lead pane, <time> ('<words>'): <instr>"
 #   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane
-#   team.sh status                           last STATUS line of every agent, [busy] flag; failed messages
+#   team.sh status                           last STATUS line of every agent, [busy] flag; queued and failed messages
 #   team.sh retire <name>                    close a finished agent's window, drop its record
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
@@ -23,8 +23,11 @@
 # may be mid-sentence there): the message goes to a spool (tools/spool/<target>/q),
 # and a background deliverer, one per target (mkdir lock), types the queued
 # messages in order, each only once the input box is empty, retrying every
-# TEAM_POLL (3) seconds for up to TEAM_WAIT (1800) seconds; then the message
-# moves to tools/spool/<target>/failed. Log: tools/spool/log.
+# TEAM_POLL (3) seconds for up to TEAM_WAIT (14400, 4 h) seconds; then the
+# message moves to tools/spool/<target>/failed. Log: tools/spool/log. send, go
+# and report say when the target's pane is busy: pi then holds a typed message
+# as steering, read after the agent's current step (pi's rpc-commands.md).
+# status lists every queued message with its age.
 # tools/ is the directory of the path the script was invoked by, not of its
 # resolved target: a symlink <root>/wiki/tools/team.sh to
 # <root>/agentic_workflow/tools/team.sh
@@ -33,7 +36,7 @@ set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 self=$here/$(basename "$0")
 spool=${TEAM_SPOOL:-$here/spool}
-wait_max=${TEAM_WAIT:-1800}
+wait_max=${TEAM_WAIT:-14400}
 poll=${TEAM_POLL:-3}
 agents=${TEAM_AGENTS:-$here/agents}
 pi_cmd=${TEAM_PI:-pi}
@@ -73,6 +76,12 @@ input_empty() { # pane
   [ -z "$(printf '%s' "$box" | tr -d ' \t\n')" ]
 }
 
+# A pane is busy while pi's "Working" line shows near its bottom.
+busy() { tmux capture-pane -p -J -t "$1" 2> /dev/null | tail -8 | grep -q 'Working'; }
+
+# Seconds since a file was last changed (GNU stat, else BSD stat).
+mtime() { stat -c %Y "$1" 2> /dev/null || stat -f %m "$1"; }
+
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$spool/log"; }
 
 # mkdir lock holding the owner's pid; a lock whose owner is gone is removed.
@@ -110,6 +119,10 @@ enqueue() { # target text
   rm -rf "$d/seq.lock"
   echo "queued for $1: $f"
   log "queued $f"
+  p=$(resolve "$1")
+  if [ -n "$p" ] && busy "$p"; then
+    echo "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
+  fi
   # Detach from the caller's session, so the deliverer outlives the agent's
   # shell command (pi kills the process group of its bash calls).
   if command -v daemon > /dev/null; then
@@ -350,6 +363,7 @@ in_order() { # pane text...
   done
 }
 status_shows_failed() { sh "$self" status | grep -q '^FAILED to-agent/failed/'; }
+status_shows_queued() { sh "$self" status | grep -q '^QUEUED lead [0-9][0-9]*m: selftest report one'; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
 recorded_as() { # name cwd task
@@ -406,6 +420,7 @@ selftest() {
   check "go quotes the words" has "$ap" "('go ahead'): selftest go"
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
+  check "status lists them as QUEUED, with their age" status_shows_queued
   check "... and are not typed" lacks "$lp" "selftest report one"
   tmux send-keys -t "$lp" -l -- "$cr" # the user submits the line
   check "the reports are delivered once the user's line is submitted" waitfor 120 queued lead 0
@@ -525,12 +540,19 @@ status)
     [ "$idx" = "$leadwin" ] && continue
     pane=$(tmux capture-pane -p -J -S -300 -t "$idx")
     line=$(printf '%s\n' "$pane" | grep -o 'STATUS seat=.*' | tail -1)
-    busy=''
-    printf '%s\n' "$pane" | tail -8 | grep -q 'Working' && busy='[busy] '
-    printf '%-16s %s%s\n' "$name" "$busy" "${line:-(no STATUS line)}"
+    flag=''
+    busy "$idx" && flag='[busy] '
+    printf '%-16s %s%s\n' "$name" "$flag" "${line:-(no STATUS line)}"
   done
   for f in "$spool"/*/failed/*; do
     [ -f "$f" ] && printf 'FAILED %s: %s\n' "${f#"$spool"/}" "$(head -1 "$f" | cut -c1-100)"
+  done
+  now=$(date +%s)
+  for f in "$spool"/*/q/*; do
+    [ -f "$f" ] || continue
+    target=${f#"$spool"/}
+    age=$(mtime "$f") && age="$(((now - age) / 60))m" || age='age unreadable'
+    printf 'QUEUED %s %s: %s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)"
   done
   true
   ;;
