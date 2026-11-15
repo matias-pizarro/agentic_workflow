@@ -2,6 +2,6 @@
 # Turned on per clone with `git config core.hooksPath .githooks` (README).
 # Refuses a commit that empties a file by accident: 8639493 committed an
 # empty skills/review-loop/SKILL.md, which was then pushed. ALLOW_EMPTY=<path>
-# lets a deliberate emptying through (.githooks/check_empty_files).
+# lets a deliberate emptying through (tools/check_empty_files).
 git diff --cached --name-only -z --diff-filter=ACMRTUXB |
-  xargs -0 -r "$(dirname "$0")/check_empty_files"
+  xargs -0 -r "$(dirname "$0")/../tools/check_empty_files"

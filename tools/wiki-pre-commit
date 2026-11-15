@@ -1,0 +1,9 @@
+#!/bin/sh
+# The wiki's commit guard: <root>/wiki/.git/hooks/pre-commit, a symlink to
+# <root>/agentic_workflow/tools/wiki-pre-commit. It refuses a commit that
+# empties a file by accident, as a write racing a commit leaves it
+# (check_empty_files, beside this file's target; ALLOW_EMPTY=<path> lets a
+# deliberate emptying through). RT2-Q2.
+here=$(dirname "$(realpath "$0")") || exit 1
+git diff --cached --name-only -z --diff-filter=ACMRTUXB |
+  xargs -0 -r "$here/check_empty_files"
