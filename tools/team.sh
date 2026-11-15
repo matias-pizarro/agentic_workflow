@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Team script of the chief of staff (the lead). One tmux window per agent; the
 # window name is the agent's identity. Mechanics follow
 # src/chief-of-staff-communication.md (11 Nov 2026).

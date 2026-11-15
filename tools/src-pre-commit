@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Lead commit guard: src/.git/hooks/pre-commit, untracked, a copy of or a
 # symlink to <root>/agentic_workflow/tools/src-pre-commit (docs/kickoff.md
 # step 6). It refuses
