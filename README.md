@@ -3,7 +3,7 @@
 A way to run software work with a team of [Pi](https://github.com/earendil-works/pi) agents (one lead and several seats, with you deciding everything that matters), and the scripts and skills it runs on.
 
 - **`docs/`**: the playbook. Start at [docs/index.md](docs/index.md): what the process is and why each rule exists; [docs/kickoff.md](docs/kickoff.md), a checklist for the first hour; [docs/rules.md](docs/rules.md), the rules worded for agents.
-- **`tools/`**: `team.sh`, the team script; `src-pre-commit`, the lead's commit guard.
+- **`tools/`**: `team.sh`, the team script; `src-pre-commit`, the lead's commit guard; `extensions/guards.ts`, a pi extension refusing tool calls known to go wrong (below).
 - **`skills/`**: agent skills, one directory each.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
 
@@ -22,6 +22,23 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 ```
 
 - **review-loop**: commits pending work, has Codex review one topic under `.scratch/`, grills you through each finding and records the response, turn after turn until a review has no findings. Needs `codex` (logged in) or `pi` with `OPENAI_API_KEY`, and the `grilling` and `domain-modeling` skills, which the CLI does not install with it: `npx skills@latest add mattpocock/skills -g --skill grilling domain-modeling`.
+
+## Guards
+
+`tools/extensions/guards.ts` is one pi extension with one `tool_call` handler per guard:
+
+- **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message.
+
+Install it for your user, after backing up pi's settings (both steps are safe to rerun; on a rerun, `cp -n` keeps the first backup and exits 1):
+
+```sh
+cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
+node tools/extensions/install.mjs
+```
+
+This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. Its test: `node tests/guards/run.mjs`.
+
+**If it fails:** restore `~/.pi/agent/settings.json` from `settings.json.bak-guards`, remove `~/.pi/agent/extensions/guards.ts`, fix the cause and rerun.
 
 ## Versions
 
