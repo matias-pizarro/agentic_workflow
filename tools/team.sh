@@ -14,6 +14,7 @@
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
+#   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
 # spawn records each agent as "name<TAB>cwd<TAB>task file<TAB>session id" in
 # tools/agents (git-ignored; TEAM_AGENTS overrides), and starts it without
 # TEAM_ROLE in its environment (the lead runs with TEAM_ROLE=lead, which the
@@ -250,6 +251,60 @@ ensure_lead() {
   fi
   tmux set -p -t "$TMUX_PANE" @role lead
   echo "set @role=lead on $TMUX_PANE"
+}
+
+# doctor: check each host dependency in tools/expect (TEAM_EXPECT overrides),
+# one per line: "<kind> <target> <expected> | <the host-side fix>", # for
+# comments. Kinds: sysctl <name> <value>; nonempty <file>; sshcontrolpath
+# <alias> %n (ssh -G <alias> prints a ControlPath holding the alias, so two
+# aliases of one host never share a socket); jail <name>, the jail's name for
+# the fix block, checking nothing. Prints each failure, then one block for the
+# host: one jail -m line with every sysctl fix, then the other fixes. A read
+# that fails is a failure. Exit 1 on any failure.
+doctor() {
+  f=${TEAM_EXPECT:-$here/expect}
+  [ -f "$f" ] && [ -r "$f" ] || die "doctor: cannot read $f"
+  jail='<jail>' jfix='' ofix='' n=0 bad=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case $line in '' | '#'*) continue ;; esac
+    fix=$(printf '%s' "${line#*|}" | sed 's/^ *//; s/ *$//')
+    case $line in *'|'*) ;; *) fix='' ;; esac
+    set -f
+    # shellcheck disable=SC2086 # split the spec into its words
+    set -- ${line%%|*}
+    set +f
+    kind=${1:-} target=${2:-} want=${3:-}
+    # shellcheck disable=SC2088 # a literal ~/ in the file, expanded here
+    case $target in '~/'*) target=$HOME/${target#'~/'} ;; esac
+    got='' ok=0
+    case $kind in
+    jail) jail=$target; continue ;;
+    sysctl)
+      got=$(sysctl -n "$target" 2>&1) && [ "$got" = "$want" ] && ok=1 ;;
+    nonempty)
+      if [ -s "$target" ]; then ok=1; elif [ -e "$target" ]; then got=empty; else got='missing or unreadable'; fi ;;
+    sshcontrolpath)
+      got=$(ssh -G "$target" 2>&1 | awk '$1 == "controlpath" { print $2 }') || got='ssh -G failed'
+      case $got in *"$target"*) ok=1 ;; esac ;;
+    *) got="unknown kind '$kind'" ;;
+    esac
+    n=$((n + 1))
+    [ $ok = 1 ] && continue
+    bad=$((bad + 1))
+    echo "FAIL $kind $target: expected ${want:-non-empty}, got ${got:-nothing}"
+    case $kind in
+    sysctl) jfix="$jfix $fix" ;;
+    nonempty) ofix="$ofix$fix, and persist it in the host's fstab$cr" ;;
+    *) ofix="$ofix$fix$cr" ;;
+    esac
+  done < "$f"
+  if [ $bad = 0 ]; then echo "doctor: all $n held ($f)"; return 0; fi
+  echo
+  echo "On the host:"
+  [ -z "$jfix" ] || echo "  doas jail -m name=$jail$jfix   (and persist them in the host's jail.conf)"
+  printf '%s' "$ofix" | tr '\r' '\n' | sed 's/^/  /'
+  echo "doctor: $bad of $n failed"
+  return 1
 }
 
 # selftest: the team-fix test, on a separate tmux server (-L teamtest) with a
@@ -501,6 +556,9 @@ revive)
   ;;
 selftest)
   selftest
+  ;;
+doctor)
+  doctor
   ;;
 *) usage ;;
 esac
