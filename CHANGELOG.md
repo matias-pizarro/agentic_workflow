@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.3.1] - 2026-11-15
+
+### Changed
+
+- Rule 6's issue form: "Solutions, each with its effort" becomes "Solutions, effort and tradeoffs": each solution names its effort and its tradeoffs.
+
 ## [1.3.0] - 2026-11-15
 
 ### Added
@@ -65,6 +71,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.3.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.0
 [1.2.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.2.0
 [1.1.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.1.0
