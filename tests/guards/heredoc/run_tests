@@ -1,0 +1,66 @@
+#!/usr/bin/env sh
+# Tests for heredoc-guard, a handler of tools/extensions/guards.ts (src
+# chores ticket 14; moved here from src's tests/heredoc_guard).
+#
+# Each file in cases/ is one tool call's command, verbatim, named
+# refused-<delimiter>-<name>.<tool> or allowed-<name>.<tool>: the
+# extension's handler, driven as Pi drives it (verdict.mjs), must refuse it
+# or let it through. A refusal's reason must name the delimiter, unless the
+# name leaves it empty (refused--<name>, for a delimiter no file name can
+# hold), point to the edit and write tools, and say that a commit message
+# goes in a file for `git commit -F <file>`.
+#
+# Run: tests/guards/heredoc/run_tests
+set -u
+set -o pipefail
+
+here=$(cd "$(dirname "$0")" && pwd) || exit 1
+extension="$here/../../../tools/extensions/guards.ts"
+verdict="$here/verdict.mjs"
+
+failed=0
+ran=0
+fail() { echo "FAIL $1: $2"; failed=$((failed + 1)); }
+
+for case in "$here"/cases/*; do
+  name=$(basename "$case")
+  tool=${name##*.}
+  ran=$((ran + 1))
+  reason=$(node "$verdict" "$extension" "$tool" "$case")
+  status=$?
+  case "$name:$status" in
+    refused-*:0)
+      case "$reason" in
+        *"edit or write tool"*"git commit -F <file>"*) ;;
+        *) fail "$name" "the reason does not point to the edit or write tool and to git commit -F <file>: $reason" ;;
+      esac
+      delimiter=${name#refused-}
+      delimiter=${delimiter%%-*}
+      case "$delimiter:$reason" in
+        :*|*"\`$delimiter\`"*) ;;
+        *) fail "$name" "the reason does not name \`$delimiter\`: $reason" ;;
+      esac
+      # The lines as written, where the joined pass found them.
+      case "$name" in
+        refused-EOF-continued-word.bash|refused-EOF-continued-body-line.bash) lines="lines 3, 5 " ;;
+        refused-EOF-lc1-incident.bash) lines="lines 13, 16, 19, 22, 28, 39)" ;;
+        *) lines= ;;
+      esac
+      case "$reason" in
+        *"$lines"*) ;;
+        *) fail "$name" "the reason does not name $lines: $reason" ;;
+      esac
+      ;;
+    allowed-*:1) ;;
+    refused-*:1) fail "$name" "let through, expected refused" ;;
+    allowed-*:0) fail "$name" "refused, expected let through: $reason" ;;
+    *) fail "$name" "verdict.mjs exited $status" ;;
+  esac
+done
+
+[ "$ran" -gt 0 ] || { echo "FAIL: no cases in $here/cases"; exit 1; }
+if [ "$failed" -gt 0 ]; then
+  echo "$failed of $ran cases failed"
+  exit 1
+fi
+echo "all $ran cases passed"
