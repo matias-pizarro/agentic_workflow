@@ -28,9 +28,9 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 8. **Over-build.** Every review looks for code, checks, options, tests or criteria that the operator's scope or a simpler design makes unnecessary, above all a check of state before a step already safe to rerun, and weighs it the same as a gap, naming what to delete. Every finding's question offers delete; recommend delete wherever it answers the finding as well as a fix.
 
-9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host, with `git merge --no-ff`. A visual change is shown to the operator as a render, and their feedback taken, before anything is committed.
+9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host, with `git merge --no-ff`. Just before merging, the seat merges the integration branch into its branch and resolves any conflict there, flagging to the lead a shared file that diverged; its ready report names the commit its live checks last ran on, and code changed since then runs live again. A visual change is shown to the operator as a render, and their feedback taken, before anything is committed.
 
-10. **Lead: delegate, stay small.** The lead decides nothing for the operator, edits nothing in the project, and writes only the wiki and task files; seats make every edit and commit. In every scope question:
+10. **Lead: delegate, stay small.** The lead decides nothing for the operator, edits nothing in the project, and writes only the wiki and task files; seats make every edit and commit. A claim the lead passes on about state (exists, absent, intact, tested, the cause of a failure) names the read it rests on: the whole command output, or a seat's report and its commit. A truncated, partial, remembered or second-hand read is passed on as `unverified: <claim>; <who> checks`, and a brief carries such facts as checks to run. In every scope question:
     - `➡️` is the smallest option that meets the operator's own words;
     - an option beyond them is labelled `widens: <what it adds>` and is recommended only when a named security risk forces it;
     - a request for something reusable, shared or a framework first gets: which second project or caller uses it, and when? Without an answer, the work stays where it is;
