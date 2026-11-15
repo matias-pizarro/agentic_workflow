@@ -14,11 +14,6 @@ set -eu
 wt=$1 live=$2
 shift 2
 
-head=$(git -C "$wt" rev-parse --verify -q 'HEAD^{commit}') ||
-  { echo "merge-ready: cannot read HEAD in $wt" >&2; exit 1; }
-git -C "$wt" rev-parse --verify -q "$live^{commit}" > /dev/null ||
-  { echo "merge-ready: cannot read the live-run commit $live in $wt" >&2; exit 1; }
-
 why=''
 rc=0
 git -C "$wt" merge-base --is-ancestor integration HEAD || rc=$?
@@ -36,7 +31,7 @@ changed=$(git -C "$wt" diff --name-only "$live" HEAD -- "$@") ||
   run them live again"
 
 if [ -n "$why" ]; then
-  echo "merge-ready: not ready ($wt at $head):$why"
+  echo "merge-ready: not ready ($wt):$why"
   exit 1
 fi
-echo "merge-ready: ready: integration is in HEAD $head, and $* unchanged since the live run at $live"
+echo "merge-ready: ready: integration is in $wt's HEAD, and $* unchanged since the live run at $live"

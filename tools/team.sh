@@ -344,10 +344,16 @@ doctor() {
     sysctl)
       got=$(sysctl -n "$target" 2>&1) && [ "$got" = "$want" ] && ok=1 ;;
     nonempty)
-      if [ -s "$target" ]; then ok=1; elif [ -e "$target" ]; then got=empty; else got='missing or unreadable'; fi ;;
+      if [ -s "$target" ] && [ -r "$target" ]; then ok=1
+      elif [ -e "$target" ] && [ -r "$target" ]; then got=empty
+      else got='missing or unreadable'; fi ;;
     sshcontrolpath)
-      got=$(ssh -G "$target" 2>&1 | awk '$1 == "controlpath" { print $2 }') || got='ssh -G failed'
-      case $got in *"$target"*) ok=1 ;; esac ;;
+      if cfg=$(ssh -G "$target" 2>&1); then
+        got=$(printf '%s\n' "$cfg" | awk '$1 == "controlpath" { print $2 }')
+        case $got in *"$target"*) ok=1 ;; esac
+      else
+        got="ssh -G failed: $(printf '%s' "$cfg" | head -1)"
+      fi ;;
     *) got="unknown kind '$kind'" ;;
     esac
     n=$((n + 1))
@@ -605,7 +611,8 @@ status)
   for f in "$spool"/*/q/*; do
     [ -f "$f" ] || continue
     target=${f#"$spool"/}
-    age=$(mtime "$f") && age="$(((now - age) / 60))m" || age='age unreadable'
+    age=$(mtime "$f") || age=''
+    case $age in '' | *[!0-9]*) age='age unreadable' ;; *) age="$(((now - age) / 60))m" ;; esac
     printf 'QUEUED %s %s: %s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)"
   done
   true
