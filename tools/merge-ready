@@ -4,11 +4,17 @@
 # Usage: merge-ready <worktree> <live-run commit> <code path>...
 #
 # Exits 1, naming every reason, when the integration branch is not an
-# ancestor of the worktree's HEAD (merge integration in first), or when a
-# code path changed between the commit the live checks last ran on and HEAD
-# (rerun them live). A failed read is a refusal, never a pass. Exit 2 on a
+# ancestor of the worktree's HEAD (merge integration in first), or when the
+# branch's own change to a code path follows the commit the live checks last
+# ran on (rerun them live). The branch's own changes are HEAD compared with
+# integration merged into the live run's commit (git merge-tree, git 2.38),
+# so what merging integration in brought is not counted (MR-Q1). When that
+# merge conflicts, its resolution is the branch's own change: not ready. A failed read is a refusal, never a pass. Exit 2 on a
 # usage error. The lead runs it before authorising a merge.
 set -eu
+set -o pipefail
+nl='
+'
 
 [ $# -ge 3 ] || { echo "usage: merge-ready <worktree> <live-run commit> <code path>..." >&2; exit 2; }
 wt=$1 live=$2
@@ -24,8 +30,17 @@ case $rc in
 *) echo "merge-ready: cannot compare integration with HEAD in $wt" >&2; exit 1 ;;
 esac
 
-changed=$(git -C "$wt" diff --name-only "$live" HEAD -- "$@") ||
-  { echo "merge-ready: cannot diff $live..HEAD in $wt" >&2; exit 1; }
+rc=0
+merged=$(git -C "$wt" merge-tree --write-tree --no-messages "$live" integration) || rc=$?
+# Exit 1 is a conflict only when a tree id comes first; a ref git cannot read
+# also exits 1, printing no tree.
+case ${merged%%"$nl"*} in '' | *[!0-9a-f]*) rc=2 ;; esac
+case $rc in
+0) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" HEAD -- "$@") ||
+    { echo "merge-ready: cannot diff the live run with integration against HEAD in $wt" >&2; exit 1; } ;;
+1) changed="(merging integration into $live conflicts; its resolution is the branch's own change)" ;;
+*) echo "merge-ready: cannot merge integration into $live in $wt" >&2; exit 1 ;;
+esac
 [ -z "$changed" ] || why="$why
 - changed since the live run at $live: $(printf '%s' "$changed" | tr '\n' ' ')
   run them live again"
