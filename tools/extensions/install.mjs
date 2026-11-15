@@ -8,7 +8,7 @@
 // load it at their next start or /reload.
 //
 // Run: node tools/extensions/install.mjs
-import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,5 +27,6 @@ const list = (settings.subagents.defaultSubagentOnlyExtensions ?? []).filter((pa
 if (!list.includes(target)) list.push(target);
 settings.subagents.defaultSubagentOnlyExtensions = list;
 writeFileSync(`${file}.new`, `${JSON.stringify(settings, null, 2)}\n`);
+chmodSync(`${file}.new`, statSync(file).mode);
 renameSync(`${file}.new`, file);
 console.log(`install: ${target} copied, ${heredoc} removed; ${file} lists only the former in subagents.defaultSubagentOnlyExtensions`);
