@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Is a seat's branch ready to merge into integration? (rules.md rule 9; RT2-Q5)
 #
 # Usage: merge-ready <worktree> <live-run commit> <code path>...
@@ -9,7 +9,9 @@
 # ran on (rerun them live). The branch's own changes are HEAD compared with
 # integration merged into the live run's commit (git merge-tree, git 2.38),
 # so what merging integration in brought is not counted (MR-Q1). When that
-# merge conflicts, its resolution is the branch's own change: not ready. A failed read is a refusal, never a pass. Exit 2 on a
+# merge conflicts, its tree holds conflict markers, so a conflicted file
+# under the code paths differs from HEAD and counts; one elsewhere does not
+# (MRCR-Q1). A failed read is a refusal, never a pass. Exit 2 on a
 # usage error. The lead runs it before authorising a merge.
 set -eu
 set -o pipefail
@@ -36,9 +38,8 @@ merged=$(git -C "$wt" merge-tree --write-tree --no-messages "$live" integration)
 # also exits 1, printing no tree.
 case ${merged%%"$nl"*} in '' | *[!0-9a-f]*) rc=2 ;; esac
 case $rc in
-0) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" HEAD -- "$@") ||
+0 | 1) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" HEAD -- "$@") ||
     { echo "merge-ready: cannot diff the live run with integration against HEAD in $wt" >&2; exit 1; } ;;
-1) changed="(merging integration into $live conflicts; its resolution is the branch's own change)" ;;
 *) echo "merge-ready: cannot merge integration into $live in $wt" >&2; exit 1 ;;
 esac
 [ -z "$changed" ] || why="$why

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Test tools/merge-ready with real commits in a scratch repository: a branch
 # whose live run is at L, then integration merged in, is ready when only
 # integration's changes reach the code paths (the guards seat's AGENTS.md case,
@@ -65,7 +65,8 @@ g merge -q --no-ff integration -m 'merge integration in' > /dev/null 2>&1 || tru
 echo 'resolved' > tool.sh
 g add tool.sh && g commit -q -m 'resolve the conflict'
 expect 1 "a conflict resolved after the live run" . "$live" AGENTS.md tool.sh
-grep -q 'conflicts' out || { echo "FAIL: the refusal does not name the conflict: $(cat out)" >&2; fails=$((fails + 1)); }
+grep -q 'tool.sh' out || { echo "FAIL: the refusal does not name tool.sh: $(cat out)" >&2; fails=$((fails + 1)); }
+expect 0 "a conflict outside the code paths" . "$live" AGENTS.md
 
 [ "$fails" = 0 ] || { echo "merge-ready test: $fails failed" >&2; exit 1; }
 echo "merge-ready test: ok"

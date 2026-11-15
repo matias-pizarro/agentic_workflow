@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # The wiki's commit guard: <root>/wiki/.git/hooks/pre-commit, a symlink to
 # <root>/agentic_workflow/tools/wiki-pre-commit. It refuses a commit that
 # empties a file by accident, as a write racing a commit leaves it
