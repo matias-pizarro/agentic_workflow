@@ -29,14 +29,16 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 
 - **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message.
 
-Install it for your user, after backing up pi's settings (both steps are safe to rerun):
+Install it for your user, after backing up pi's settings (both steps are safe to rerun; on a rerun, `cp -n` keeps the first backup and exits 1):
 
 ```sh
-cp ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
+cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
 node tools/extensions/install.mjs
 ```
 
 This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. Its test: `node tests/guards/run.mjs`.
+
+**If it fails:** restore `~/.pi/agent/settings.json` from `settings.json.bak-guards`, remove `~/.pi/agent/extensions/guards.ts`, fix the cause and rerun.
 
 ## Versions
 

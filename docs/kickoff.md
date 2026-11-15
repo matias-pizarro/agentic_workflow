@@ -34,6 +34,8 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
 
 6. **Install the lead's commit guard:** copy `<root>/agentic_workflow/tools/src-pre-commit` to `<root>/src/.git/hooks/pre-commit`, executable. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated` (with none, drop its last line).
 
+   **Install the agents' guards,** a Pi extension refusing tool calls known to go wrong (the README's "Guards" lists them): `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards`, then `node <root>/agentic_workflow/tools/extensions/install.mjs`. Rerun the second after taking a new release.
+
 7. **Be ready to spawn an expendable environment**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
 
 ## Start the lead
