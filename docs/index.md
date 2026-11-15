@@ -47,7 +47,7 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 4. **Plan, if the work is big.** The seat runs `grill-with-docs` with you to settle the design, then `to-spec` and `to-tickets`, which write a spec and one ticket file per slice, each with its blocking tickets. Small work skips this.
 5. **Build and run.** The seat builds (`implement` for one ticket; `implement-spec` for a spec, with one worker per ticket in parallel) and runs it live on an expendable host, by trial and error, until it works.
 6. **Review**, as the tier says: none, one pass, or the review loop. Each round's summary comes to you through the lead.
-7. **Merge.** Live checks pass, then the branch merges into the integration branch. Pushing waits for your go.
+7. **Merge.** The seat merges the integration branch into its own and resolves any conflict there, and code changed since its last live run runs live again; then the branch merges into the integration branch. Pushing waits for your go.
 8. **Record.** The lead adds dated lines to the wiki: what you decided, with your words and the time.
 9. **Retro.** About one session in five, an agent reviews what happened and proposes changes to the environment. You choose which to adopt.
 
