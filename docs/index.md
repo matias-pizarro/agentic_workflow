@@ -44,7 +44,7 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 1. **Goal.** You state it; the lead records it, dated, in the wiki's `goal.md`.
 2. **Sizing.** For each piece of work the lead asks `❓ CS-Q1 – Size <work> as <tier>?`, quoting your words and saying what each tier would build. It recommends the lowest tier your words allow. You answer.
 3. **Task file.** The lead writes a short task file whose first line records your choice, `Ceremony: script (the operator, "yes", 14 Nov 09:57)`. The team script refuses a task file without that line. The lead then starts a seat on it.
-4. **Plan, if the work is big.** The seat runs `grilling-with-docs` with you to settle the design, then `to-spec` and `to-tickets`, which write a spec and one ticket file per slice, each with its blocking tickets. Small work skips this.
+4. **Plan, if the work is big.** The seat runs `grill-with-docs` with you to settle the design, then `to-spec` and `to-tickets`, which write a spec and one ticket file per slice, each with its blocking tickets. Small work skips this.
 5. **Build and run.** The seat builds (`implement` for one ticket; `implement-spec` for a spec, with one worker per ticket in parallel) and runs it live on an expendable host, by trial and error, until it works.
 6. **Review**, as the tier says: none, one pass, or the review loop. Each round's summary comes to you through the lead.
 7. **Merge.** Live checks pass, then the branch merges into the integration branch. Pushing waits for your go.
