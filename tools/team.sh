@@ -8,7 +8,9 @@
 #                                            (none for research, retros and other no-code tasks)
 #   team.sh send <name> "<text>"             queue one message for an agent's pane
 #   team.sh go <name> "<words>" "<instr>"    queue "Lead: the user's go, lead pane, <time> ('<words>'): <instr>"
-#   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane
+#   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane; registers
+#                                            each "❓ <ID>" it carries in tools/qids (TEAM_QIDS overrides) and
+#                                            refuses an ID registered to another seat, naming it
 #   team.sh status                           last STATUS line of every agent, [busy] flag; queued and failed messages
 #   team.sh retire <name>                    close a finished agent's window, drop its record
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
@@ -39,6 +41,7 @@ spool=${TEAM_SPOOL:-$here/spool}
 wait_max=${TEAM_WAIT:-14400}
 poll=${TEAM_POLL:-3}
 agents=${TEAM_AGENTS:-$here/agents}
+qids=${TEAM_QIDS:-$here/qids}
 pi_cmd=${TEAM_PI:-pi}
 tab=$(printf '\t')
 rule=$(printf '\342\224\200') # the box-drawing character of pi's rules
@@ -119,7 +122,7 @@ enqueue() { # target text
   rm -rf "$d/seq.lock"
   echo "queued for $1: $f"
   log "queued $f"
-  p=$(resolve "$1")
+  p=$(resolve "$1" 2> /dev/null) || p=''
   if [ -n "$p" ] && busy "$p"; then
     echo "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
   fi
@@ -169,6 +172,52 @@ deliver() { # target
     for f in "$d"/q/*; do [ -f "$f" ] && continue 2; done
     break
   done
+}
+
+# The seat a report comes from: its tmux window's name, else the text's
+# "<name>:" prefix.
+reporter() { # text
+  if [ -n "${TMUX_PANE:-}" ] && w=$(tmux display -p -t "$TMUX_PANE" '#{window_name}' 2> /dev/null) && [ -n "$w" ]; then
+    echo "$w"
+  else
+    printf '%s\n' "$1" | sed -n '1s/^\([A-Za-z0-9._-][A-Za-z0-9._-]*\):.*/\1/p'
+  fi
+}
+
+# Register each question ID a report carries ("❓ <ID>", <ID> as AW-Q3 or
+# NET-Q6b) as "ID<TAB>seat<TAB>date" in $qids, so no two seats ask under one
+# ID (rules.md rule 4). Refuse the whole report when an ID is another seat's.
+register_qids() { # text
+  ids=$(printf '%s\n' "$1" | grep -oE '❓ *\**[A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?' | sed 's/^❓ *\**//' | sort -u) || true
+  [ -n "$ids" ] || return 0
+  seat=$(reporter "$1")
+  [ -n "$seat" ] || die "report: it carries ❓ IDs but names no seat; start it with \"<name>: \""
+  i=0
+  until lock "$qids.lock"; do
+    i=$((i + 1)); [ $i -lt 100 ] || die "report: cannot lock $qids.lock"
+    sleep 0.1
+  done
+  taken='' new=''
+  for id in $ids; do
+    if [ -e "$qids" ]; then
+      owner=$(awk -F '\t' -v i="$id" '$1 == i { print $2 "'\''s (" $3 ")"; exit }' "$qids") ||
+        { rm -rf "$qids.lock"; die "report: cannot read $qids; not sent"; }
+    else
+      owner=''
+    fi
+    case $owner in
+    '') new="$new $id" ;;
+    "$seat's ("*) ;;
+    *) taken="$taken ❓ $id is $owner;" ;;
+    esac
+  done
+  if [ -n "$taken" ]; then
+    rm -rf "$qids.lock"
+    die "report: not sent:$taken number yours <PREFIX>-$seat-Qn or take the next free number"
+  fi
+  d=$(date '+%e %b %Y' | sed 's/^ //')
+  for id in $new; do printf '%s\t%s\t%s\n' "$id" "$seat" "$d" >> "$qids"; done
+  rm -rf "$qids.lock"
 }
 
 # The first message of an agent: the protocol, then its task file. Prints the
@@ -385,8 +434,8 @@ selftest() {
   st_dir=$(mktemp -d "${TMPDIR:-/tmp}/teamtest.XXXXXX")
   st_fails=0
   TEAM_SPOOL=$st_dir/spool TEAM_AGENTS=$st_dir/agents TEAM_POLL=1
-  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions
-  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR
+  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions TEAM_QIDS=$st_dir/qids
+  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR TEAM_QIDS
   unset TMUX TMUX_PANE TEAM_ROLE TEAM_WAIT TEAM_PI
   spool=$TEAM_SPOOL agents=$TEAM_AGENTS poll=1
   trap st_cleanup EXIT
@@ -430,6 +479,10 @@ selftest() {
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
   check "status prints the failed message" status_shows_failed
+  printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
+  check "report refuses a ❓ ID registered to another seat, naming it" refused_with "XX-Q1 is other's (14 Nov 2026)" report "a1: ❓ XX-Q1 – taken?"
+  TEAM_WAIT=3 sh "$self" report "a1: ❓ XX-Q2 – new? reply with only OK" > /dev/null
+  check "report registers a new ❓ ID to its seat" grep -q "^XX-Q2${tab}a1${tab}" "$TEAM_QIDS"
 
   # spawn, retire and revive, with a stub for pi.
   TEAM_PI=$t/stub-pi pi_cmd=$t/stub-pi
@@ -509,6 +562,7 @@ go)
   ;;
 report)
   [ $# -eq 2 ] || { echo "usage: $0 report <text>" >&2; exit 2; }
+  register_qids "$2"
   enqueue lead "$2"
   ;;
 _deliver)
