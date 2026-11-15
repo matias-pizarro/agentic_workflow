@@ -8,12 +8,15 @@
 #                                            (none for research, retros and other no-code tasks)
 #   team.sh send <name> "<text>"             queue one message for an agent's pane
 #   team.sh go <name> "<words>" "<instr>"    queue "Lead: the user's go, lead pane, <time> ('<words>'): <instr>"
-#   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane
-#   team.sh status                           last STATUS line of every agent, [busy] flag; failed messages
+#   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane; registers
+#                                            each "❓ <ID>" it carries in tools/qids (TEAM_QIDS overrides) and
+#                                            refuses an ID registered to another seat, naming it
+#   team.sh status                           last STATUS line of every agent, [busy] flag; queued and failed messages
 #   team.sh retire <name>                    close a finished agent's window, drop its record
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
+#   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
 # spawn records each agent as "name<TAB>cwd<TAB>task file<TAB>session id" in
 # tools/agents (git-ignored; TEAM_AGENTS overrides), and starts it without
 # TEAM_ROLE in its environment (the lead runs with TEAM_ROLE=lead, which the
@@ -22,8 +25,11 @@
 # may be mid-sentence there): the message goes to a spool (tools/spool/<target>/q),
 # and a background deliverer, one per target (mkdir lock), types the queued
 # messages in order, each only once the input box is empty, retrying every
-# TEAM_POLL (3) seconds for up to TEAM_WAIT (1800) seconds; then the message
-# moves to tools/spool/<target>/failed. Log: tools/spool/log.
+# TEAM_POLL (3) seconds for up to TEAM_WAIT (14400, 4 h) seconds; then the
+# message moves to tools/spool/<target>/failed. Log: tools/spool/log. send, go
+# and report say when the target's pane is busy: pi then holds a typed message
+# as steering, read after the agent's current step (pi's rpc-commands.md).
+# status lists every queued message with its age.
 # tools/ is the directory of the path the script was invoked by, not of its
 # resolved target: a symlink <root>/wiki/tools/team.sh to
 # <root>/agentic_workflow/tools/team.sh
@@ -32,9 +38,10 @@ set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 self=$here/$(basename "$0")
 spool=${TEAM_SPOOL:-$here/spool}
-wait_max=${TEAM_WAIT:-1800}
+wait_max=${TEAM_WAIT:-14400}
 poll=${TEAM_POLL:-3}
 agents=${TEAM_AGENTS:-$here/agents}
+qids=${TEAM_QIDS:-$here/qids}
 pi_cmd=${TEAM_PI:-pi}
 tab=$(printf '\t')
 rule=$(printf '\342\224\200') # the box-drawing character of pi's rules
@@ -71,6 +78,12 @@ input_empty() { # pane
   box=$(input_box "$1") || return 1
   [ -z "$(printf '%s' "$box" | tr -d ' \t\n')" ]
 }
+
+# A pane is busy while pi's "Working" line shows near its bottom.
+busy() { tmux capture-pane -p -J -t "$1" 2> /dev/null | tail -8 | grep -q 'Working'; }
+
+# Seconds since a file was last changed (GNU stat, else BSD stat).
+mtime() { stat -c %Y "$1" 2> /dev/null || stat -f %m "$1"; }
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$spool/log"; }
 
@@ -109,6 +122,10 @@ enqueue() { # target text
   rm -rf "$d/seq.lock"
   echo "queued for $1: $f"
   log "queued $f"
+  p=$(resolve "$1" 2> /dev/null) || p=''
+  if [ -n "$p" ] && busy "$p"; then
+    echo "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
+  fi
   # Detach from the caller's session, so the deliverer outlives the agent's
   # shell command (pi kills the process group of its bash calls).
   if command -v daemon > /dev/null; then
@@ -155,6 +172,52 @@ deliver() { # target
     for f in "$d"/q/*; do [ -f "$f" ] && continue 2; done
     break
   done
+}
+
+# The seat a report comes from: its tmux window's name, else the text's
+# "<name>:" prefix.
+reporter() { # text
+  if [ -n "${TMUX_PANE:-}" ] && w=$(tmux display -p -t "$TMUX_PANE" '#{window_name}' 2> /dev/null) && [ -n "$w" ]; then
+    echo "$w"
+  else
+    printf '%s\n' "$1" | sed -n '1s/^\([A-Za-z0-9._-][A-Za-z0-9._-]*\):.*/\1/p'
+  fi
+}
+
+# Register each question ID a report carries ("❓ <ID>", <ID> as AW-Q3 or
+# NET-Q6b) as "ID<TAB>seat<TAB>date" in $qids, so no two seats ask under one
+# ID (rules.md rule 4). Refuse the whole report when an ID is another seat's.
+register_qids() { # text
+  ids=$(printf '%s\n' "$1" | grep -oE '❓ *\**[A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?' | sed 's/^❓ *\**//' | sort -u) || true
+  [ -n "$ids" ] || return 0
+  seat=$(reporter "$1")
+  [ -n "$seat" ] || die "report: it carries ❓ IDs but names no seat; start it with \"<name>: \""
+  i=0
+  until lock "$qids.lock"; do
+    i=$((i + 1)); [ $i -lt 100 ] || die "report: cannot lock $qids.lock"
+    sleep 0.1
+  done
+  taken='' new=''
+  for id in $ids; do
+    if [ -e "$qids" ]; then
+      owner=$(awk -F '\t' -v i="$id" '$1 == i { print $2 "'\''s (" $3 ")"; exit }' "$qids") ||
+        { rm -rf "$qids.lock"; die "report: cannot read $qids; not sent"; }
+    else
+      owner=''
+    fi
+    case $owner in
+    '') new="$new $id" ;;
+    "$seat's ("*) ;;
+    *) taken="$taken ❓ $id is $owner;" ;;
+    esac
+  done
+  if [ -n "$taken" ]; then
+    rm -rf "$qids.lock"
+    die "report: not sent:$taken number yours <PREFIX>-$seat-Qn or take the next free number"
+  fi
+  d=$(date '+%e %b %Y' | sed 's/^ //')
+  for id in $new; do printf '%s\t%s\t%s\n' "$id" "$seat" "$d" >> "$qids"; done
+  rm -rf "$qids.lock"
 }
 
 # The first message of an agent: the protocol, then its task file. Prints the
@@ -252,6 +315,66 @@ ensure_lead() {
   echo "set @role=lead on $TMUX_PANE"
 }
 
+# doctor: check each host dependency in tools/expect (TEAM_EXPECT overrides),
+# one per line: "<kind> <target> <expected> | <the host-side fix>", # for
+# comments. Kinds: sysctl <name> <value>; nonempty <file>; sshcontrolpath
+# <alias> %n (ssh -G <alias> prints a ControlPath holding the alias, so two
+# aliases of one host never share a socket); jail <name>, the jail's name for
+# the fix block, checking nothing. Prints each failure, then one block for the
+# host: one jail -m line with every sysctl fix, then the other fixes. A read
+# that fails is a failure. Exit 1 on any failure.
+doctor() {
+  f=${TEAM_EXPECT:-$here/expect}
+  [ -f "$f" ] && [ -r "$f" ] || die "doctor: cannot read $f"
+  jail='<jail>' jfix='' ofix='' n=0 bad=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case $line in '' | '#'*) continue ;; esac
+    fix=$(printf '%s' "${line#*|}" | sed 's/^ *//; s/ *$//')
+    case $line in *'|'*) ;; *) fix='' ;; esac
+    set -f
+    # shellcheck disable=SC2086 # split the spec into its words
+    set -- ${line%%|*}
+    set +f
+    kind=${1:-} target=${2:-} want=${3:-}
+    # shellcheck disable=SC2088 # a literal ~/ in the file, expanded here
+    case $target in '~/'*) target=$HOME/${target#'~/'} ;; esac
+    got='' ok=0
+    case $kind in
+    jail) jail=$target; continue ;;
+    sysctl)
+      got=$(sysctl -n "$target" 2>&1) && [ "$got" = "$want" ] && ok=1 ;;
+    nonempty)
+      if [ -s "$target" ] && [ -r "$target" ]; then ok=1
+      elif [ -e "$target" ] && [ -r "$target" ]; then got=empty
+      else got='missing or unreadable'; fi ;;
+    sshcontrolpath)
+      if cfg=$(ssh -G "$target" 2>&1); then
+        got=$(printf '%s\n' "$cfg" | awk '$1 == "controlpath" { print $2 }')
+        case $got in *"$target"*) ok=1 ;; esac
+      else
+        got="ssh -G failed: $(printf '%s' "$cfg" | head -1)"
+      fi ;;
+    *) got="unknown kind '$kind'" ;;
+    esac
+    n=$((n + 1))
+    [ $ok = 1 ] && continue
+    bad=$((bad + 1))
+    echo "FAIL $kind $target: expected ${want:-non-empty}, got ${got:-nothing}"
+    case $kind in
+    sysctl) jfix="$jfix $fix" ;;
+    nonempty) ofix="$ofix$fix, and persist it in the host's fstab$cr" ;;
+    *) ofix="$ofix$fix$cr" ;;
+    esac
+  done < "$f"
+  if [ $bad = 0 ]; then echo "doctor: all $n held ($f)"; return 0; fi
+  echo
+  echo "On the host:"
+  [ -z "$jfix" ] || echo "  doas jail -m name=$jail$jfix   (and persist them in the host's jail.conf)"
+  printf '%s' "$ofix" | tr '\r' '\n' | sed 's/^/  /'
+  echo "doctor: $bad of $n failed"
+  return 1
+}
+
 # selftest: the team-fix test, on a separate tmux server (-L teamtest) with a
 # spool, registry and pi session directory of its own. Real pi panes (no tools,
 # no session) check the input-box detection; the test submits four one-line
@@ -295,6 +418,7 @@ in_order() { # pane text...
   done
 }
 status_shows_failed() { sh "$self" status | grep -q '^FAILED to-agent/failed/'; }
+status_shows_queued() { sh "$self" status | grep -q '^QUEUED lead [0-9][0-9]*m: selftest report one'; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
 recorded_as() { # name cwd task
@@ -316,8 +440,8 @@ selftest() {
   st_dir=$(mktemp -d "${TMPDIR:-/tmp}/teamtest.XXXXXX")
   st_fails=0
   TEAM_SPOOL=$st_dir/spool TEAM_AGENTS=$st_dir/agents TEAM_POLL=1
-  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions
-  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR
+  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions TEAM_QIDS=$st_dir/qids
+  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR TEAM_QIDS
   unset TMUX TMUX_PANE TEAM_ROLE TEAM_WAIT TEAM_PI
   spool=$TEAM_SPOOL agents=$TEAM_AGENTS poll=1
   trap st_cleanup EXIT
@@ -351,6 +475,7 @@ selftest() {
   check "go quotes the words" has "$ap" "('go ahead'): selftest go"
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
+  check "status lists them as QUEUED, with their age" status_shows_queued
   check "... and are not typed" lacks "$lp" "selftest report one"
   tmux send-keys -t "$lp" -l -- "$cr" # the user submits the line
   check "the reports are delivered once the user's line is submitted" waitfor 120 queued lead 0
@@ -360,6 +485,10 @@ selftest() {
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
   check "status prints the failed message" status_shows_failed
+  printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
+  check "report refuses a ❓ ID registered to another seat, naming it" refused_with "XX-Q1 is other's (14 Nov 2026)" report "a1: ❓ XX-Q1 – taken?"
+  TEAM_WAIT=3 sh "$self" report "a1: ❓ XX-Q2 – new? reply with only OK" > /dev/null
+  check "report registers a new ❓ ID to its seat" grep -q "^XX-Q2${tab}a1${tab}" "$TEAM_QIDS"
 
   # spawn, retire and revive, with a stub for pi.
   TEAM_PI=$t/stub-pi pi_cmd=$t/stub-pi
@@ -439,6 +568,7 @@ go)
   ;;
 report)
   [ $# -eq 2 ] || { echo "usage: $0 report <text>" >&2; exit 2; }
+  register_qids "$2"
   enqueue lead "$2"
   ;;
 _deliver)
@@ -470,12 +600,20 @@ status)
     [ "$idx" = "$leadwin" ] && continue
     pane=$(tmux capture-pane -p -J -S -300 -t "$idx")
     line=$(printf '%s\n' "$pane" | grep -o 'STATUS seat=.*' | tail -1)
-    busy=''
-    printf '%s\n' "$pane" | tail -8 | grep -q 'Working' && busy='[busy] '
-    printf '%-16s %s%s\n' "$name" "$busy" "${line:-(no STATUS line)}"
+    flag=''
+    busy "$idx" && flag='[busy] '
+    printf '%-16s %s%s\n' "$name" "$flag" "${line:-(no STATUS line)}"
   done
   for f in "$spool"/*/failed/*; do
     [ -f "$f" ] && printf 'FAILED %s: %s\n' "${f#"$spool"/}" "$(head -1 "$f" | cut -c1-100)"
+  done
+  now=$(date +%s)
+  for f in "$spool"/*/q/*; do
+    [ -f "$f" ] || continue
+    target=${f#"$spool"/}
+    age=$(mtime "$f") || age=''
+    case $age in '' | *[!0-9]*) age='age unreadable' ;; *) age="$(((now - age) / 60))m" ;; esac
+    printf 'QUEUED %s %s: %s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)"
   done
   true
   ;;
@@ -501,6 +639,9 @@ revive)
   ;;
 selftest)
   selftest
+  ;;
+doctor)
+  doctor
   ;;
 *) usage ;;
 esac

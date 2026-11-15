@@ -9,7 +9,7 @@ The repo holds:
 - **`docs/index.md`** (this page): what the process is, who does what, and why each rule exists.
 - **[kickoff.md](kickoff.md)**: a checklist for your first hour.
 - **[rules.md](rules.md)**: the rules, worded for agents. Point every agent at it.
-- **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard.
+- **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard; **`tools/wiki-pre-commit`**: the wiki's, refusing a file emptied by accident; **`tools/merge-ready`**: the check before a branch merges (rule 9).
 - **`skills/`**: the skills this process adds to the ones it installs from elsewhere, such as `review-loop`.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
 
@@ -112,7 +112,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 
 ## Keeping the team running
 
-The lead starts seats and passes messages with `<root>/agentic_workflow/tools/team.sh` (`spawn`, `send`, `go`, `report`, `status`, `revive --all` after a tmux restart; run it without arguments for the list). Messages wait until the receiving pane's input box is empty, so a report never lands in your half-typed sentence. Every agent turn ends with a `STATUS` line, so the lead knows who needs what without polling; `waiting-for-PM` means waiting for you. After each Pi upgrade, run `team.sh selftest`: a Pi interface change can otherwise leave every message stuck.
+The lead starts seats and passes messages with `<root>/agentic_workflow/tools/team.sh` (`spawn`, `send`, `go`, `report`, `status`, `revive --all` after a tmux restart, `doctor` after a host reboot; run it without arguments for the list). `doctor` checks the host settings and mounts the agents depend on, listed one per line in `tools/expect` beside the script (its format is in `team.sh`'s header), and prints one block of fixes for you to run on the host. Messages wait until the receiving pane's input box is empty, so a report never lands in your half-typed sentence. Every agent turn ends with a `STATUS` line, so the lead knows who needs what without polling; `waiting-for-PM` means waiting for you. After each Pi upgrade, run `team.sh selftest`: a Pi interface change can otherwise leave every message stuck.
 
 ## Changing this playbook
 
