@@ -1,0 +1,72 @@
+#!/usr/bin/env sh
+# Test tools/merge-ready with real commits in a scratch repository: a branch
+# whose live run is at L, then integration merged in, is ready when only
+# integration's changes reach the code paths (the guards seat's AGENTS.md case,
+# 15 Nov), and not ready when the branch's own change follows L, or when
+# integration is not in HEAD. No network.
+# Run: tests/merge-ready
+set -eu
+set -o pipefail
+unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE \
+  GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE \
+  GIT_CEILING_DIRECTORIES GIT_PREFIX GIT_CONFIG GIT_CONFIG_PARAMETERS \
+  GIT_CONFIG_COUNT
+repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+mr=$repo/tools/merge-ready
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+cd "$tmp"
+git init -q -b integration
+git config user.email test@example.invalid
+git config user.name test
+git config commit.gpgsign false
+g() { git -c core.hooksPath=/dev/null "$@"; }
+printf 'top\n\n\n\n\nbottom\n' > AGENTS.md
+echo code > tool.sh
+g add -A && g commit -q -m base
+g switch -q -c feat
+echo 'branch change' >> tool.sh
+sed -i.bak 's/^top$/top, the branch'"'"'s line/' AGENTS.md && rm AGENTS.md.bak
+g commit -q -am 'feat: change tool.sh and AGENTS.md, then the live run'
+live=$(git rev-parse HEAD)
+g switch -q integration
+sed -i.bak 's/^bottom$/bottom, another seat'"'"'s line/' AGENTS.md && rm AGENTS.md.bak
+g commit -q -am 'integration: AGENTS.md'
+g switch -q feat
+
+fails=0
+expect() { # <0|1> <case> <args>...
+  want=$1 name=$2
+  shift 2
+  rc=0
+  "$mr" "$@" > out 2>&1 || rc=$?
+  [ "$rc" = "$want" ] || { echo "FAIL: $name: expected exit $want, got $rc: $(cat out)" >&2; fails=$((fails + 1)); }
+}
+
+expect 1 "integration not merged in" . "$live" AGENTS.md tool.sh
+g merge -q --no-ff integration -m 'merge integration in'
+expect 0 "integration's AGENTS.md change merged in is not the branch's own, though the branch changed AGENTS.md before the live run" . "$live" AGENTS.md tool.sh
+echo 'after the live run' >> tool.sh
+g commit -q -am 'feat: change after the live run'
+expect 1 "the branch's own change after the live run" . "$live" AGENTS.md tool.sh
+grep -q 'tool.sh' out || { echo "FAIL: the refusal does not name tool.sh: $(cat out)" >&2; fails=$((fails + 1)); }
+if grep -q 'AGENTS.md' out; then echo "FAIL: the refusal names AGENTS.md: $(cat out)" >&2; fails=$((fails + 1)); fi
+
+
+# A conflict between the live run and integration: its resolution is the
+# branch's own change.
+g switch -q integration
+echo 'integration edits the same line' > tool.sh
+g commit -q -am 'integration: tool.sh'
+g switch -q feat
+live=$(git rev-parse HEAD)
+g merge -q --no-ff integration -m 'merge integration in' > /dev/null 2>&1 || true
+echo 'resolved' > tool.sh
+g add tool.sh && g commit -q -m 'resolve the conflict'
+expect 1 "a conflict resolved after the live run" . "$live" AGENTS.md tool.sh
+grep -q 'tool.sh' out || { echo "FAIL: the refusal does not name tool.sh: $(cat out)" >&2; fails=$((fails + 1)); }
+expect 0 "a conflict outside the code paths" . "$live" AGENTS.md
+
+[ "$fails" = 0 ] || { echo "merge-ready test: $fails failed" >&2; exit 1; }
+echo "merge-ready test: ok"

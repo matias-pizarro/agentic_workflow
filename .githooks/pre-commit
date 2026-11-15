@@ -1,10 +1,20 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Turned on per clone with `git config core.hooksPath .githooks` (README).
 # Refuses a commit that empties a file by accident: 8639493 committed an
 # empty skills/review-loop/SKILL.md, which was then pushed. ALLOW_EMPTY=<path>
 # lets a deliberate emptying through (tools/check_empty_files). A failed read
 # refuses the commit.
+# A commit touching tools/extensions/ or tests/guards/ also runs both guard
+# tests (README "Guards"), on the working tree, and is refused if either fails.
 set -eu
 set -o pipefail
 git diff --cached --name-only -z --diff-filter=ACMRTUXB |
   xargs -0 -r "$(dirname "$0")/../tools/check_empty_files"
+
+top=$(git rev-parse --show-toplevel)
+staged=$(git diff --cached --name-only)
+if printf '%s\n' "$staged" | awk '/^(tools\/extensions|tests\/guards)\// { f = 1 } END { exit !f }'; then
+  echo "pre-commit: the commit touches the guards; running their tests"
+  node "$top/tests/guards/run.mjs" && "$top/tests/guards/heredoc/run_tests" ||
+    { echo "pre-commit: refused: a guard test failed" >&2; exit 1; }
+fi

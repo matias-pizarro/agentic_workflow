@@ -2,6 +2,22 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.3.0] - 2026-11-15
+
+### Added
+
+- Rule 6: every issue or finding put to the operator states, in plain words: Done, Expected, Instead, Impact, Root cause (hypothesised), and Solutions, each with its effort; then the ❓ question and the ➡️ answer.
+- `.githooks/pre-commit`: a commit touching `tools/extensions/` or `tests/guards/` runs both guard tests and is refused if either fails.
+- `tests/merge-ready`: tests `tools/merge-ready` with real commits in a scratch repository.
+
+### Fixed
+
+- `tools/merge-ready` counts only the branch's own changes since the live run. It compares HEAD with integration merged into the live-run commit, so what merging integration in brought no longer refuses the merge, and a conflict counts only when it is under the given code paths.
+
+### Changed
+
+- Every script starts with `#!/usr/bin/env sh` (`team.sh`, `src-pre-commit`, `wiki-pre-commit`, `merge-ready`, `.githooks/pre-commit`, `tests/merge-ready`).
+
 ## [1.2.0] - 2026-11-15
 
 ### Added
@@ -11,6 +27,7 @@ Every release of this repo, newest first, in the [Keep a Changelog](https://keep
 - `team.sh report` registers each `❓ <ID>` it carries in `tools/qids`, and refuses a report that reuses an ID registered to another seat, naming the owner.
 - `tools/merge-ready <worktree> <live-run commit> <code paths>`: refuses when integration is not in HEAD, or when the code paths changed since the live run.
 - `tools/wiki-pre-commit`, the wiki's commit guard against a file emptied by accident. Link it as `docs/kickoff.md` step 4 says.
+- `tools/extensions/guards.ts`, one pi extension with two `tool_call` guards: sibling-guard refuses a `bash` call issued in the same message as a `write` or `edit`, and heredoc-guard refuses a heredoc whose delimiter is not a plain name or appears more than once. `tools/extensions/install.mjs` installs it and replaces a separately installed `heredoc-guard.ts`. Its tests are `tests/guards/`. To install it, follow the README's "Guards" section and `docs/kickoff.md`'s new step. (Added to this section after the release: the guards were merged into integration by another seat and shipped in 1.2.0 without an entry.)
 - Rule 9: the lead runs `merge-ready` and names the live run's commit in the authorisation. Team mechanics: check `team.sh status` for `QUEUED` before saying a seat missed a message, and run `team.sh doctor` after a host reboot.
 
 ### Changed
@@ -48,6 +65,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.3.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.0
 [1.2.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.2.0
 [1.1.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.1.0
 [1.0.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.0.0
