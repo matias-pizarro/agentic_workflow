@@ -11,6 +11,7 @@ Every release of this repo, newest first, in the [Keep a Changelog](https://keep
 - `team.sh report` registers each `❓ <ID>` it carries in `tools/qids`, and refuses a report that reuses an ID registered to another seat, naming the owner.
 - `tools/merge-ready <worktree> <live-run commit> <code paths>`: refuses when integration is not in HEAD, or when the code paths changed since the live run.
 - `tools/wiki-pre-commit`, the wiki's commit guard against a file emptied by accident. Link it as `docs/kickoff.md` step 4 says.
+- `tools/extensions/guards.ts`, one pi extension with two `tool_call` guards: sibling-guard refuses a `bash` call issued in the same message as a `write` or `edit`, and heredoc-guard refuses a heredoc whose delimiter is not a plain name or appears more than once. `tools/extensions/install.mjs` installs it and replaces a separately installed `heredoc-guard.ts`. Its tests are `tests/guards/`. To install it, follow the README's "Guards" section and `docs/kickoff.md`'s new step. (Added to this section after the release: the guards were merged into integration by another seat and shipped in 1.2.0 without an entry.)
 - Rule 9: the lead runs `merge-ready` and names the live run's commit in the authorisation. Team mechanics: check `team.sh status` for `QUEUED` before saying a seat missed a message, and run `team.sh doctor` after a host reboot.
 
 ### Changed
