@@ -1,4 +1,5 @@
-// Drive the heredoc guard's tool_call handler as Pi does, for one tool call.
+// Drive the guards' tool_call handlers as Pi does, in order, for one tool call
+// alone in its message (an empty session branch).
 //
 // Usage: node verdict.mjs <extension> <tool> <command file>
 //
@@ -13,14 +14,17 @@ try {
 	const handlers = [];
 	const pi = { on: (event, handler) => event === "tool_call" && handlers.push(handler) };
 	(await import(pathToFileURL(extension).href)).default(pi);
-	if (handlers.length !== 1) throw new Error(`expected one tool_call handler, got ${handlers.length}`);
+	if (handlers.length === 0) throw new Error("no tool_call handler");
 	const event = { type: "tool_call", toolCallId: "t1", toolName, input: { command: readFileSync(file, "utf8") } };
-	const result = await handlers[0](event, {});
-	if (result?.block === true) {
-		console.log(result.reason);
-		process.exit(0);
+	const ctx = { sessionManager: { getBranch: () => [] } };
+	for (const handler of handlers) {
+		const result = await handler(event, ctx);
+		if (result?.block === true) {
+			console.log(result.reason);
+			process.exit(0);
+		}
+		if (result !== undefined) throw new Error(`unexpected result ${JSON.stringify(result)}`);
 	}
-	if (result !== undefined) throw new Error(`unexpected result ${JSON.stringify(result)}`);
 	process.exit(1);
 } catch (error) {
 	console.error(`verdict.mjs: ${error?.stack ?? error}`);

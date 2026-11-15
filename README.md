@@ -28,6 +28,7 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 `tools/extensions/guards.ts` is one pi extension with one `tool_call` handler per guard:
 
 - **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message.
+- **heredoc-guard** refuses a `bash` call holding a heredoc whose delimiter is not a plain name, or whose delimiter line appears more than once, since bash would end the heredoc early and run the rest of its body as shell.
 
 Install it for your user, after backing up pi's settings (both steps are safe to rerun; on a rerun, `cp -n` keeps the first backup and exits 1):
 
@@ -36,9 +37,9 @@ cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
 node tools/extensions/install.mjs
 ```
 
-This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. Its test: `node tests/guards/run.mjs`.
+This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
 
-**If it fails:** restore `~/.pi/agent/settings.json` from `settings.json.bak-guards`, remove `~/.pi/agent/extensions/guards.ts`, fix the cause and rerun.
+**If it fails:** fix the cause and rerun it. To undo it, restore `~/.pi/agent/settings.json` from `settings.json.bak-guards`, drop from it any entry whose file is gone, and remove `~/.pi/agent/extensions/guards.ts`.
 
 ## Versions
 
