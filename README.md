@@ -3,7 +3,7 @@
 A way to run software work with a team of [Pi](https://github.com/earendil-works/pi) agents (one lead and several seats, with you deciding everything that matters), and the scripts and skills it runs on.
 
 - **`docs/`**: the playbook. Start at [docs/index.md](docs/index.md): what the process is and why each rule exists; [docs/kickoff.md](docs/kickoff.md), a checklist for the first hour; [docs/rules.md](docs/rules.md), the rules worded for agents.
-- **`tools/`**: `team.sh`, the team script; `src-pre-commit`, the lead's commit guard.
+- **`tools/`**: `team.sh`, the team script; `src-pre-commit`, the lead's commit guard; `extensions/guards.ts`, a pi extension refusing tool calls known to go wrong (below).
 - **`skills/`**: agent skills, one directory each.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
 
@@ -12,7 +12,7 @@ A way to run software work with a team of [Pi](https://github.com/earendil-works
 Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-git clone --branch v1.0.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+git clone --branch v1.2.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
 ```
 
 Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
@@ -22,6 +22,24 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 ```
 
 - **review-loop**: commits pending work, has Codex review one topic under `.scratch/`, grills you through each finding and records the response, turn after turn until a review has no findings. Needs `codex` (logged in) or `pi` with `OPENAI_API_KEY`, and the `grilling` and `domain-modeling` skills, which the CLI does not install with it: `npx skills@latest add mattpocock/skills -g --skill grilling domain-modeling`.
+
+## Guards
+
+`tools/extensions/guards.ts` is one pi extension with one `tool_call` handler per guard:
+
+- **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message.
+- **heredoc-guard** refuses a `bash` call holding a heredoc whose delimiter is not a plain name, or whose delimiter line appears more than once, since bash would end the heredoc early and run the rest of its body as shell.
+
+Install it for your user, after backing up pi's settings (both steps are safe to rerun; on a rerun, `cp -n` keeps the first backup and exits 1):
+
+```sh
+cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
+node tools/extensions/install.mjs
+```
+
+This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
+
+**If it fails:** fix the cause and rerun it.
 
 ## Versions
 
@@ -39,7 +57,7 @@ Turn on the repo's hooks once per clone; they refuse a commit that empties a fil
 git config core.hooksPath .githooks
 ```
 
-Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/`.
+Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/` or `tools/check_empty_files`.
 
 Branches: work starts on a feature branch from `integration` and returns to it with `git merge --no-ff` once its live checks pass. `main` moves only at a release.
 

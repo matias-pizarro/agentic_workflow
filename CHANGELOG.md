@@ -2,6 +2,22 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.2.0] - 2026-11-15
+
+### Added
+
+- `team.sh doctor`: checks the host dependencies listed in `tools/expect`, one per line (`sysctl`, `nonempty`, `sshcontrolpath`, and `jail <name>` for the fix block), and prints one block of fixes for the host. A failed read is a failure.
+- `team.sh status` lists every queued message as `QUEUED <target> <age>m: <text>`. `send`, `go` and `report` say when the target pane is busy; pi then holds a typed message as steering until the agent's current step ends.
+- `team.sh report` registers each `❓ <ID>` it carries in `tools/qids`, and refuses a report that reuses an ID registered to another seat, naming the owner.
+- `tools/merge-ready <worktree> <live-run commit> <code paths>`: refuses when integration is not in HEAD, or when the code paths changed since the live run.
+- `tools/wiki-pre-commit`, the wiki's commit guard against a file emptied by accident. Link it as `docs/kickoff.md` step 4 says.
+- Rule 9: the lead runs `merge-ready` and names the live run's commit in the authorisation. Team mechanics: check `team.sh status` for `QUEUED` before saying a seat missed a message, and run `team.sh doctor` after a host reboot.
+
+### Changed
+
+- `TEAM_WAIT` defaults to 14400 s (4 h), up from 1800 s, before an undelivered message moves to `failed/`.
+- The empty-file checker moves from `.githooks/check_empty_files` to `tools/check_empty_files`, shared by this repo's hook and the wiki's.
+
 ## [1.1.0] - 2026-11-15
 
 ### Added
@@ -32,5 +48,6 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.2.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.2.0
 [1.1.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.1.0
 [1.0.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.0.0

@@ -28,7 +28,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 8. **Over-build.** Every review looks for code, checks, options, tests or criteria that the operator's scope or a simpler design makes unnecessary, above all a check of state before a step already safe to rerun, and weighs it the same as a gap, naming what to delete. Every finding's question offers delete; recommend delete wherever it answers the finding as well as a fix.
 
-9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host, with `git merge --no-ff`. Just before merging, the seat merges the integration branch into its branch and resolves any conflict there, flagging to the lead a shared file that diverged; its ready report names the commit its live checks last ran on, and code changed since then runs live again. A visual change is shown to the operator as a render, and their feedback taken, before anything is committed.
+9. **Live before merge.** A branch merges into the integration branch only after its live checks pass on a real host, with `git merge --no-ff`. Just before merging, the seat merges the integration branch into its branch and resolves any conflict there, flagging to the lead a shared file that diverged; its ready report names the commit its live checks last ran on, and code changed since then runs live again. Before authorising the merge, the lead runs `<root>/agentic_workflow/tools/merge-ready <worktree> <that commit> <code paths>` and names that commit in the authorisation. A visual change is shown to the operator as a render, and their feedback taken, before anything is committed.
 
 10. **Lead: delegate, stay small.** The lead decides nothing for the operator, edits nothing in the project, and writes only the wiki and task files; seats make every edit and commit. A claim the lead passes on about state (exists, absent, intact, tested, the cause of a failure) names the read it rests on: the whole command output, or a seat's report and its commit. A truncated, partial, remembered or second-hand read is passed on as `unverified: <claim>; <who> checks`, and a brief carries such facts as checks to run. In every scope question:
     - `➡️` is the smallest option that meets the operator's own words;
@@ -53,6 +53,8 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 - End every turn with one line: `STATUS seat=<name> state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [ask="<one sentence>"] [pointer=<path or commit>]`. "PM" is the operator.
 - The team script is `<root>/agentic_workflow/tools/team.sh`. After each Pi upgrade, run `team.sh selftest`; `team.sh status` lists any message stuck in `failed/`.
+- Before saying a seat missed a message, the lead checks `team.sh status` for it listed as `QUEUED`.
+- After a host reboot, the lead runs `team.sh doctor`, hands the operator the one fix block it prints, runs it again until it passes, then `team.sh revive --all`.
 - Seats report with `team.sh report "<name>: <one or two sentences> <pointer>"`, then end the turn. The lead sends with `team.sh send`, and relays a go only with `team.sh go`.
 - Messages, task files and reports carry pointers (a path or a commit), never pasted contents.
 - The lead's session stays free for the operator: long work runs in seats and background subagents, and nobody waits in a polling loop.

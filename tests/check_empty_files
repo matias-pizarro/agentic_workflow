@@ -3,7 +3,7 @@
 # commit 9366924), with its scratch_git helper inlined and the checker's path
 # changed.
 #
-# Test .githooks/check_empty_files with real commits in a scratch repository: the
+# Test tools/check_empty_files with real commits in a scratch repository: the
 # checker runs as its pre-commit hook, on the staged files as pre-commit
 # passes them (added, copied, modified, renamed, type-changed; no deletions).
 # An emptied file is refused and named, the same with ALLOW_EMPTY passes, a
@@ -18,7 +18,7 @@ unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE \
   GIT_CEILING_DIRECTORIES GIT_PREFIX GIT_CONFIG GIT_CONFIG_PARAMETERS \
   GIT_CONFIG_COUNT
 repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
-EMPTY_CHECK=$repo/.githooks/check_empty_files
+EMPTY_CHECK=$repo/tools/check_empty_files
 export EMPTY_CHECK
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
