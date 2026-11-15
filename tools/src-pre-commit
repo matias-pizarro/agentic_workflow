@@ -1,0 +1,15 @@
+#!/bin/sh
+# Lead commit guard: src/.git/hooks/pre-commit, untracked, a copy of or a
+# symlink to <root>/agentic_workflow/tools/src-pre-commit (docs/kickoff.md
+# step 6). It refuses
+# a commit when TEAM_ROLE=lead (the lead delegates edits in src to agents),
+# then runs the hook that pre-commit installed, kept unchanged as
+# pre-commit.generated. If a later `pre-commit install` moves this file to
+# pre-commit.legacy (migration mode), the new generated hook calls it, and it
+# only guards.
+if [ "${TEAM_ROLE:-}" = lead ]; then
+  echo "pre-commit: refused: TEAM_ROLE=lead. The lead does not commit in src; delegate to an agent. Emergency: TEAM_ROLE= git commit ..." >&2
+  exit 1
+fi
+case $0 in *.legacy) exit 0 ;; esac
+exec "$(cd "$(dirname "$0")" && pwd)/pre-commit.generated" "$@"

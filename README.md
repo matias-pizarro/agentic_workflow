@@ -1,11 +1,53 @@
-# skills
+# agentic_workflow
 
-Agent skills, one directory each. Install one globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
+A way to run software work with a team of [Pi](https://github.com/earendil-works/pi) agents (one lead and several seats, with you deciding everything that matters), and the scripts and skills it runs on.
+
+- **`docs/`**: the playbook. Start at [docs/index.md](docs/index.md): what the process is and why each rule exists; [docs/kickoff.md](docs/kickoff.md), a checklist for the first hour; [docs/rules.md](docs/rules.md), the rules worded for agents.
+- **`tools/`**: `team.sh`, the team script; `src-pre-commit`, the lead's commit guard.
+- **`skills/`**: agent skills, one directory each.
+- **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
+
+## Use it in a project
+
+Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-npx skills@latest add matias-pizarro/skills -g --skill <name>
+git clone --branch v1.0.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+```
+
+Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
+
+```sh
+npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 ```
 
 - **review-loop**: commits pending work, has Codex review one topic under `.scratch/`, grills you through each finding and records the response, turn after turn until a review has no findings. Needs `codex` (logged in) or `pi` with `OPENAI_API_KEY`, and the `grilling` and `domain-modeling` skills, which the CLI does not install with it: `npx skills@latest add mattpocock/skills -g --skill grilling domain-modeling`.
 
-Skills are MIT licensed; see [LICENSE](LICENSE).
+## Versions
+
+One version covers the whole repo, as `vX.Y.Z` tags on `main`:
+
+- **major**: a project or a running team must act: a documented path moves, a `team.sh` command, its arguments or its spool format changes incompatibly, a skill is removed or renamed, or a rule is removed or reversed;
+- **minor**: something is added that nobody must act on: a rule, a skill, a `team.sh` command;
+- **patch**: nothing anyone does changes: wording, a fix behind the same interface.
+
+## Working on this repo
+
+Turn on the repo's hooks once per clone; they refuse a commit that empties a file by accident (`ALLOW_EMPTY=<path>` to mean it):
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Their test, `tests/check_empty_files`, makes real commits in a scratch repository; run it after changing `.githooks/`.
+
+Branches: work starts on a feature branch from `integration` and returns to it with `git merge --no-ff` once its live checks pass. `main` moves only at a release.
+
+To cut a release:
+
+1. Read `git log <last tag>..integration`.
+2. On `integration`, add a section to `CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)), naming under each Changed or Removed entry that forces a major what a project must do; pick the version by the rules above; commit it.
+3. Merge `integration` into `main` and tag the merge: `git switch main && git merge --no-ff integration -m vX.Y.Z && git tag -a vX.Y.Z -m vX.Y.Z`.
+4. Push `main`, `integration` and the tag once the owner says go.
+
+MIT licensed; see `LICENSE`.
