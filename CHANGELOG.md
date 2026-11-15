@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.1.0] - 2026-11-15
+
+### Added
+
+- Rule 9: just before merging, a seat merges the integration branch into its branch and resolves conflicts there, flagging a diverged shared file to the lead; its ready report names the commit of its last live run, and code changed since then runs live again. The flow's step 7 in `docs/index.md` says the same.
+- Rule 10: a claim the lead passes on about state names the whole read it rests on; any other read is passed on as unverified, and a brief carries such facts as checks to run.
+
 ## [1.0.0] - 2026-11-15
 
 The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and takes in the playbook, which until now was its own repo, with its history.
@@ -25,4 +32,5 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.1.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.1.0
 [1.0.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.0.0
