@@ -34,7 +34,7 @@ A checklist. `<root>` is defined at the top of [README.md](README.md); the why b
 
 6. **Install the lead's commit guard:** copy `<root>/playbook/tools/src-pre-commit` to `<root>/src/.git/hooks/pre-commit`, executable. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated` (with none, drop its last line).
 
-7. **Have an expendable host ready**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
+7. **Be ready to spawn an expendable environment**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
 
 ## Start the lead
 

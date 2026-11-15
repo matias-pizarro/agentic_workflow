@@ -29,7 +29,7 @@ It goes wrong in one recognisable way: work grows past what you asked for, one r
 |---|---|---|---|
 | **Operator** | you | the goal, every tier, every scope and spend decision, every review finding's answer, anything outward-facing (a push, a publication, money) | is asked for a fact an agent could look up |
 | **Lead** | one Pi session running the `chief-of-staff` skill, its working directory in the wiki | the wiki and task files; asking you questions, relaying answers, recording decisions | edits project files or commits in the project repo; grows scope |
-| **Seat** | one Pi session per piece of work, in its own tmux window, started by the lead | every edit and commit for its task, its review loop, its report | decides for you; claims a choice of its own was yours |
+| **Seat** | one Pi session per workflow, in its own tmux window, started by the lead | every edit and commit for its task, its review loop, its report | decides for you; claims a choice of its own was yours |
 | **Worker** | a subagent a seat starts (with `pi-subagents`), e.g. one implementer per ticket in its own git worktree | one ticket or one investigation | outlives its task |
 | **Reviewer** | a different model from the writer's (e.g. GPT reviewing Claude's code), started by the `review-loop` or `code-review` skill | a findings report | edits files |
 
@@ -42,7 +42,7 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 1. **Goal.** You state it; the lead records it, dated, in the wiki's `goal.md`.
 2. **Sizing.** For each piece of work the lead asks `❓ CS-Q1 – Size <work> as <tier>?`, quoting your words and saying what each tier would build. It recommends the lowest tier your words allow. You answer.
 3. **Task file.** The lead writes a short task file whose first line records your choice, `Ceremony: script (the operator, "yes", 14 Nov 09:57)`. The team script refuses a task file without that line. The lead then starts a seat on it.
-4. **Plan, if the work is big.** The seat runs `grilling` with you to settle the design, then `to-spec` and `to-tickets`, which write a spec and one ticket file per slice, each with its blocking tickets. Small work skips this.
+4. **Plan, if the work is big.** The seat runs `grilling-with-docs` with you to settle the design, then `to-spec` and `to-tickets`, which write a spec and one ticket file per slice, each with its blocking tickets. Small work skips this.
 5. **Build and run.** The seat builds (`implement` for one ticket; `implement-spec` for a spec, with one worker per ticket in parallel) and runs it live on an expendable host, by trial and error, until it works.
 6. **Review**, as the tier says: none, one pass, or the review loop. Each round's summary comes to you through the lead.
 7. **Merge.** Live checks pass, then the branch merges into the integration branch. Pushing waits for your go.
