@@ -2,6 +2,18 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.6.0] - 2026-11-16
+
+### Added
+
+- `/open-questions` in the lead's pane begins with a `Pane | Waiting for you` table: the lead's own row first, then one row per seat waiting for the operator. The lead may run `team.sh status` for it.
+- One layout for every question, in the template and in rule 6: a `---` line before each, a bold `Issue:` title line instead of a Markdown heading, and blank lines around the ❓ line.
+- `team.sh status` flags a seat whose input box holds text (`[input box holds text]`) or cannot be read (`[input box unreadable]`), and says so at the end of the seat's queued messages.
+- A seat's tmux tab is coloured by what waits on the operator: red, orange or yellow after the most critical question in a reply that asks any; green once the seat says nothing is open, or once the operator types in its pane (not a `Lead:` message, not a `/command`). A tab keeps its colour until the seat's next activity.
+- While a seat works, its window carries the tmux option `@working`. The tab format in the README shows it as ⚡ after the tab's name.
+
+Seats pick up the extension at their next start or `/reload`. Rerun `install.mjs` after taking this release, and add the README's two tab-format lines to your tmux config for ⚡.
+
 ## [1.5.0] - 2026-11-16
 
 ### Added
@@ -90,6 +102,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.6.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.6.0
 [1.5.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.5.0
 [1.4.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.4.0
 [1.3.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.1
