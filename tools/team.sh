@@ -228,7 +228,8 @@ compose_prompt() { # name task-file
   cat > "$full" <<HDR
 You are the agent \`$1\` on a team led by a chief of staff (the lead). Protocol:
 - End EVERY turn with exactly one line:
-  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [ask="<one sentence>"] [pointer=<path or commit>]
+  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
+  (open: your questions to the operator still unanswered; worst: the highest criticality among them, whenever open > 0)
 - When you finish, or need the lead, also run:
   $here/team.sh report "$1: <one or two sentences, with a pointer (path or commit)>"
   then end your turn. Never paste file contents into a report; name the path.
