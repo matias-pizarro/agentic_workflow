@@ -20,6 +20,8 @@
 //   a reply that asks any; green after a NONE or "No questions of mine are
 //   open." line, or once the operator types in the pane (not a "Lead:"
 //   message, not a /command); a reply without questions leaves it as it is.
+// - While the agent works, its window carries the tmux option @working, which
+//   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 import { spawnSync } from "node:child_process";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
@@ -62,11 +64,21 @@ export function tabFor(reply: string): string | undefined {
 	return worst < 0 ? undefined : RANK[worst];
 }
 
-// Colour this pane's window tab; outside tmux, or if tmux fails, nothing.
-function colourTab(tab: string) {
+// Run `tmux set -w <flags> -t <this pane> <option> [value]`; outside tmux, or
+// if tmux fails, nothing.
+function setWindowOption(flags: string[], option: string, value?: string) {
 	const pane = process.env.TMUX_PANE;
 	if (!pane || !process.env.TMUX) return;
-	spawnSync("tmux", ["set", "-w", "-t", pane, "window-status-style", TABS[tab]], { stdio: "ignore" });
+	const args = ["set", "-w", ...flags, "-t", pane, option];
+	if (value !== undefined) args.push(value);
+	spawnSync("tmux", args, { stdio: "ignore" });
+}
+function colourTab(tab: string) {
+	setWindowOption([], "window-status-style", TABS[tab]);
+}
+function markWorking(on: boolean) {
+	if (on) setWindowOption([], "@working", "1");
+	else setWindowOption(["-u"], "@working");
 }
 
 // The rows to prefill from the reply's text: each ❓ ID, with the criticality
@@ -123,7 +135,10 @@ export default function openQuestions(pi: ExtensionAPI) {
 		return { action: "continue" };
 	});
 
+	pi.on("agent_start", async () => markWorking(true));
+
 	pi.on("agent_settled", async (event, ctx) => {
+		markWorking(false);
 		if (!event.aborted) {
 			const tab = tabFor(lastAssistantText(ctx) ?? "");
 			if (tab) colourTab(tab);
