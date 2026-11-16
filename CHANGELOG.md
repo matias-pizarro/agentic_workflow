@@ -2,6 +2,17 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.5.0] - 2026-11-16
+
+### Added
+
+- Rule 6: above each question, one plain-text line gives its criticality and what it blocks, starting with 🔴 high, 🟠 medium or 🟡 low. Several questions are ordered most critical first, then by what each blocks soonest, then with related ones together, as `/open-questions` prints them.
+- `/o`, a shortcut for `/open-questions`, input box prefill included. It is not listed in command completion.
+
+### Changed
+
+- `/open-questions` with nothing open prints `Open questions for the operator: NONE`, and the pane shows the whole line green. A line that is exactly `No questions of mine are open.` shows green too.
+
 ## [1.4.0] - 2026-11-16
 
 ### Added
@@ -79,6 +90,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.5.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.5.0
 [1.4.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.4.0
 [1.3.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.0
