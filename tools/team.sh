@@ -18,6 +18,10 @@
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
 #   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
+# Every agent ends each turn with: STATUS seat=<name> state=<state> open=<n>
+# [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
+# (open: its questions to the operator still unanswered; worst: the highest
+# criticality among them). status prints that line; the tab colour follows it.
 # spawn records each agent as "name<TAB>cwd<TAB>task file<TAB>session id" in
 # tools/agents (git-ignored; TEAM_AGENTS overrides), and starts it without
 # TEAM_ROLE in its environment (the lead runs with TEAM_ROLE=lead, which the

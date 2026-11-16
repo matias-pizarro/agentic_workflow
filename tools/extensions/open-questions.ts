@@ -44,16 +44,17 @@ const TABS: Record<string, string> = {
 	low: "bg=colour220,fg=black",
 	green: "bg=colour34,fg=black",
 };
-const STATUS_LINE = /STATUS\s+seat=\S+.*$/gmu;
+// A whole STATUS line, its fields in their fixed order from the line's start
+// (SOCR-Q1): a quoted example or an ask="... open=1 ..." text does not count.
+const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=\S+ open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
 
 // The tab's colour a reply's last STATUS line asks for: "green" at open=0,
 // its worst= ("low" without one) above 0, or undefined to leave the tab as is.
 export function tabFor(reply: string): string | undefined {
-	const last = reply.match(STATUS_LINE)?.at(-1);
-	const open = last?.match(/\bopen=(\d+)\b/);
-	if (!open) return undefined;
-	if (Number(open[1]) === 0) return "green";
-	return last!.match(/\bworst=(high|medium|low)\b/)?.[1] ?? "low";
+	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
+	if (!last) return undefined;
+	if (Number(last[1]) === 0) return "green";
+	return last[2] ?? "low";
 }
 
 // Run `tmux set -w <flags> -t <this pane> <option> [value]`; outside tmux, or
