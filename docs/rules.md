@@ -51,7 +51,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 ## Team mechanics
 
-- End every turn with one line: `STATUS seat=<name> state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [ask="<one sentence>"] [pointer=<path or commit>]`. "PM" is the operator.
+- End every turn with one line: `STATUS seat=<name> state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]`. `open` counts your questions to the operator still unanswered; `worst` is the highest criticality among them, given whenever `open` is above 0. The seat's tmux tab takes its colour from that line: red, orange or yellow by `worst`, green at `open=0`. "PM" is the operator.
 - The team script is `<root>/agentic_workflow/tools/team.sh`. After each Pi upgrade, run `team.sh selftest`; `team.sh status` lists any message stuck in `failed/`.
 - Before saying a seat missed a message, the lead checks `team.sh status` for it listed as `QUEUED`.
 - After a host reboot, the lead runs `team.sh doctor`, hands the operator the one fix block it prints, runs it again until it passes, then `team.sh revive --all`.
