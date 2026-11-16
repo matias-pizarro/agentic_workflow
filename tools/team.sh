@@ -11,7 +11,8 @@
 #   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane; registers
 #                                            each "❓ <ID>" it carries in tools/qids (TEAM_QIDS overrides) and
 #                                            refuses an ID registered to another seat, naming it
-#   team.sh status                           last STATUS line of every agent, [busy] flag; queued and failed messages
+#   team.sh status                           last STATUS line of every agent, [busy] and [input box holds text]
+#                                            flags; queued messages (saying when the box holds text) and failed ones
 #   team.sh retire <name>                    close a finished agent's window, drop its record
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
@@ -419,6 +420,8 @@ in_order() { # pane text...
 }
 status_shows_failed() { sh "$self" status | grep -q '^FAILED to-agent/failed/'; }
 status_shows_queued() { sh "$self" status | grep -q '^QUEUED lead [0-9][0-9]*m: selftest report one'; }
+status_says_box_held() { sh "$self" status | grep -q '^QUEUED lead .*input box holds text'; }
+status_flags_held() { sh "$self" status | grep -q "^$1 .*\[input box holds text\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
 recorded_as() { # name cwd task
@@ -476,12 +479,14 @@ selftest() {
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
   check "status lists them as QUEUED, with their age" status_shows_queued
+  check "... saying the lead's input box holds text" status_says_box_held
   check "... and are not typed" lacks "$lp" "selftest report one"
   tmux send-keys -t "$lp" -l -- "$cr" # the user submits the line
   check "the reports are delivered once the user's line is submitted" waitfor 120 queued lead 0
   check "... in order, after the user's line" waitfor 60 in_order "$lp" "$half" "selftest report one" "selftest report two"
   waitfor 60 input_empty "$ap" || true
   tmux send-keys -t "$ap" -l -- "selftest: the user types in the agent pane"
+  check "status flags an agent whose input box holds text" waitfor 5 status_flags_held agent
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
   check "status prints the failed message" status_shows_failed
@@ -602,6 +607,7 @@ status)
     line=$(printf '%s\n' "$pane" | grep -o 'STATUS seat=.*' | tail -1)
     flag=''
     busy "$idx" && flag='[busy] '
+    holds_text "$idx" && flag="$flag[input box holds text] "
     printf '%-16s %s%s\n' "$name" "$flag" "${line:-(no STATUS line)}"
   done
   for f in "$spool"/*/failed/*; do
@@ -613,7 +619,10 @@ status)
     target=${f#"$spool"/}
     age=$(mtime "$f") || age=''
     case $age in '' | *[!0-9]*) age='age unreadable' ;; *) age="$(((now - age) / 60))m" ;; esac
-    printf 'QUEUED %s %s: %s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)"
+    held=''
+    p=$(resolve "${target%%/*}" 2> /dev/null) || p=''
+    [ -n "$p" ] && holds_text "$p" && held=' (waits: its input box holds text)'
+    printf 'QUEUED %s %s: %s%s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)" "$held"
   done
   true
   ;;
