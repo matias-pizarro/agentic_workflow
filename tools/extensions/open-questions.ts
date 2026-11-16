@@ -39,7 +39,7 @@ const MARKED_LINE = /^(\s*)(🔴|🟠|🟡)(.*)$/gmu;
 const CRITICALITY = /^\s*(🔴|🟠|🟡)\s*(high|medium|low)\b/iu;
 const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?)/u;
 const TABS: Record<string, string> = {
-	high: "bg=colour196,fg=black",
+	high: "bg=colour88,fg=colour254",
 	medium: "bg=colour208,fg=black",
 	low: "bg=colour220,fg=black",
 	green: "bg=colour34,fg=black",
