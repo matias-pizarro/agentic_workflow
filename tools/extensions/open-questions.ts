@@ -5,7 +5,8 @@
 //   end the colour. Display only: the session and the model's context keep the
 //   reply as written (pi docs, extensions.md, registerMarkdownTransformer).
 // - The line "Open questions for the operator: none" shows green, with NONE in
-//   capitals (the user, 16 Nov).
+//   capitals, and so does a line "No questions of mine are open." (the user,
+//   16 Nov).
 // - /o is a shortcut for /open-questions: the input is rewritten before pi
 //   expands templates (the user, 16 Nov). It is not listed in completion.
 // - After a turn started by /open-questions, the input box is filled with one
@@ -24,6 +25,7 @@ const COLOURS: Record<string, string> = {
 const FG_RESET = "\x1b[39m";
 const GREEN = "\x1b[38;5;40m";
 const NONE_LINE = /^(\s*)`?(Open questions for the operator: )none`?\s*$/gimu;
+const NO_QUESTIONS_LINE = /^(\s*)(No questions of mine are open\.)\s*$/gmu;
 const MARKED_LINE = /^(\s*)(🔴|🟠|🟡)(.*)$/gmu;
 const CRITICALITY = /^\s*(🔴|🟠|🟡)\s*(high|medium|low)\b/iu;
 const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?)/u;
@@ -66,7 +68,8 @@ export default function openQuestions(pi: ExtensionAPI) {
 				.replace(MARKED_LINE, (_m: string, indent: string, dot: string, rest: string) =>
 					`${indent}${dot}${COLOURS[dot]}${rest.replaceAll("`", "")}${FG_RESET}`,
 				)
-				.replace(NONE_LINE, (_m: string, indent: string, lead: string) => `${indent}${GREEN}${lead}NONE${FG_RESET}`),
+				.replace(NONE_LINE, (_m: string, indent: string, lead: string) => `${indent}${GREEN}${lead}NONE${FG_RESET}`)
+				.replace(NO_QUESTIONS_LINE, (_m: string, indent: string, text: string) => `${indent}${GREEN}${text}${FG_RESET}`),
 		{ messageTypes: ["assistant"] },
 	);
 
