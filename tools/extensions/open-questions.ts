@@ -15,6 +15,12 @@
 //   empty box is filled. While it holds that text, team.sh delivers nothing
 //   to this pane: it waits for an empty input box. The rows' text is not
 //   coloured: the coloured marker is enough (the user, 16 Nov).
+// - The seat's tmux window tab is coloured by what waits on the operator (the
+//   user, 16 Nov): red, orange or yellow after the most critical question in
+//   a reply that asks any; green after a NONE or "No questions of mine are
+//   open." line, or once the operator types in the pane (not a "Lead:"
+//   message, not a /command); a reply without questions leaves it as it is.
+import { spawnSync } from "node:child_process";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const COLOURS: Record<string, string> = {
@@ -29,6 +35,39 @@ const NO_QUESTIONS_LINE = /^(\s*)(No questions of mine are open\.)\s*$/gmu;
 const MARKED_LINE = /^(\s*)(🔴|🟠|🟡)(.*)$/gmu;
 const CRITICALITY = /^\s*(🔴|🟠|🟡)\s*(high|medium|low)\b/iu;
 const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?)/u;
+const NO_OPEN = /^\s*`?(Open questions for the operator: none`?|No questions of mine are open\.)\s*$/imu;
+const TABS: Record<string, string> = {
+	"🔴": "bg=colour196,fg=black",
+	"🟠": "bg=colour208,fg=black",
+	"🟡": "bg=colour220,fg=black",
+	green: "bg=colour34,fg=black",
+};
+const RANK = ["🔴", "🟠", "🟡"];
+
+// The tab's colour a reply asks for: the most critical marker above a ❓ line,
+// "green" when it says nothing is open, or undefined to leave the tab as is.
+export function tabFor(reply: string): string | undefined {
+	if (NO_OPEN.test(reply)) return "green";
+	let marker = "";
+	let worst = -1;
+	for (const line of reply.split("\n")) {
+		const c = line.match(CRITICALITY);
+		if (c) marker = c[1];
+		if (QUESTION.test(line)) {
+			const rank = marker ? RANK.indexOf(marker) : RANK.length - 1;
+			if (worst < 0 || rank < worst) worst = rank;
+			marker = "";
+		}
+	}
+	return worst < 0 ? undefined : RANK[worst];
+}
+
+// Colour this pane's window tab; outside tmux, or if tmux fails, nothing.
+function colourTab(tab: string) {
+	const pane = process.env.TMUX_PANE;
+	if (!pane || !process.env.TMUX) return;
+	spawnSync("tmux", ["set", "-w", "-t", pane, "window-status-style", TABS[tab]], { stdio: "ignore" });
+}
 
 // The rows to prefill from the reply's text: each ❓ ID, with the criticality
 // line that came before it, if any.
@@ -75,6 +114,7 @@ export default function openQuestions(pi: ExtensionAPI) {
 
 	let asked = false;
 	pi.on("input", async (event) => {
+		if (event.source === "interactive" && !/^\s*(Lead:|\/)/.test(event.text)) colourTab("green");
 		if (/^\s*\/o\s*$/.test(event.text)) {
 			asked = true;
 			return { action: "transform", text: "/open-questions" };
@@ -84,6 +124,10 @@ export default function openQuestions(pi: ExtensionAPI) {
 	});
 
 	pi.on("agent_settled", async (event, ctx) => {
+		if (!event.aborted) {
+			const tab = tabFor(lastAssistantText(ctx) ?? "");
+			if (tab) colourTab(tab);
+		}
 		if (!asked) return;
 		asked = false;
 		if (event.aborted || !ctx.hasUI || ctx.ui.getEditorText().trim() !== "") return;
