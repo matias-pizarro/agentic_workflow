@@ -21,6 +21,8 @@
 //   without a STATUS line, or without open=, leaves it as it is. The tab also
 //   turns green once the operator types in the pane (not a "Lead:" message,
 //   not a /command), until the seat's next STATUS line says otherwise.
+// - While open= is above 0, the window carries @open=<n>, which the tab format
+//   in tmux.conf shows as " [n]" after the name (the user, 17 Nov).
 // - While the agent works, its window carries the tmux option @working, which
 //   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 import { spawnSync } from "node:child_process";
@@ -51,10 +53,23 @@ const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=\S+ open=(\d+)(?: worst=(high|m
 // The tab's colour a reply's last STATUS line asks for: "green" at open=0,
 // its worst= ("low" without one) above 0, or undefined to leave the tab as is.
 export function tabFor(reply: string): string | undefined {
+	const open = openFor(reply);
+	if (open === undefined) return undefined;
+	if (open === 0) return "green";
+	return [...reply.matchAll(STATUS_LINE)].at(-1)![2] ?? "low";
+}
+
+// The open= count of a reply's last STATUS line, or undefined without one.
+export function openFor(reply: string): number | undefined {
 	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
-	if (!last) return undefined;
-	if (Number(last[1]) === 0) return "green";
-	return last[2] ?? "low";
+	return last ? Number(last[1]) : undefined;
+}
+
+// The tab's [n] after the name: the window option @open, shown by the tab
+// format in tmux.conf; unset at 0 (the user, 17 Nov).
+function showOpen(n: number) {
+	if (n > 0) setWindowOption([], "@open", String(n));
+	else setWindowOption(["-u"], "@open");
 }
 
 // Run `tmux set -w <flags> -t <this pane> <option> [value]`; outside tmux, or
@@ -119,7 +134,10 @@ export default function openQuestions(pi: ExtensionAPI) {
 
 	let asked = false;
 	pi.on("input", async (event) => {
-		if (event.source === "interactive" && !/^\s*(Lead:|\/)/.test(event.text)) colourTab("green");
+		if (event.source === "interactive" && !/^\s*(Lead:|\/)/.test(event.text)) {
+			colourTab("green");
+			showOpen(0);
+		}
 		if (/^\s*\/o\s*$/.test(event.text)) {
 			asked = true;
 			return { action: "transform", text: "/open-questions" };
@@ -133,8 +151,11 @@ export default function openQuestions(pi: ExtensionAPI) {
 	pi.on("agent_settled", async (event, ctx) => {
 		markWorking(false);
 		if (!event.aborted) {
-			const tab = tabFor(lastAssistantText(ctx) ?? "");
+			const reply = lastAssistantText(ctx) ?? "";
+			const tab = tabFor(reply);
 			if (tab) colourTab(tab);
+			const open = openFor(reply);
+			if (open !== undefined) showOpen(open);
 		}
 		if (!asked) return;
 		asked = false;
