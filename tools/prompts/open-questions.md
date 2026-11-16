@@ -16,4 +16,4 @@ Print each open question in full as it stands now, updated to what you know at t
 - for an issue or finding (rules.md rule 6): **Done**, **Expected**, **Instead**, **Impact**, **Root cause (hypothesised)**, **Solutions, effort and tradeoffs** (each solution with its effort and its tradeoffs), then the `❓ <ID> – <question>?` line and the `➡️ <recommended answer>` line, worded so "yes" accepts it;
 - for any other decision: one or two lines of context, then the `❓` line and the `➡️` line.
 
-Start with one line: `Open questions for the operator: <n>`. If there are none, print only `Open questions for the operator: none`. If part of this session was compacted and you cannot see whether some questions were answered, say so on that first line. End your turn with your usual STATUS line.
+Start with one line: `Open questions for the operator: <n>`. If there are none, print only `Open questions for the operator: NONE`, as plain text (the pane colours it green). If part of this session was compacted and you cannot see whether some questions were answered, say so on that first line. End your turn with your usual STATUS line.
