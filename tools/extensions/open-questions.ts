@@ -15,11 +15,12 @@
 //   empty box is filled. While it holds that text, team.sh delivers nothing
 //   to this pane: it waits for an empty input box. The rows' text is not
 //   coloured: the coloured marker is enough (the user, 16 Nov).
-// - The seat's tmux window tab is coloured by what waits on the operator (the
-//   user, 16 Nov): red, orange or yellow after the most critical question in
-//   a reply that asks any; green after a NONE or "No questions of mine are
-//   open." line, or once the operator types in the pane (not a "Lead:"
-//   message, not a /command); a reply without questions leaves it as it is.
+// - The seat's tmux window tab is coloured from the last STATUS line of each
+//   turn (rules.md, Team mechanics; PA-Q52, the user, 16 Nov): open=0 green;
+//   open above 0 red, orange or yellow by worst= (yellow without it); a turn
+//   without a STATUS line, or without open=, leaves it as it is. The tab also
+//   turns green once the operator types in the pane (not a "Lead:" message,
+//   not a /command), until the seat's next STATUS line says otherwise.
 // - While the agent works, its window carries the tmux option @working, which
 //   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 import { spawnSync } from "node:child_process";
@@ -37,31 +38,23 @@ const NO_QUESTIONS_LINE = /^(\s*)(No questions of mine are open\.)\s*$/gmu;
 const MARKED_LINE = /^(\s*)(🔴|🟠|🟡)(.*)$/gmu;
 const CRITICALITY = /^\s*(🔴|🟠|🟡)\s*(high|medium|low)\b/iu;
 const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?)/u;
-const NO_OPEN = /^\s*`?(Open questions for the operator: none`?|No questions of mine are open\.)\s*$/imu;
 const TABS: Record<string, string> = {
-	"🔴": "bg=colour196,fg=black",
-	"🟠": "bg=colour208,fg=black",
-	"🟡": "bg=colour220,fg=black",
+	high: "bg=colour196,fg=black",
+	medium: "bg=colour208,fg=black",
+	low: "bg=colour220,fg=black",
 	green: "bg=colour34,fg=black",
 };
-const RANK = ["🔴", "🟠", "🟡"];
+// A whole STATUS line, its fields in their fixed order from the line's start
+// (SOCR-Q1): a quoted example or an ask="... open=1 ..." text does not count.
+const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=\S+ open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
 
-// The tab's colour a reply asks for: the most critical marker above a ❓ line,
-// "green" when it says nothing is open, or undefined to leave the tab as is.
+// The tab's colour a reply's last STATUS line asks for: "green" at open=0,
+// its worst= ("low" without one) above 0, or undefined to leave the tab as is.
 export function tabFor(reply: string): string | undefined {
-	if (NO_OPEN.test(reply)) return "green";
-	let marker = "";
-	let worst = -1;
-	for (const line of reply.split("\n")) {
-		const c = line.match(CRITICALITY);
-		if (c) marker = c[1];
-		if (QUESTION.test(line)) {
-			const rank = marker ? RANK.indexOf(marker) : RANK.length - 1;
-			if (worst < 0 || rank < worst) worst = rank;
-			marker = "";
-		}
-	}
-	return worst < 0 ? undefined : RANK[worst];
+	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
+	if (!last) return undefined;
+	if (Number(last[1]) === 0) return "green";
+	return last[2] ?? "low";
 }
 
 // Run `tmux set -w <flags> -t <this pane> <option> [value]`; outside tmux, or

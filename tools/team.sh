@@ -18,6 +18,10 @@
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
 #   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
+# Every agent ends each turn with: STATUS seat=<name> state=<state> open=<n>
+# [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
+# (open: its questions to the operator still unanswered; worst: the highest
+# criticality among them). status prints that line; the tab colour follows it.
 # spawn records each agent as "name<TAB>cwd<TAB>task file<TAB>session id" in
 # tools/agents (git-ignored; TEAM_AGENTS overrides), and starts it without
 # TEAM_ROLE in its environment (the lead runs with TEAM_ROLE=lead, which the
@@ -228,7 +232,8 @@ compose_prompt() { # name task-file
   cat > "$full" <<HDR
 You are the agent \`$1\` on a team led by a chief of staff (the lead). Protocol:
 - End EVERY turn with exactly one line:
-  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [ask="<one sentence>"] [pointer=<path or commit>]
+  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
+  (open: your questions to the operator still unanswered; worst: the highest criticality among them, whenever open > 0)
 - When you finish, or need the lead, also run:
   $here/team.sh report "$1: <one or two sentences, with a pointer (path or commit)>"
   then end your turn. Never paste file contents into a report; name the path.

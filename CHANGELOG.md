@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.7.0] - 2026-11-16
+
+### Changed
+
+- The STATUS line every agent ends its turn with gains `open=<n>` and, whenever `n` is above 0, `worst=<high|medium|low>`: the agent's questions to the operator still unanswered, and the highest criticality among them (`docs/rules.md`, Team mechanics; `team.sh`'s help and spawn prompt). Running seats should start adding the fields. A line without them still works and leaves the tab's colour as it is.
+- A seat's tmux tab takes its colour from that line: green at `open=0`; red, orange or yellow by `worst=`. Only a whole STATUS line, with its fields in order from the line's start, counts. Typing in the pane still turns the tab green until the next STATUS line. This replaces colouring from the criticality markers in a reply.
+
 ## [1.6.0] - 2026-11-16
 
 ### Added
@@ -102,6 +109,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.7.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.0
 [1.6.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.6.0
 [1.5.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.5.0
 [1.4.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.4.0
