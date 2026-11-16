@@ -10,7 +10,7 @@ Order them:
 2. then, among equally critical ones, the one blocking work soonest first (your next step, another seat's, a merge or a release), and the one that blocks nothing yet last;
 3. then, among equally blocking ones, keep related questions together (same topic, same ticket, or one answer depending on another), not in random order.
 
-Above each question, print one line with its criticality and what it blocks, e.g. `high · blocks the production switch` or `low · blocks nothing yet`.
+Above each question, print one line with its criticality and what it blocks, starting with 🔴 for high, 🟠 for medium or 🟡 for low, as plain text (not in backticks), e.g. `🔴 high · blocks the production switch` or `🟡 low · blocks nothing yet`. The pane colours that line's text to match.
 
 Print each open question in full as it stands now, updated to what you know at this moment, not as first worded:
 - for an issue or finding (rules.md rule 6): **Done**, **Expected**, **Instead**, **Impact**, **Root cause (hypothesised)**, **Solutions, effort and tradeoffs** (each solution with its effort and its tradeoffs), then the `❓ <ID> – <question>?` line and the `➡️ <recommended answer>` line, worded so "yes" accepts it;
