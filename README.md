@@ -12,7 +12,7 @@ A way to run software work with a team of [Pi](https://github.com/earendil-works
 Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-git clone --branch v1.3.1 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+git clone --branch v1.4.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
 ```
 
 Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
@@ -38,6 +38,8 @@ node tools/extensions/install.mjs
 ```
 
 This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
+
+The same step copies the prompt templates in `tools/prompts/` into `~/.pi/agent/prompts/`. Today that is `/open-questions`: typed in a seat's pane, it makes the seat print, in that pane, every question it has put to the operator that is still unanswered, each in full in rule 6's form, or `none`. Its pane side, `tools/extensions/open-questions.ts` (installed by the same step), colours each question's criticality line (🔴 high, 🟠 medium, 🟡 low) and then fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. Messages from `team.sh` wait while the box holds those rows.
 
 **If it fails:** fix the cause and rerun it.
 

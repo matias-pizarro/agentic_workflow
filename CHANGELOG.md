@@ -2,6 +2,14 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.4.0] - 2026-11-16
+
+### Added
+
+- `/open-questions`, a pi prompt template (`tools/prompts/open-questions.md`). Typed in a seat's pane, it makes the seat print there every question it has put to the operator that is still unanswered, in full in rule 6's form, or `none`. It orders them by criticality, then by what each blocks soonest, then keeps related ones together. Each question has a criticality line starting with 🔴 high, 🟠 medium or 🟡 low.
+- `tools/extensions/open-questions.ts`, its pane side. It colours each criticality line to match its marker, display only. After a turn started by `/open-questions`, it fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. `team.sh` messages wait while the box holds those rows.
+- `install.mjs` installs both: the template into `~/.pi/agent/prompts/` and the extension beside `guards.ts`. Rerun it after taking this release, then `/reload` running sessions.
+
 ## [1.3.1] - 2026-11-15
 
 ### Changed
@@ -71,6 +79,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.4.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.4.0
 [1.3.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.1
 [1.3.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.3.0
 [1.2.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.2.0
