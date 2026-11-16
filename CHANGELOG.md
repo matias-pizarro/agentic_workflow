@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.8.0] - 2026-11-17
+
+### Added
+
+- A seat's tab shows its open-question count after the name, e.g. `3:prod-net [5]`. The extension sets the tmux option `@open` from the STATUS line's `open=`, and clears it at `open=0` or when the operator types in the pane. Update the two tab-format lines in your tmux config from the README's "Guards" section, then `/reload` the seats.
+
 ## [1.7.1] - 2026-11-16
 
 ### Changed
@@ -115,6 +121,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.8.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.8.0
 [1.7.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.1
 [1.7.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.0
 [1.6.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.6.0
