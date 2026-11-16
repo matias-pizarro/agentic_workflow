@@ -3,9 +3,10 @@
 // ~/.pi/agent/extensions/, which every pi session loads at its start, and list
 // it in ~/.pi/agent/settings.json's subagents.defaultSubagentOnlyExtensions,
 // which foreground subagents load. It removes heredoc-guard.ts and its entry,
-// now a handler of guards.ts. It copies criticality-colours.ts there too, for
-// the main session only (it colours /open-questions' lines; subagents print
-// none). It also copies the prompt templates in
+// now a handler of guards.ts. It copies open-questions.ts there too, for the
+// main session only (the pane side of /open-questions; subagents have no
+// pane), and removes criticality-colours.ts, now part of it. It also copies
+// the prompt templates in
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
 // stays gone. pi sessions already running load them at their next start or
@@ -23,8 +24,9 @@ mkdirSync(dirname(target), { recursive: true });
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "guards.ts"), target);
 const heredoc = join(agent, "extensions", "heredoc-guard.ts");
 rmSync(heredoc, { force: true });
-const colours = join(agent, "extensions", "criticality-colours.ts");
-copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "criticality-colours.ts"), colours);
+const colours = join(agent, "extensions", "open-questions.ts");
+copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "open-questions.ts"), colours);
+rmSync(join(agent, "extensions", "criticality-colours.ts"), { force: true });
 
 const prompts = join(dirname(fileURLToPath(import.meta.url)), "..", "prompts");
 mkdirSync(join(agent, "prompts"), { recursive: true });
