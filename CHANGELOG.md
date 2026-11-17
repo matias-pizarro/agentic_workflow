@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.10.0] - 2026-11-17
+
+### Added
+
+- A `docs` ceremony tier (rule 1, and the tier table in `docs/index.md`): a change to documentation only, with no code, script or check. It has an `**If it fails:**` line, the project's docs build as its live check, and the operator's read of the diff or render as its review. `team.sh spawn` accepts `Ceremony: docs`. A project whose ticket checker lists the tiers (such as src's `lib/check_ticket`) should add `docs` there.
+
 ## [1.9.0] - 2026-11-17
 
 ### Added
@@ -133,6 +139,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.10.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.10.0
 [1.9.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.9.0
 [1.8.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.8.0
 [1.7.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.1
