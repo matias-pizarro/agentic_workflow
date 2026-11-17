@@ -40,7 +40,8 @@
 # status lists every queued message with its age.
 # send, go, report, spawn and revive set the tmux server option @team-qids to
 # the question-ID registry's path, where the pi extension open-questions.ts
-# registers each pane's new IDs (RT3-Q9).
+# registers each pane's new IDs (RT3-Q9), and @team-sh to this script's path,
+# which the pi extension draft.ts runs to relay a /draft to the lead (AW-Q70).
 # tools/ is the directory of the path the script was invoked by, not of its
 # resolved target: a symlink <root>/wiki/tools/team.sh to
 # <root>/agentic_workflow/tools/team.sh
@@ -116,7 +117,7 @@ resolve() { # target -> pane id (empty if absent)
 }
 
 # Tell pi panes where the question-ID registry is; no tmux server, no matter.
-publish_qids() { tmux set -g @team-qids "$qids" 2> /dev/null || true; }
+publish_qids() { tmux set -g @team-qids "$qids" 2> /dev/null && tmux set -g @team-sh "$self" 2> /dev/null || true; }
 
 # The last cron run, when it exited non-zero: "CRON <name> exit <n>, <d Mon hh:mm>: see <log>".
 # cron.log lines: "<YYYY-MM-DD> <hh:mm:ss> <TZ> run: <command>", then its output, then "... exit <n>".
@@ -562,6 +563,7 @@ selftest() {
   printf '2026-11-23 09:00:00 CET run: /w/tools/team.sh spawn lint-2 /w /w/t.md\n2026-11-23 09:00:01 CET exit 0\n' >> "$spool/cron.log"
   check "... and is silent once a later run succeeds" status_lacks CRON
   check "send publishes the question-ID registry to pi panes" [ "$(tmux show -gv @team-qids)" = "$TEAM_QIDS" ]
+  check "... and its own path, for /draft's relay" [ "$(tmux show -gv @team-sh)" = "$self" ]
   printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
   check "report refuses a ❓ ID registered to another seat, naming it" refused_with "XX-Q1 is other's (14 Nov 2026)" report "a1: ❓ XX-Q1 – taken?"
   TEAM_WAIT=3 sh "$self" report "a1: ❓ XX-Q2 – new? reply with only OK" > /dev/null
