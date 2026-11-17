@@ -136,14 +136,12 @@ enqueue() { # target text
   # process reaper on FreeBSD, kills every descendant of its command, detached
   # or not, when it fires (TD-Q1, 17 Nov). The server does not inherit this
   # shell's environment, so the settings go on the command line. Without a
-  # reachable server, detach from the caller's session as before.
+  # reachable server no pane can be typed into anyway: the message stays
+  # queued, and status shows it with no deliverer.
   dcmd="TEAM_SPOOL=$(q "$spool") TEAM_POLL=$(q "$poll") TEAM_WAIT=$(q "$wait_max") TEAM_TMUX=$(q "${TEAM_TMUX:-}") sh $(q "$self") _deliver $(q "$1") >> $(q "$spool/log") 2>&1"
   if ! tmux run-shell -b "$dcmd" 2> /dev/null; then
-    if command -v daemon > /dev/null; then
-      daemon -o "$spool/log" sh "$self" _deliver "$1"
-    else
-      nohup sh "$self" _deliver "$1" < /dev/null > /dev/null 2>&1 &
-    fi
+    echo "no deliverer started for $1: the tmux server cannot be reached; it stays queued" >&2
+    log "no deliverer started for $1: tmux server unreachable"
   fi
 }
 
@@ -506,8 +504,9 @@ selftest() {
   check "status flags an agent whose input box holds text" waitfor 5 status_flags_held agent
   # timeout(1), a process reaper on FreeBSD, kills every descendant of its
   # command when it fires (TD-Q1, 17 Nov).
-  TEAM_WAIT=8 timeout 3 sh "$self" send agent "selftest: sent under timeout" > /dev/null 2>&1 || true
-  sleep 4
+  # The caller outlives timeout's limit, as a long command around team.sh
+  # does, so timeout fires and kills what it reaps.
+  TEAM_WAIT=8 timeout 3 sh -c 'sh "$1" send agent "selftest: sent under timeout" > /dev/null 2>&1; sleep 10' _ "$self" || true
   check "a deliverer started by a send under timeout(1) outlives it" deliverer_alive to-agent
   mkdir -p "$spool/to-ghost/q" && printf 'selftest: nobody delivers this\n' > "$spool/to-ghost/q/000000001"
   check "status flags a queue with no deliverer" status_flags_no_deliverer to-ghost
