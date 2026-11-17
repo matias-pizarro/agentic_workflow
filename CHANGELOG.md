@@ -2,6 +2,15 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [Unreleased]
+
+### Added
+
+- Rule 4: a question settled by an answer given elsewhere is withdrawn in its own pane, naming that answer; a ticket's number is claimed by committing its file before it is announced.
+- Rule 5: the time quoted is the stamp on the operator's message, or the time a seat's report quotes, never an estimate; a claim about state, by anyone, names the read it rests on, made after the last step that could change it (moved from rule 10, which bound only the lead); an answer about now is recorded as a choice for now, and a standing rule changes only on the operator's words naming it.
+- Rule 9: the seat merges the integration branch into its branch before each review pass too; a change to a shared file merges into the integration branch on its own, from its owner's branch, first.
+- Rule 10: a go is relayed as given; a condition the lead would add goes to the operator as a question.
+
 ## [1.10.0] - 2026-11-17
 
 ### Added
