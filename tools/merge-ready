@@ -13,6 +13,11 @@
 # under the code paths differs from HEAD and counts; one elsewhere does not
 # (MRCR-Q1). A failed read is a refusal, never a pass. Exit 2 on a
 # usage error. The lead runs it before authorising a merge.
+#
+# It also warns, without changing the exit status, of each ticket the branch
+# changed (.scratch/<topic>/issues/*.md, against integration) whose
+# **Status:** line at HEAD is not done; the ready report answers each
+# (RT3-Q10).
 set -eu
 set -o pipefail
 nl='
@@ -45,6 +50,14 @@ esac
 [ -z "$changed" ] || why="$why
 - changed since the live run at $live: $(printf '%s' "$changed" | tr '\n' ' ')
   run them live again"
+
+tickets=$(git -C "$wt" diff --name-only --diff-filter=d integration...HEAD -- '.scratch/*/issues/*.md') ||
+  { echo "merge-ready: cannot list the tickets the branch changed in $wt" >&2; exit 1; }
+for t in $tickets; do
+  status=$(git -C "$wt" show "HEAD:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
+    { echo "merge-ready: cannot read $t at HEAD in $wt" >&2; exit 1; }
+  case $status in done) ;; *) echo "merge-ready: warning: $t says Status: ${status:-(none)}, not done" ;; esac
+done
 
 if [ -n "$why" ]; then
   echo "merge-ready: not ready ($wt):$why"

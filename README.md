@@ -12,7 +12,7 @@ A way to run software work with a team of [Pi](https://github.com/earendil-works
 Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-git clone --branch v1.10.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+git clone --branch v2.0.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
 ```
 
 Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
@@ -25,9 +25,10 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 
 ## Guards
 
-`tools/extensions/guards.ts` is one pi extension with one `tool_call` handler per guard:
+`tools/extensions/guards.ts` is one pi extension with one handler per guard:
 
-- **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message.
+- **sibling-guard** refuses a `bash` call issued in the same assistant message as a `write` or `edit`. pi runs one message's tool calls at the same time, so the command could read the file half-written; it is told to run in the next message. It also refuses a `bash` call beside another `bash` call when either runs a git step that changes state (commit, merge, push, checkout, add, ...) or `merge-ready`.
+- **time-stamp** starts each message typed in the pane, other than a `/command`, with its local time, `[17 Nov 12:59] `, so a quoted time is the stamp, never an estimate. Messages `team.sh` types are stamped with their delivery time.
 - **heredoc-guard** refuses a `bash` call holding a heredoc whose delimiter is not a plain name, or whose delimiter line appears more than once, since bash would end the heredoc early and run the rest of its body as shell.
 
 Install it for your user, after backing up pi's settings (both steps are safe to rerun; on a rerun, `cp -n` keeps the first backup and exits 1):
@@ -37,9 +38,9 @@ cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards
 node tools/extensions/install.mjs
 ```
 
-This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
+This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`, and the install ends by listing the tmux panes running pi that need it. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
 
-The same step copies the prompt templates in `tools/prompts/` into `~/.pi/agent/prompts/`. Today that is `/open-questions`, or `/o` for short: typed in a seat's pane, it makes the seat print, in that pane, every question it has put to the operator that is still unanswered, each in full in rule 6's form, or `none`. Its pane side, `tools/extensions/open-questions.ts` (installed by the same step), colours each question's criticality line (🔴 high, 🟠 medium, 🟡 low) and then fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. Messages from `team.sh` wait while the box holds those rows. It also colours the seat's tmux window tab from the STATUS line that ends each turn (`docs/rules.md`, Team mechanics): green at `open=0`; red, orange or yellow by `worst=` when questions are open. A turn without that line leaves the colour as it is, and the tab turns green once you type in the pane (not a `Lead:` message or a `/command`), until the seat's next STATUS line. While a seat works, its window carries the tmux option `@working`; to show it as ⚡ after the tab's name, put this in your tmux config:
+The same step copies the prompt templates in `tools/prompts/` into `~/.pi/agent/prompts/`. Today that is `/open-questions`, or `/o` for short: typed in a seat's pane, it makes the seat print, in that pane, every question it has put to the operator that is still unanswered, each in full in rule 6's form, or `none`. Its pane side, `tools/extensions/open-questions.ts` (installed by the same step), colours each question's criticality line (🔴 high, 🟠 medium, 🟡 low) and then fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. Messages from `team.sh` wait while the box holds those rows. It also colours the seat's tmux window tab from the STATUS line that ends each turn (`docs/rules.md`, Team mechanics): green at `open=0`; red, orange or yellow by `worst=` when questions are open. A turn without that line leaves the colour as it is, and the tab turns green once you type in the pane (not a `Lead:` message or a `/command`), until the seat's next STATUS line. At the end of each turn it registers each new `❓ <ID>` of the reply to the seat in the question-ID registry `team.sh` names (the tmux option `@team-qids`), and warns in the pane of an ID another seat holds. It gives the seat a `reload_runtime` tool, so a seat reloads itself when the lead or the operator says so. While a seat works, its window carries the tmux option `@working`; to show it as ⚡ after the tab's name, put this in your tmux config:
 
 ```
 set-window-option -g window-status-format '#I:#W#{?@open, [#{@open}],}#{?@working, ⚡,}#{?window_flags,#{window_flags}, }'

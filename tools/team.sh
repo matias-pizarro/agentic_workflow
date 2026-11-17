@@ -4,15 +4,18 @@
 # src/chief-of-staff-communication.md (11 Nov 2026).
 #   team.sh spawn <name> <cwd> <task file>   start an interactive pi agent with its own session id;
 #                                            the task file's first line is the ceremony the user chose:
-#                                            Ceremony: <docs|checklist|script|full|none> (the user, "<words>", <date> hh:mm)
-#                                            (none for research, retros and other no-code tasks)
+#                                            Ceremony: <research|write-up|retro|docs|vg|checklist|script|full|none> (the user, "<words>", <date> hh:mm)
+#                                            (none for other no-code tasks)
 #   team.sh send <name> "<text>"             queue one message for an agent's pane
-#   team.sh go <name> "<words>" "<instr>"    queue "Lead: the user's go, lead pane, <time> ('<words>'): <instr>"
+#   team.sh go <name> "<words>" "<pane> <time>" "<instr>"
+#                                            queue "Lead: the user's go ('<words>', <pane> <time>), relayed <now>: <instr>";
+#                                            <pane> <time> is where and when the user gave it, e.g. "prod-net pane 22:57"
 #   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane; registers
 #                                            each "❓ <ID>" it carries in tools/qids (TEAM_QIDS overrides) and
 #                                            refuses an ID registered to another seat, naming it
 #   team.sh status                           last STATUS line of every agent, [busy], [input box holds text] and
-#                                            [input box unreadable] flags; queued messages (saying which) and failed ones
+#                                            [input box unreadable] flags; queued messages (saying which) and failed ones;
+#                                            a CRON line when the last run in tools/spool/cron.log exited non-zero
 #   team.sh retire <name>                    close a finished agent's window, drop its record
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
@@ -35,6 +38,9 @@
 # and report say when the target's pane is busy: pi then holds a typed message
 # as steering, read after the agent's current step (pi's rpc-commands.md).
 # status lists every queued message with its age.
+# send, go, report, spawn and revive set the tmux server option @team-qids to
+# the question-ID registry's path, where the pi extension open-questions.ts
+# registers each pane's new IDs (RT3-Q9).
 # tools/ is the directory of the path the script was invoked by, not of its
 # resolved target: a symlink <root>/wiki/tools/team.sh to
 # <root>/agentic_workflow/tools/team.sh
@@ -109,8 +115,27 @@ resolve() { # target -> pane id (empty if absent)
   esac
 }
 
+# Tell pi panes where the question-ID registry is; no tmux server, no matter.
+publish_qids() { tmux set -g @team-qids "$qids" 2> /dev/null || true; }
+
+# The last cron run, when it exited non-zero: "CRON <name> exit <n>, <d Mon hh:mm>: see <log>".
+# cron.log lines: "<YYYY-MM-DD> <hh:mm:ss> <TZ> run: <command>", then its output, then "... exit <n>".
+cron_flag() {
+  [ -f "$spool/cron.log" ] || return 0
+  awk -v path="$spool/cron.log" '
+    $4 == "run:" { name = $5; for (i = 5; i < NF; i++) if ($i == "spawn") { name = $(i + 1); break } }
+    $4 == "exit" { rc = $5; when = $1 " " substr($2, 1, 5) }
+    END {
+      if (rc == "" || rc == 0) exit
+      split(when, w, /[- ]/)
+      m = substr("JanFebMarAprMayJunJulAugSepOctNovDec", (w[2] - 1) * 3 + 1, 3)
+      printf "CRON %s exit %s, %d %s %s: see %s\n", name, rc, w[3], m, w[4], path
+    }' "$spool/cron.log"
+}
+
 # Append text to the target's queue, then make sure a deliverer runs.
 enqueue() { # target text
+  publish_qids
   d=$spool/$1
   mkdir -p "$d/q" "$d/failed"
   tmp=$d/new.$$
@@ -284,7 +309,7 @@ task_ok() { [ -f "$1" ] && grep -q '[^[:space:]]' "$1"; }
 # words and time (wiki decision-ceremony-sizing.md).
 ceremony_ok() {
   first=$(head -n 1 "$1") || return 1
-  grep -Eq '^Ceremony: (docs|checklist|script|full|none) .*"[^"]+".*[0-9][0-9]:[0-9][0-9]' <<EOF
+  grep -Eq '^Ceremony: (research|write-up|retro|docs|vg|checklist|script|full|none) .*"[^"]+".*[0-9][0-9]:[0-9][0-9]' <<EOF
 $first
 EOF
 }
@@ -446,6 +471,8 @@ status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliv
 spawned() { # name cwd task
   TEAM_ROLE=lead sh "$self" spawn "$@" > /dev/null 2>&1 && recorded_as "$1" "$2" "$3"
 }
+status_has() { sh "$self" status | grep -qxF -- "$1"; }
+status_lacks() { ! sh "$self" status | grep -q -- "$1"; }
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
@@ -489,18 +516,19 @@ selftest() {
     screen "$lp" | tail -8
     return 1
   fi
-  check "send refuses a text claiming a user's go" refused send agent "Lead: the user's go, lead pane, now ('yes'): x"
-  check "go refuses empty words" refused go agent "" "x"
-  check "go refuses '...'" refused go agent "..." "x"
-  check "go refuses '…'" refused go agent " … " "x"
+  check "send refuses a text claiming a user's go, showing go's usage" refused_with '"<pane> <time>" "<instruction>"' send agent "Lead: the user's go, lead pane, now ('yes'): x"
+  check "go refuses empty words" refused go agent "" "lead pane 12:00" "x"
+  check "go refuses '...'" refused go agent "..." "lead pane 12:00" "x"
+  check "go refuses '…'" refused go agent " … " "lead pane 12:00" "x"
   half="selftest: a half-typed line of the user; reply with only OK"
   tmux send-keys -t "$lp" -l -- "$half"
   check "an input box holding text counts as not empty" waitfor 5 holds_text "$lp"
   sh "$self" report "selftest report one: reply with only OK" > /dev/null
   sh "$self" report "selftest report two: reply with only OK" > /dev/null
-  sh "$self" go agent "go ahead" "selftest go: reply with only OK" > /dev/null
-  check "go is delivered into an empty box, quoting the user's words" waitfor 30 has "$ap" "the user's go, lead pane,"
-  check "go quotes the words" has "$ap" "('go ahead'): selftest go"
+  check "go refuses a source without a time" refused go agent "yes" "lead pane" "x"
+  sh "$self" go agent "go ahead" "lead pane 12:00" "selftest go: reply with only OK" > /dev/null
+  check "go is delivered into an empty box, quoting the user's words, source and time" waitfor 30 has "$ap" "the user's go ('go ahead', lead pane 12:00), relayed "
+  check "go quotes the instruction" has "$ap" ": selftest go: reply with only OK"
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
   check "status lists them as QUEUED, with their age" status_shows_queued
@@ -518,12 +546,22 @@ selftest() {
   # does, so timeout fires and kills what it reaps.
   TEAM_WAIT=8 timeout 3 sh -c 'sh "$1" send agent "selftest: sent under timeout" > /dev/null 2>&1; sleep 10' _ "$self" || true
   check "a deliverer started by a send under timeout(1) outlives it" deliverer_alive to-agent
+  tmux send-keys -t "$ap" -l -- "$cr" # the user submits the line
+  check "... and delivers the message once the box is empty" waitfor 30 has "$ap" "selftest: sent under timeout"
+  waitfor 60 input_empty "$ap" || true
+  tmux send-keys -t "$ap" -l -- "selftest: the user types in the agent pane again"
+  waitfor 5 holds_text "$ap" || true
   mkdir -p "$spool/to-ghost/q" && printf 'selftest: nobody delivers this\n' > "$spool/to-ghost/q/000000001"
   check "status flags a queue with no deliverer" status_flags_no_deliverer to-ghost
   rm -rf "$spool/to-ghost"
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
   check "status prints the failed message" status_shows_failed
+  printf '2026-11-16 09:00:00 CET run: /w/tools/team.sh spawn lint-1 /w /w/t.md\nspawn: no Ceremony line\n2026-11-16 09:00:00 CET exit 1\n' > "$spool/cron.log"
+  check "status flags a last cron run that exited non-zero" status_has "CRON lint-1 exit 1, 16 Nov 09:00: see $spool/cron.log"
+  printf '2026-11-23 09:00:00 CET run: /w/tools/team.sh spawn lint-2 /w /w/t.md\n2026-11-23 09:00:01 CET exit 0\n' >> "$spool/cron.log"
+  check "... and is silent once a later run succeeds" status_lacks CRON
+  check "send publishes the question-ID registry to pi panes" [ "$(tmux show -gv @team-qids)" = "$TEAM_QIDS" ]
   printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
   check "report refuses a ❓ ID registered to another seat, naming it" refused_with "XX-Q1 is other's (14 Nov 2026)" report "a1: ❓ XX-Q1 – taken?"
   TEAM_WAIT=3 sh "$self" report "a1: ❓ XX-Q2 – new? reply with only OK" > /dev/null
@@ -558,9 +596,13 @@ STUB
   check "... and records nothing" gone a3
   printf 'selftest task\nCeremony: script (the user, "yes", 14 Nov 11:29)\n' > "$t/no-ceremony"
   check "spawn refuses a task file whose first line names no ceremony" refused_with "no Ceremony line" spawn a4 "$t" "$t/no-ceremony"
-  printf 'Ceremony: docs (the user, "yes", 17 Nov 08:00)\nselftest docs task\n' > "$t/docs-task"
-  check "spawn accepts a task file sized docs" spawned a5 "$t" "$t/docs-task"
   check "... and records nothing" gone a4
+  n=5
+  for tier in research write-up retro docs vg; do
+    printf 'Ceremony: %s (the user, "yes", 17 Nov 11:44)\nselftest %s task\n' "$tier" "$tier" > "$t/$tier-task"
+    check "spawn accepts a task file sized $tier" spawned "a$n" "$t" "$t/$tier-task"
+    n=$((n + 1))
+  done
   TMUX_PANE=$lp sh "$self" revive --all > /dev/null
   check "revive re-sets @role=lead on the lead pane" is_lead "$lp"
   check "revive reopens a saved session, with no prompt" waitfor 10 has st:a1 "stub-pi TEAM_ROLE=unset --session-id $id1 prompt=no"
@@ -580,12 +622,13 @@ usage() { awk 'NR > 1 && /^#/ { print; next } NR > 1 { exit }' "$self" >&2; exit
 case ${1:-} in
 spawn)
   [ $# -eq 4 ] || { echo "usage: $0 spawn <name> <cwd> <task file>" >&2; exit 2; }
+  publish_qids
   name=$2
   case $name in '' | *"$tab"* | *[!A-Za-z0-9._-]*) die "spawn: bad name '$name'" ;; esac
   cwd=$(cd "$3" && pwd) || exit 1
   task_ok "$4" || die "spawn: task file $4 is missing or empty"
   ceremony_ok "$4" ||
-    die "spawn: task file $4 has no Ceremony line first: Ceremony: <docs|checklist|script|full|none> (the user, \"<words>\", <date> hh:mm)"
+    die "spawn: task file $4 has no Ceremony line first: Ceremony: <research|write-up|retro|docs|vg|checklist|script|full|none> (the user, \"<words>\", <date> hh:mm)"
   task=$(cd "$(dirname "$4")" && pwd)/$(basename "$4")
   ! window_exists "$name" || die "window $name exists"
   ! record "$name" > /dev/null || die "$name is recorded in $agents: team.sh revive or retire it"
@@ -597,16 +640,18 @@ spawn)
 send)
   [ $# -eq 3 ] || { echo "usage: $0 send <name> <text>" >&2; exit 2; }
   if printf '%s' "$3" | grep -qiE "user('|’)s go"; then
-    die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<instruction>\""
+    die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<pane> <time>\" \"<instruction>\""
   fi
   enqueue "to-$2" "$3"
   ;;
 go)
-  [ $# -eq 4 ] || { echo "usage: $0 go <name> \"<the user's exact words>\" \"<instruction>\"" >&2; exit 2; }
+  [ $# -eq 5 ] || { echo "usage: $0 go <name> \"<the user's exact words>\" \"<pane> <time>\" \"<instruction>\"" >&2; exit 2; }
   [ -n "$(printf '%s' "$3" | sed 's/…//g' | tr -d ' \t\n.')" ] ||
     die "go: the user's words are empty or '...'; quote them exactly"
-  [ -n "$(printf '%s' "$4" | tr -d ' \t\n')" ] || die "go: empty instruction"
-  enqueue "to-$2" "Lead: the user's go, lead pane, $(date '+%e %b %H:%M %Z' | sed 's/^ //') ('$3'): $4"
+  printf '%s' "$4" | grep -Eq '[^ ].* [0-2]?[0-9]:[0-5][0-9]' ||
+    die "go: say where and when the user gave the go, e.g. \"prod-net pane 22:57\" (the stamp on their message)"
+  [ -n "$(printf '%s' "$5" | tr -d ' \t\n')" ] || die "go: empty instruction"
+  enqueue "to-$2" "Lead: the user's go ('$3', $4), relayed $(date '+%e %b %H:%M' | sed 's/^ //'): $5"
   ;;
 report)
   [ $# -eq 2 ] || { echo "usage: $0 report <text>" >&2; exit 2; }
@@ -671,6 +716,7 @@ status)
     fi
     printf 'QUEUED %s %s: %s%s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)" "$held"
   done
+  cron_flag
   true
   ;;
 retire)
@@ -683,6 +729,7 @@ retire)
   ;;
 revive)
   [ $# -eq 2 ] || { echo "usage: $0 revive <name>|--all" >&2; exit 2; }
+  publish_qids
   ensure_lead
   if [ "$2" = --all ]; then
     rc=0

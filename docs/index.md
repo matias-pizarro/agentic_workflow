@@ -19,8 +19,8 @@ You give a goal. A long-running Pi session, the **lead**, holds it and turns it 
 
 It produces good work when three things hold:
 
-1. **You size the work before it starts.** Each ticket gets a ceremony tier: a checklist, a plain script, or full engineering. The tier is your call, made on the lead's question.
-2. **Reality checks the work before reviewers do.** Every ticket first runs for real on an expendable host. The review comes after.
+1. **You size the work before it starts.** Each ticket gets a ceremony tier (the table below). The tier is your call, made on the lead's question.
+2. **Reality checks the work before reviewers do.** Every ticket with something to run first runs for real on an expendable host. The review comes after.
 3. **Everything stays visible.** Every review finding, every running cost and every sign of drift reaches you. Nothing is hidden to save you time.
 
 It goes wrong in one recognisable way: work grows past what you asked for, one reasonable-sounding "yes" at a time. On the project this playbook comes from, "a script to install Pi" became two tickets and 22 review rounds, with 1,700 lines in the first ticket alone. What was wanted was 15 commands typed by hand. The scope grew through the lead's recommendations, which the operator accepted 53 times out of 53. Most of the rules below exist to stop that.
@@ -55,11 +55,15 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 
 | Tier | Use it for | What gets built | Review |
 |---|---|---|---|
-| `docs` | a change to documentation only: no code, script or check | the documentation change, built by the project's docs build where there is one | you read the diff, or the render of a page you see |
+| `research` | a question to investigate, with its scope, from a brief an agent can pick up | findings answering the question first, citing primary sources: a Markdown file and its HTML version | you read the findings |
+| `write-up` | a draft for people: an email, an invite, a brief, a rationale | the draft; sending or publishing it waits for your go | one pass on a different model, then you read the draft |
+| `retro` | a look back at a session, read-only | proposed environment changes in order of severity, each with its cost | you choose which to adopt |
+| `docs` | a change to the project's documentation only: no code, script or check | the documentation change, built by the project's docs build where there is one | you read the diff, or the render of a page you see |
+| `vg` | presentations and graphics: slide decks, diagrams, images, mockups | the deck or graphic, its render, PDF or PPTX shown to you | your feedback, before anything is committed |
 | `checklist` | something run once or rarely, by a person watching, where each failure shows on screen and the step can be rerun | a doc page of numbered commands, one line each on what it does | none |
 | `script` | the same, but run often or by an agent, and nothing a misbehaving agent could exploit | a plain script running the steps in order, relying on each step being safe to rerun | one review pass; the loop only on your words |
 | `full` | code an agent can reach or trigger, that runs as root for agents, or that spends money or holds credentials unattended | acceptance criteria, a table of what a failure at each step leaves, reads of system state that say yes, no or failed | the review loop |
-| `none` | research, retros, write-ups: no code | the document | as you choose |
+| `none` | other work with no code | the document | as you choose |
 
 A `docs`, `checklist` or `script` ticket says in one sentence what a failure leaves and what to do ("nothing harmful; rerun" is common); a `full` ticket carries the step-by-step failure table instead. Adopting code that already works, by moving it, generalising it or putting it under review, is a ticket of its own with its own tier. Expect to tune the tiers as you learn.
 
@@ -71,7 +75,7 @@ Every round's summary opens with its running cost:
 install-pi · code round 4 · findings so far 9 · questions so far 7
 ```
 
-Then, when it applies, a drift question comes first (see rule 7). Then each finding, rated for impact (high, medium or low, by what goes wrong and for whom if it stays) and for effort (very low to high). Each finding offers three answers: **fix**, **delete** (remove the code the finding sits in) or **backlog** (park it in the project's `.scratch/backlog.md`). The summary recommends fixing the few findings that carry most of the harm, and fixing now any minor one that costs a word or a line; only minor findings with real effort are recommended for the backlog. You can overrule any of it.
+Then, when it applies, a drift question comes first (see rule 7). Then each finding, rated for impact (high, medium or low, by what goes wrong against the threshold that matters, such as a requirement or a deadline, and for whom, if it stays) and for effort (very low to high). Each finding offers three answers: **fix**, **delete** (remove the code the finding sits in) or **backlog** (park it in the project's `.scratch/backlog.md`). The summary recommends fixing the few findings that carry most of the harm, and fixing now any minor one that costs a word or a line; only minor findings with real effort are recommended for the backlog. You can overrule any of it.
 
 ## How to answer
 
@@ -99,13 +103,13 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 1. **You choose each ticket's ceremony tier, before it is written.** *Why: left alone, the full ceremony becomes everyone's habit, and a 15-command job gets two tickets and 22 review rounds.*
 2. **Live run first, on an expendable host; no fakes where a live test is practical.** *Why: on install-pi the first real run found, in minutes, the one gap six review rounds had missed; and a test against invented tool output passed a check that then rejected a working host.*
 3. **Every sandbox and agent is assumed compromised.** *Why: agents did run host commands by accident (a shell heredoc slip ran lines of a file as root commands; none took effect); damage stays small only where the environment is built for it.*
-4. **Questions carry unique IDs and a recommendation; `ok` is recorded as trust.** *Why: unique IDs let you answer ten questions in one line without ambiguity; recording `ok` apart from `yes` keeps your informed decisions from being confused with your trust.*
-5. **A deliberate choice carries your words and the time; a claimed edit names its commit.** *Why: agents have called their own shortcuts "deliberate choices" and claimed edits they never made; a quote with a time, and a commit that touches the file, can be checked by a hook or by you.*
-6. **Every review finding reaches you, rated by impact and effort; a cheap fix is made now, a costly minor one goes to the backlog.** *Why: applying small fixes silently would hide the problem rather than solve it; rating by impact lets you stop fixing everything without losing sight of anything, and rating effort keeps one-line fixes out of the backlog, where recording them costs more than making them.*
+4. **Questions carry unique IDs and a recommendation; `ok` is recorded as trust.** *Why: unique IDs let you answer ten questions in one line without ambiguity; recording `ok` apart from `yes` keeps your informed decisions from being confused with your trust; a question settled elsewhere but left on a pane got answered again, the other way; and ticket numbers announced before their files existed were claimed three times over.*
+5. **A deliberate choice carries your words and the time; a claimed edit names its commit.** *Why: agents have called their own shortcuts "deliberate choices" and claimed edits they never made; a quote with a time, and a commit that touches the file, can be checked by a hook or by you. A seat reported a snapshot you kept as "kept" from its plan, without reading after the run that had deleted it; and a "no" to "take it down now?" was recorded as a changed standing rule and pushed, then reverted on your word.*
+6. **Every review finding reaches you, rated by impact and effort; a cheap fix is made now, a costly minor one goes to the backlog.** *Why: applying small fixes silently would hide the problem rather than solve it; rating by impact lets you stop fixing everything without losing sight of anything, and rating effort keeps one-line fixes out of the backlog, where recording them costs more than making them. Impact leads with the absolute value against its threshold because a relative gain hides whether the requirement is met, so it can steer toward the costlier option: with latency at 400 ms and 300 ms required, a 2x cut to 200 ms in 3 h meets it, and a 50x cut to 8 ms in 10 h only exceeds it.*
 7. **A long review loop is a drift signal to pick up, never capped by tier.** *Why: a loop finding a gap in the previous round's fix, four rounds running, has lost its way; capping it would hide that, flagging it lets you act.*
 8. **Over-build is a finding; "delete it" is always offered.** *Why: reviews that hunt only for gaps only ever add code; on install-pi, 22 rounds produced one deletion, and the next round added the check back.*
-9. **Live checks pass before any merge.** *Why: a converged review loop says nothing about whether code runs; install-pi's converged loop failed its first real run at the package step.*
-10. **The lead delegates every edit and never inflates scope (the `widens:` label).** *Why: you will answer most questions with `yes`, so the lead's recommendation is in practice the decision; the lead must recommend small and label the rest.*
+9. **Live checks pass before any merge.** *Why: a converged review loop says nothing about whether code runs; install-pi's converged loop failed its first real run at the package step. Merging integration in before each review pass keeps reviewers off findings already settled there (3 of 13 in one review); a shared file merged on its own, first, stops it being copied between feature branches with a review and a relay each time.*
+10. **The lead delegates every edit and never inflates scope (the `widens:` label).** *Why: you will answer most questions with `yes`, so the lead's recommendation is in practice the decision; the lead must recommend small and label the rest. A go relayed with the lead's own conditions added had to be repeated by you.*
 11. **The wiki is dated history.** *Why: the lead's context is lost at compaction, at a restart, or when a new lead takes over; the wiki is what survives, and undated claims rot without anyone noticing.*
 12. **Retros on about one session in five.** *Why: most of these rules came out of retros; without them the same failure recurs with a new name.*
 13. **Outward-facing steps wait for your go.** *Why: a push, a publication or money spent cannot be taken back.*

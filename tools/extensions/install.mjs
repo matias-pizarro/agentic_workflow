@@ -10,9 +10,11 @@
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
 // stays gone. pi sessions already running load them at their next start or
-// /reload.
+// /reload: it ends by listing the tmux panes running pi, each needing /reload
+// (RT3-Q5).
 //
 // Run: node tools/extensions/install.mjs
+import { spawnSync } from "node:child_process";
 import { chmodSync, copyFileSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -43,3 +45,15 @@ writeFileSync(`${file}.new`, `${JSON.stringify(settings, null, 2)}\n`);
 chmodSync(`${file}.new`, statSync(file).mode);
 renameSync(`${file}.new`, file);
 console.log(`install: ${target} and ${colours} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
+
+// The panes running pi: the pane's process is pi itself (`exec pi`), titled "node: pi" or "pi".
+const panes = spawnSync("tmux", ["list-panes", "-a", "-F", "#{pane_pid} #{session_name}:#{window_index} #{window_name}"], { encoding: "utf8" });
+if (panes.status !== 0) console.log("install: no tmux server read, so no list of panes to /reload");
+else {
+	const pi = panes.stdout.split("\n").filter(Boolean).flatMap((line) => {
+		const [pid, where, ...name] = line.split(" ");
+		const ps = spawnSync("ps", ["-o", "args=", "-p", pid], { encoding: "utf8" });
+		return /^(node: pi|pi|node \S*\/pi)(\s|$)/.test(ps.stdout.trim()) ? [`${where} ${name.join(" ")}`] : [];
+	});
+	console.log(pi.length ? `install: each of these panes runs pi and needs /reload (or the reload_runtime tool, on your word):\n  ${pi.join("\n  ")}` : "install: no pane runs pi");
+}
