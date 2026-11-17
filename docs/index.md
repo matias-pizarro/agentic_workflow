@@ -55,11 +55,15 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 
 | Tier | Use it for | What gets built | Review |
 |---|---|---|---|
-| `docs` | a change to documentation only: no code, script or check | the documentation change, built by the project's docs build where there is one | you read the diff, or the render of a page you see |
+| `research` | a question to investigate, with its scope, from a brief an agent can pick up | findings answering the question first, citing primary sources: a Markdown file and its HTML version | you read the findings |
+| `write-up` | a draft for people: an email, an invite, a brief, a rationale | the draft; sending or publishing it waits for your go | one pass on a different model, then you read the draft |
+| `retro` | a look back at a session, read-only | proposed environment changes in order of severity, each with its cost | you choose which to adopt |
+| `docs` | a change to the project's documentation only: no code, script or check | the documentation change, built by the project's docs build where there is one | you read the diff, or the render of a page you see |
+| `vg` | presentations and graphics: slide decks, diagrams, images, mockups | the deck or graphic, its render, PDF or PPTX shown to you | your feedback, before anything is committed |
 | `checklist` | something run once or rarely, by a person watching, where each failure shows on screen and the step can be rerun | a doc page of numbered commands, one line each on what it does | none |
 | `script` | the same, but run often or by an agent, and nothing a misbehaving agent could exploit | a plain script running the steps in order, relying on each step being safe to rerun | one review pass; the loop only on your words |
 | `full` | code an agent can reach or trigger, that runs as root for agents, or that spends money or holds credentials unattended | acceptance criteria, a table of what a failure at each step leaves, reads of system state that say yes, no or failed | the review loop |
-| `none` | research, retros, write-ups: no code | the document | as you choose |
+| `none` | other work with no code | the document | as you choose |
 
 A `docs`, `checklist` or `script` ticket says in one sentence what a failure leaves and what to do ("nothing harmful; rerun" is common); a `full` ticket carries the step-by-step failure table instead. Adopting code that already works, by moving it, generalising it or putting it under review, is a ticket of its own with its own tier. Expect to tune the tiers as you learn.
 
