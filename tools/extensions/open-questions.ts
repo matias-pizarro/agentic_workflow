@@ -29,7 +29,7 @@
 //   team.sh report registers) is registered to this seat, its tmux window's
 //   name, in the question-ID registry whose path team.sh puts in the tmux
 //   server option @team-qids, under team.sh's lock; an ID another seat holds is
-//   noticed in the pane (RT3-Q9). Without that option or a window name, nothing.
+//   noticed in the pane (RT3-Q9), and so is a turn whose IDs it cannot register.
 // - A reload_runtime tool, so a seat reloads its own extensions when the lead
 //   or the operator says so (RT3-Q5): it ends the turn, then runs
 //   /reload-runtime once the agent has settled (pi docs, extensions.md).
@@ -180,7 +180,8 @@ function registerIds(reply: string): string | undefined {
 	const path = tmuxOut(["show", "-gv", "@team-qids"]);
 	const pane = process.env.TMUX_PANE;
 	const seat = pane ? tmuxOut(["display", "-p", "-t", pane, "#{window_name}"]) : undefined;
-	if (!path || !seat) return undefined;
+	if (!path) return "question IDs not registered: no registry path (tmux option @team-qids); it is set at the next team.sh send, report, spawn or revive";
+	if (!seat) return "question IDs not registered: this pane's tmux window name cannot be read";
 	const now = new Date();
 	const date = `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 	let taken: string[] = [];

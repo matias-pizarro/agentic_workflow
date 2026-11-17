@@ -16,6 +16,9 @@ trap 'rm -rf "$tmp"' EXIT
 
 at() { date -v"$1"H '+%e %b %H:%M' 2> /dev/null || date -d "$1 hours" '+%e %b %H:%M'; }
 ahead=$(at +2 | sed 's/^ //')
+# A month seven behind this one is next year's: across the new year, still ahead.
+m=$(date +%m)
+next_year=$(echo JanFebMarAprMayJunJulAugSepOctNovDec | cut -c$(( ((${m#0} + 4) % 12) * 3 + 1 ))-$(( ((${m#0} + 4) % 12) * 3 + 3 )))
 back=$(at -2 | sed 's/^ //')
 
 cd "$tmp"
@@ -42,6 +45,7 @@ expect() { # <0|1> <case> <line>
 expect 1 "a bullet two hours ahead" "- $ahead CET: the user said yes"
 expect 1 "a table row two hours ahead" "| $ahead | relay |"
 expect 1 "a bullet with ~ two hours ahead" "- ~$ahead: something"
+expect 1 "a month seven behind, next year's" "- 1 $next_year 00:10: something"
 expect 0 "a bullet two hours back" "- $back CET: the user said yes"
 expect 0 "a time two hours ahead, not leading" "- the plan: run it at $ahead"
 expect 0 "a line with no time" "- nothing timed"

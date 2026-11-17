@@ -17,7 +17,7 @@ import type { ExtensionAPI, ExtensionContext, ToolCallEvent, ToolCallEventResult
 // step that changes state, or merge-ready (RT3-Q5): a merge issued beside
 // `commit; merge-ready` went in without merge-ready's pass (16 Nov).
 const GIT_STEP =
-	/\bgit\b[^;&|\n]*\b(?:commit|merge(?!-base)|push|pull|rebase|reset|checkout|switch|tag|cherry-pick|revert|stash|worktree|restore|add|rm|mv)\b|merge-ready/;
+	/\bgit\b[^;&|\n]*\b(?:commit|merge(?!-base)|push|pull|rebase|reset|checkout|switch|tag|cherry-pick|revert|stash|worktree|restore|add|rm|mv|fetch|branch|apply)\b|merge-ready/;
 const GIT_SIBLING_REFUSAL =
 	"sibling-guard: refused. Another command in this same message runs at the same time as this git or merge-ready step, " +
 	"so each may see the other half done. Run the command in your next message: one git step per message, in order.";

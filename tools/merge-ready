@@ -56,7 +56,7 @@ tickets=$(git -C "$wt" diff --name-only --diff-filter=d integration...HEAD -- '.
 for t in $tickets; do
   status=$(git -C "$wt" show "HEAD:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
     { echo "merge-ready: cannot read $t at HEAD in $wt" >&2; exit 1; }
-  case $status in done | 'done '* | done.*) ;; *) echo "merge-ready: warning: $t says Status: ${status:-(none)}, not done" ;; esac
+  case $status in done) ;; *) echo "merge-ready: warning: $t says Status: ${status:-(none)}, not done" ;; esac
 done
 
 if [ -n "$why" ]; then

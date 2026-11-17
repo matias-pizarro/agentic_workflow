@@ -516,7 +516,7 @@ selftest() {
     screen "$lp" | tail -8
     return 1
   fi
-  check "send refuses a text claiming a user's go" refused send agent "Lead: the user's go, lead pane, now ('yes'): x"
+  check "send refuses a text claiming a user's go, showing go's usage" refused_with '"<pane> <time>" "<instruction>"' send agent "Lead: the user's go, lead pane, now ('yes'): x"
   check "go refuses empty words" refused go agent "" "lead pane 12:00" "x"
   check "go refuses '...'" refused go agent "..." "lead pane 12:00" "x"
   check "go refuses '…'" refused go agent " … " "lead pane 12:00" "x"
@@ -640,7 +640,7 @@ spawn)
 send)
   [ $# -eq 3 ] || { echo "usage: $0 send <name> <text>" >&2; exit 2; }
   if printf '%s' "$3" | grep -qiE "user('|’)s go"; then
-    die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<instruction>\""
+    die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<pane> <time>\" \"<instruction>\""
   fi
   enqueue "to-$2" "$3"
   ;;

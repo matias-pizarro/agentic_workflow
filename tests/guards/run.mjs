@@ -6,10 +6,10 @@
 // message that holds the bash call, which is the session's state at that call's
 // tool_call; the system-prompt entry is dropped. Every call of that message is
 // driven: a bash call must be refused (refused-*) or let through (allowed-*),
-// any other call let through. refused-git-beside-bash and allowed-bash-beside-bash
-// are real sessions too (pi 1.5.2, `pi -p -e guards.ts`, claude-bridge,
-// 17 Nov 2026, in /tmp/guards-live-git): two bash calls in one message, one
-// a `git add`, or both read-only.
+// any other call let through. refused-git-beside-bash, refused-git-branch-beside-bash
+// and allowed-bash-beside-bash are real sessions too (pi 1.5.2, `pi -p -e
+// guards.ts`, claude-bridge, 17 Nov 2026, in /tmp/guards-live-git): two bash
+// calls in one message, one a `git add` or a `git branch -D`, or both read-only.
 //
 // The time stamp (RT3-Q3) is driven as pi's input event: a typed message is
 // stamped, a /command or a message from an extension is not.

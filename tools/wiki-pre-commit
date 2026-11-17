@@ -7,7 +7,7 @@
 #
 # It also refuses an added line whose leading time, "<d> <Mon> hh:mm" after
 # any "- ", "| " or "~", is later than the commit's clock (this year; a month
-# more than six ahead is last year's): a quoted time is the stamp on the
+# more than six ahead is last year's, one more than six behind next year's): a quoted time is the stamp on the
 # user's message, never an estimate (RT3-Q3).
 set -eu
 set -o pipefail
@@ -28,6 +28,7 @@ future=$(printf '%s\n' "$added" | awk -v now="$(date '+%m %d %H %M')" '
       split(substr(s, 1, RLENGTH), p, /[ :~]+/)
       m = index("JanFebMarAprMayJunJulAugSepOctNovDec", p[2]); m = (m + 2) / 3
       if (m - n[1] > 6) next
+      if (n[1] - m > 6) { print file ": " substr(line, 1, 100); next }
       t = m * 1000000 + p[1] * 10000 + p[3] * 100 + p[4]
       if (t > cur) print file ": " substr(line, 1, 100)
     }
