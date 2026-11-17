@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+# Test tools/wiki-pre-commit with real commits in a scratch repository: an
+# added line whose leading "<d> <Mon> hh:mm" is two hours ahead of the clock
+# is refused, in a bullet, a table row or after "~"; one two hours back, a time
+# not leading the line, and a line with no time pass. No network.
+# Run: tests/wiki-pre-commit
+set -eu
+set -o pipefail
+unset GIT_DIR GIT_COMMON_DIR GIT_WORK_TREE GIT_INDEX_FILE \
+  GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE \
+  GIT_CEILING_DIRECTORIES GIT_PREFIX GIT_CONFIG GIT_CONFIG_PARAMETERS \
+  GIT_CONFIG_COUNT
+repo=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+at() { date -v"$1"H '+%e %b %H:%M' 2> /dev/null || date -d "$1 hours" '+%e %b %H:%M'; }
+ahead=$(at +2 | sed 's/^ //')
+back=$(at -2 | sed 's/^ //')
+
+cd "$tmp"
+git init -q
+git config user.email test@example.invalid
+git config user.name test
+git config commit.gpgsign false
+mkdir -p .githooks
+ln -s "$repo/tools/wiki-pre-commit" .githooks/pre-commit
+git config core.hooksPath .githooks
+echo '# page' > page.md
+git add page.md && git commit -q -m base
+
+fails=0
+expect() { # <0|1> <case> <line>
+  printf '%s\n' "$3" >> page.md
+  git add page.md
+  rc=0
+  git commit -q -m "$2" > out 2>&1 || rc=$?
+  [ "$rc" = "$1" ] || { echo "FAIL: $2: expected exit $1, got $rc: $(cat out)" >&2; fails=$((fails + 1)); }
+  [ "$rc" = 0 ] || git checkout -q HEAD -- page.md
+}
+
+expect 1 "a bullet two hours ahead" "- $ahead CET: the user said yes"
+expect 1 "a table row two hours ahead" "| $ahead | relay |"
+expect 1 "a bullet with ~ two hours ahead" "- ~$ahead: something"
+expect 0 "a bullet two hours back" "- $back CET: the user said yes"
+expect 0 "a time two hours ahead, not leading" "- the plan: run it at $ahead"
+expect 0 "a line with no time" "- nothing timed"
+
+if [ "$fails" -eq 0 ]; then echo "wiki-pre-commit: all cases passed"; else echo "wiki-pre-commit: $fails failed"; exit 1; fi

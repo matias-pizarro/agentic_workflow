@@ -4,9 +4,36 @@
 # empties a file by accident, as a write racing a commit leaves it
 # (check_empty_files, beside this file's target; ALLOW_EMPTY=<path> lets a
 # deliberate emptying through). RT2-Q2. A failed read refuses the commit.
+#
+# It also refuses an added line whose leading time, "<d> <Mon> hh:mm" after
+# any "- ", "| " or "~", is later than the commit's clock (this year; a month
+# more than six ahead is last year's): a quoted time is the stamp on the
+# user's message, never an estimate (RT3-Q3).
 set -eu
 set -o pipefail
 target=$(realpath "$0")
 here=$(dirname "$target")
 git diff --cached --name-only -z --diff-filter=ACMRTUXB |
   xargs -0 -r "$here/check_empty_files"
+
+added=$(git diff --cached -U0 --no-color --diff-filter=ACMRTUXB) || { echo "wiki-pre-commit: cannot read the staged diff" >&2; exit 1; }
+future=$(printf '%s\n' "$added" | awk -v now="$(date '+%m %d %H %M')" '
+  BEGIN { split(now, n, " "); cur = n[1] * 1000000 + n[2] * 10000 + n[3] * 100 + n[4] }
+  /^\+\+\+ / { file = substr($0, 7); next }
+  /^\+/ {
+    line = substr($0, 2)
+    s = line
+    sub(/^[ \t]*([-|][ \t]*)*~?/, "", s)
+    if (match(s, /^[0-9][0-9]? (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ~?[0-2]?[0-9]:[0-5][0-9]/)) {
+      split(substr(s, 1, RLENGTH), p, /[ :~]+/)
+      m = index("JanFebMarAprMayJunJulAugSepOctNovDec", p[2]); m = (m + 2) / 3
+      if (m - n[1] > 6) next
+      t = m * 1000000 + p[1] * 10000 + p[3] * 100 + p[4]
+      if (t > cur) print file ": " substr(line, 1, 100)
+    }
+  }')
+if [ -n "$future" ]; then
+  echo "wiki-pre-commit: refused: a leading time later than now ($(date '+%e %b %H:%M' | sed 's/^ //')); quote the stamp on the user's message, not an estimate:" >&2
+  printf '%s\n' "$future" >&2
+  exit 1
+fi

@@ -12,6 +12,15 @@ import type { ExtensionAPI, ExtensionContext, ToolCallEvent, ToolCallEventResult
 // ctx.sessionManager is "synchronized through the current assistant message"
 // (same docs, "ctx.sessionManager"), so that message is the branch's last
 // assistant message.
+//
+// It also refuses a bash call beside another bash call when either runs a git
+// step that changes state, or merge-ready (RT3-Q5): a merge issued beside
+// `commit; merge-ready` went in without merge-ready's pass (16 Nov).
+const GIT_STEP =
+	/\bgit\b[^;&|\n]*\b(?:commit|merge(?!-base)|push|pull|rebase|reset|checkout|switch|tag|cherry-pick|revert|stash|worktree|restore|add|rm|mv)\b|merge-ready/;
+const GIT_SIBLING_REFUSAL =
+	"sibling-guard: refused. Another command in this same message runs at the same time as this git or merge-ready step, " +
+	"so each may see the other half done. Run the command in your next message: one git step per message, in order.";
 const SIBLING_REFUSAL =
 	"sibling-guard: refused. A write or edit in this same message runs at the same time as this command, " +
 	"so the command may read the file half-written (empty or stale). " +
@@ -26,9 +35,31 @@ export function siblingGuard(event: ToolCallEvent, ctx: ExtensionContext): ToolC
 		const writes = entry.message.content.some(
 			(part) => part.type === "toolCall" && (part.name === "write" || part.name === "edit"),
 		);
-		return writes ? { block: true, reason: SIBLING_REFUSAL } : undefined;
+		if (writes) return { block: true, reason: SIBLING_REFUSAL };
+		const commands = entry.message.content.flatMap((part) =>
+			part.type === "toolCall" && part.name === "bash" ? [String((part.arguments as { command?: unknown }).command ?? "")] : [],
+		);
+		return commands.length > 1 && commands.some((command) => GIT_STEP.test(command))
+			? { block: true, reason: GIT_SIBLING_REFUSAL }
+			: undefined;
 	}
 	return undefined;
+}
+
+// time-stamp (RT3-Q3): each message the operator types, other than a
+// /command, starts with its local time, "[17 Nov 12:59] ", so a quoted time is
+// the stamp, never an estimate. Messages team.sh types into a pane are stamped
+// with their delivery time.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export function stamp(text: string, now: Date = new Date()): string {
+	const hh = String(now.getHours()).padStart(2, "0");
+	const mm = String(now.getMinutes()).padStart(2, "0");
+	return `[${now.getDate()} ${MONTHS[now.getMonth()]} ${hh}:${mm}] ${text}`;
+}
+
+export function timeStamp(event: { text: string; source: string }) {
+	if (event.source !== "interactive" || /^\s*\//.test(event.text) || event.text.trim() === "") return { action: "continue" as const };
+	return { action: "transform" as const, text: stamp(event.text) };
 }
 
 // heredoc-guard (src chores ticket 14, moved here unchanged): refuse a bash tool
@@ -130,4 +161,5 @@ export function heredocGuard(event: ToolCallEvent): ToolCallEventResult | undefi
 export default function guards(pi: ExtensionAPI) {
 	pi.on("tool_call", async (event, ctx) => siblingGuard(event, ctx));
 	pi.on("tool_call", async (event) => heredocGuard(event));
+	pi.on("input", async (event) => timeStamp(event));
 }
