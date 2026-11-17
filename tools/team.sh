@@ -131,12 +131,19 @@ enqueue() { # target text
   if [ -n "$p" ] && busy "$p"; then
     echo "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
   fi
-  # Detach from the caller's session, so the deliverer outlives the agent's
-  # shell command (pi kills the process group of its bash calls).
-  if command -v daemon > /dev/null; then
-    daemon -o "$spool/log" sh "$self" _deliver "$1"
-  else
-    nohup sh "$self" _deliver "$1" < /dev/null > /dev/null 2>&1 &
+  # Start the deliverer from the tmux server, outside the caller's process
+  # tree: pi kills the process group of its bash calls, and timeout(1), a
+  # process reaper on FreeBSD, kills every descendant of its command, detached
+  # or not, when it fires (TD-Q1, 17 Nov). The server does not inherit this
+  # shell's environment, so the settings go on the command line. Without a
+  # reachable server, detach from the caller's session as before.
+  dcmd="TEAM_SPOOL=$(q "$spool") TEAM_POLL=$(q "$poll") TEAM_WAIT=$(q "$wait_max") TEAM_TMUX=$(q "${TEAM_TMUX:-}") sh $(q "$self") _deliver $(q "$1") >> $(q "$spool/log") 2>&1"
+  if ! tmux run-shell -b "$dcmd" 2> /dev/null; then
+    if command -v daemon > /dev/null; then
+      daemon -o "$spool/log" sh "$self" _deliver "$1"
+    else
+      nohup sh "$self" _deliver "$1" < /dev/null > /dev/null 2>&1 &
+    fi
   fi
 }
 
@@ -427,6 +434,10 @@ status_shows_failed() { sh "$self" status | grep -q '^FAILED to-agent/failed/'; 
 status_shows_queued() { sh "$self" status | grep -q '^QUEUED lead [0-9][0-9]*m: selftest report one'; }
 status_says_box_held() { sh "$self" status | grep -q '^QUEUED lead .*input box holds text'; }
 status_flags_held() { sh "$self" status | grep -q "^$1 .*\[input box holds text\]"; }
+deliverer_alive() { # target
+  p=$(cat "$spool/$1/deliver.lock/pid" 2> /dev/null) && kill -0 "$p" 2> /dev/null
+}
+status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliverer"; }
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
@@ -493,6 +504,14 @@ selftest() {
   waitfor 60 input_empty "$ap" || true
   tmux send-keys -t "$ap" -l -- "selftest: the user types in the agent pane"
   check "status flags an agent whose input box holds text" waitfor 5 status_flags_held agent
+  # timeout(1), a process reaper on FreeBSD, kills every descendant of its
+  # command when it fires (TD-Q1, 17 Nov).
+  TEAM_WAIT=8 timeout 3 sh "$self" send agent "selftest: sent under timeout" > /dev/null 2>&1 || true
+  sleep 4
+  check "a deliverer started by a send under timeout(1) outlives it" deliverer_alive to-agent
+  mkdir -p "$spool/to-ghost/q" && printf 'selftest: nobody delivers this\n' > "$spool/to-ghost/q/000000001"
+  check "status flags a queue with no deliverer" status_flags_no_deliverer to-ghost
+  rm -rf "$spool/to-ghost"
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
   check "status prints the failed message" status_shows_failed
@@ -615,9 +634,9 @@ status)
     flag=''
     busy "$idx" && flag='[busy] '
     if input_box "$idx" > /dev/null; then
-      holds_text "$idx" && flag="$flag[input box holds text] "
+      holds_text "$idx" && flag="${flag}[input box holds text] "
     else
-      flag="$flag[input box unreadable] "
+      flag="${flag}[input box unreadable] "
     fi
     printf '%-16s %s%s\n' "$name" "$flag" "${line:-(no STATUS line)}"
   done
@@ -631,10 +650,12 @@ status)
     age=$(mtime "$f") || age=''
     case $age in '' | *[!0-9]*) age='age unreadable' ;; *) age="$(((now - age) / 60))m" ;; esac
     held=''
+    dp=$(cat "$spool/${target%%/*}/deliver.lock/pid" 2> /dev/null) && kill -0 "$dp" 2> /dev/null ||
+      held=' (no deliverer: the next send or report to it starts one)'
     p=$(resolve "${target%%/*}" 2> /dev/null) || p=''
     if [ -n "$p" ]; then
-      if ! input_box "$p" > /dev/null; then held=' (its input box is unreadable)'
-      elif holds_text "$p"; then held=' (waits: its input box holds text)'
+      if ! input_box "$p" > /dev/null; then held="$held (its input box is unreadable)"
+      elif holds_text "$p"; then held="$held (waits: its input box holds text)"
       fi
     fi
     printf 'QUEUED %s %s: %s%s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)" "$held"
