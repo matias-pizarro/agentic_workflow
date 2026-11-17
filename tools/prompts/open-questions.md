@@ -5,6 +5,8 @@ List every question you have put to the operator in this session that the operat
 
 If you are the lead (the chief of staff, running with TEAM_ROLE=lead), begin your reply with the summary table you print when conveying the status of the other panes: a Markdown table with the columns `Pane` and `Waiting for you`, your own row first as `(mine)` (your open question IDs, plus anything else waiting on the operator), then one row per seat that is waiting for the operator, naming the question IDs waiting in its pane. Seats waiting on nothing from the operator get no row. To make it current, you may run `team.sh status` (read-only) first. Then continue with your own open questions, as below.
 
+An assumption you made in the operator's absence and recorded for them to confirm ("assumption: <ID>, confirm") counts as an open question until they confirm or reject it: list each one, under its own ID, with the answer you assumed as the ➡️.
+
 A question is answered when the operator replied to its ID (or to "yes to all", "yes" to a single open question, or their own words for it), here in your pane or relayed by the lead as the operator's words ("the user's go", "the operator, <time>: ..."). A question you withdrew, or that was overtaken by a later decision of the operator's, is not open: leave it out. When you cannot tell whether one was answered, list it and say so.
 
 Order them:
