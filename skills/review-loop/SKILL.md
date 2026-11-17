@@ -38,7 +38,7 @@ A turn whose review has any finding, low included, is followed by another turn; 
 - **Topic brief**: `.scratch/<topic>/review-brief.md`, the durable part of the review prompt. Created from [`brief-template.md`](brief-template.md) on a topic's first run.
 - **Finding**: one numbered item in a review.
 - **Deliberate choice**: a finding the user resolves by accepting the risk or cost.
-- **Impact**: high, medium or low, by what goes wrong, and for whom, if the finding stays. The Pareto few, the findings carrying most of the harm, are the important ones.
+- **Impact**: high, medium or low, by what goes wrong against the threshold that matters (a requirement, a limit, a budget, a deadline), and for whom, if the finding stays; the absolute value comes first, any relative change after, and where no threshold is known, say so. The Pareto few, the findings carrying most of the harm, are the important ones.
 - **Effort**: very low, low, medium or high, by what fixing the finding costs. Very low is a word or a line, cheaper than writing its backlog entry.
 - **Backlog**: `.scratch/backlog.md`, the project's visible list of parked items, one entry each: the date, the item, its impact, its source (the review file and finding number) and the user's words with their time.
 - **Drift**: a finding in lines an earlier round of this loop added or changed, or two rounds of this loop finding gaps in the same check. A loop that drifts has likely lost its way; drift is a signal to bring to the user, never to suppress.
@@ -55,7 +55,7 @@ A turn whose review has any finding, low included, is followed by another turn; 
    - these two checks, verbatim, beside the brief's standing checks:
      ```
      - over-build, a finding of the same weight as a gap: code, a check, an option, a test or a criterion that the scope the user asked for, or a simpler design, makes unnecessary, above all a check of state before a step that is already idempotent; name what to delete;
-     - for every finding, its impact, high, medium or low, by what goes wrong and for whom if it stays; and drift: whether it sits in lines an earlier round of this loop added or changed, or in a check an earlier round of this loop also found a gap in, naming that round;
+     - for every finding, its impact, high, medium or low, by what goes wrong against the threshold that matters, absolute value first, and for whom if it stays; and drift: whether it sits in lines an earlier round of this loop added or changed, or in a check an earlier round of this loop also found a gap in, naming that round;
      ```
    - the round number, with the instruction to title the report `# Na. <title> (<loop> round <k>)`, N and k written out;
    - the brief's Sources section, its `Read them against:` line and list kept as they are.
