@@ -4,7 +4,7 @@
 # src/chief-of-staff-communication.md (11 Nov 2026).
 #   team.sh spawn <name> <cwd> <task file>   start an interactive pi agent with its own session id;
 #                                            the task file's first line is the ceremony the user chose:
-#                                            Ceremony: <checklist|script|full|none> (the user, "<words>", <date> hh:mm)
+#                                            Ceremony: <docs|checklist|script|full|none> (the user, "<words>", <date> hh:mm)
 #                                            (none for research, retros and other no-code tasks)
 #   team.sh send <name> "<text>"             queue one message for an agent's pane
 #   team.sh go <name> "<words>" "<instr>"    queue "Lead: the user's go, lead pane, <time> ('<words>'): <instr>"
@@ -284,7 +284,7 @@ task_ok() { [ -f "$1" ] && grep -q '[^[:space:]]' "$1"; }
 # words and time (wiki decision-ceremony-sizing.md).
 ceremony_ok() {
   first=$(head -n 1 "$1") || return 1
-  grep -Eq '^Ceremony: (checklist|script|full|none) .*"[^"]+".*[0-9][0-9]:[0-9][0-9]' <<EOF
+  grep -Eq '^Ceremony: (docs|checklist|script|full|none) .*"[^"]+".*[0-9][0-9]:[0-9][0-9]' <<EOF
 $first
 EOF
 }
@@ -443,6 +443,9 @@ deliverer_alive() { # target
   p=$(cat "$spool/$1/deliver.lock/pid" 2> /dev/null) && kill -0 "$p" 2> /dev/null
 }
 status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliverer"; }
+spawned() { # name cwd task
+  TEAM_ROLE=lead sh "$self" spawn "$@" > /dev/null 2>&1 && recorded_as "$1" "$2" "$3"
+}
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
@@ -555,6 +558,8 @@ STUB
   check "... and records nothing" gone a3
   printf 'selftest task\nCeremony: script (the user, "yes", 14 Nov 11:29)\n' > "$t/no-ceremony"
   check "spawn refuses a task file whose first line names no ceremony" refused_with "no Ceremony line" spawn a4 "$t" "$t/no-ceremony"
+  printf 'Ceremony: docs (the user, "yes", 17 Nov 08:00)\nselftest docs task\n' > "$t/docs-task"
+  check "spawn accepts a task file sized docs" spawned a5 "$t" "$t/docs-task"
   check "... and records nothing" gone a4
   TMUX_PANE=$lp sh "$self" revive --all > /dev/null
   check "revive re-sets @role=lead on the lead pane" is_lead "$lp"
@@ -580,7 +585,7 @@ spawn)
   cwd=$(cd "$3" && pwd) || exit 1
   task_ok "$4" || die "spawn: task file $4 is missing or empty"
   ceremony_ok "$4" ||
-    die "spawn: task file $4 has no Ceremony line first: Ceremony: <checklist|script|full|none> (the user, \"<words>\", <date> hh:mm)"
+    die "spawn: task file $4 has no Ceremony line first: Ceremony: <docs|checklist|script|full|none> (the user, \"<words>\", <date> hh:mm)"
   task=$(cd "$(dirname "$4")" && pwd)/$(basename "$4")
   ! window_exists "$name" || die "window $name exists"
   ! record "$name" > /dev/null || die "$name is recorded in $agents: team.sh revive or retire it"

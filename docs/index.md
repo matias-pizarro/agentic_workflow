@@ -55,12 +55,13 @@ Why a separate reviewer model: a second model has different blind spots, and rea
 
 | Tier | Use it for | What gets built | Review |
 |---|---|---|---|
+| `docs` | a change to documentation only: no code, script or check | the documentation change, built by the project's docs build where there is one | you read the diff, or the render of a page you see |
 | `checklist` | something run once or rarely, by a person watching, where each failure shows on screen and the step can be rerun | a doc page of numbered commands, one line each on what it does | none |
 | `script` | the same, but run often or by an agent, and nothing a misbehaving agent could exploit | a plain script running the steps in order, relying on each step being safe to rerun | one review pass; the loop only on your words |
 | `full` | code an agent can reach or trigger, that runs as root for agents, or that spends money or holds credentials unattended | acceptance criteria, a table of what a failure at each step leaves, reads of system state that say yes, no or failed | the review loop |
 | `none` | research, retros, write-ups: no code | the document | as you choose |
 
-A `checklist` or `script` ticket says in one sentence what a failure leaves and what to do ("nothing harmful; rerun" is common); a `full` ticket carries the step-by-step failure table instead. Adopting code that already works, by moving it, generalising it or putting it under review, is a ticket of its own with its own tier. Expect to tune the tiers as you learn.
+A `docs`, `checklist` or `script` ticket says in one sentence what a failure leaves and what to do ("nothing harmful; rerun" is common); a `full` ticket carries the step-by-step failure table instead. Adopting code that already works, by moving it, generalising it or putting it under review, is a ticket of its own with its own tier. Expect to tune the tiers as you learn.
 
 ### Reading a review summary
 
