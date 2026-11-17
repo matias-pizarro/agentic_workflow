@@ -330,8 +330,9 @@ ensure_lead() {
 # one per line: "<kind> <target> <expected> | <the host-side fix>", # for
 # comments. Kinds: sysctl <name> <value>; nonempty <file>; sshcontrolpath
 # <alias> %n (ssh -G <alias> prints a ControlPath holding the alias, so two
-# aliases of one host never share a socket); jail <name>, the jail's name for
-# the fix block, checking nothing. Prints each failure, then one block for the
+# aliases of one host never share a socket); http <url> <status>, the URL
+# answers with that HTTP status within 5 s (LD-Q2); jail <name>, the jail's
+# name for the fix block, checking nothing. Prints each failure, then one block for the
 # host: one jail -m line with every sysctl fix, then the other fixes. A read
 # that fails is a failure. Exit 1 on any failure.
 doctor() {
@@ -364,6 +365,12 @@ doctor() {
         case $got in *"$target"*) ok=1 ;; esac
       else
         got="ssh -G failed: $(printf '%s' "$cfg" | head -1)"
+      fi ;;
+    http)
+      rc=0
+      got=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$target" 2> /dev/null) || rc=$?
+      if [ "$rc" = 0 ] && [ "$got" = "$want" ]; then ok=1
+      elif [ "$rc" != 0 ]; then got="no answer (curl exit $rc)"
       fi ;;
     *) got="unknown kind '$kind'" ;;
     esac
