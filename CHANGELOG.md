@@ -2,10 +2,25 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
-## [Unreleased]
+## [2.0.0] - 2026-11-17
+
+### Changed
+
+- **Act:** `team.sh go` takes where and when the user gave the go: `team.sh go <name> "<words>" "<pane> <time>" "<instruction>"`, e.g. `"prod-net pane 22:57"`, the stamp on the user's message. It sends `Lead: the user's go ('<words>', <pane> <time>), relayed <now>: <instruction>`, and refuses a source without a time. The old three-argument form exits with its usage.
+- **Act:** after installing (`node tools/extensions/install.mjs`), `/reload` each pane it lists, or tell its seat to call the `reload_runtime` tool.
+- Rule 2 and the overview: live runs are for tiers with a live check (all but `research`, `write-up` and `retro`); the overview points to the tier table.
+- Rule 6, `docs/index.md`, the `/open-questions` template and `review-loop`: every impact, rating, comparison and recommendation leads with the absolute value against the threshold that matters, and gives the relative change only after.
 
 ### Added
 
+- Ceremony tiers `research` (findings as a Markdown file and its HTML version, citing primary sources; your read as the review), `write-up` (a draft: an email, an invite, a brief, a rationale; one pass on a different model, then your read; sending waits for your go), `retro` (rule 12's shape) and `vg` (slide decks, diagrams, images, mockups; the render, PDF or PPTX shown to you; your feedback before commit). `none` stays for other no-code work. `team.sh spawn` accepts them. A project whose ticket checker or board lists the tiers (src's `lib/check_ticket`, Vikunja's `tier:` labels) should add them.
+- guards.ts stamps each message typed in a pane, other than a `/command`, with its local time, `[17 Nov 12:59] `.
+- sibling-guard also refuses a `bash` call beside another `bash` call when either runs a git step that changes state or `merge-ready`.
+- open-questions.ts registers each new `❓ <ID>` of a turn to the seat in the question-ID registry (`team.sh` puts its path in the tmux option `@team-qids`), and warns in the pane of an ID another seat holds, or of IDs it cannot register. It gives each seat a `reload_runtime` tool, to use on the lead's or the operator's word.
+- `install.mjs` ends by listing the tmux panes running pi that need `/reload`.
+- `team.sh status` prints a `CRON` line when the last run in `tools/spool/cron.log` exited non-zero; the selftest also expects delivery after the sender is killed.
+- `tools/wiki-pre-commit` refuses an added line whose leading `<d> <Mon> hh:mm` is later than the commit's clock.
+- `merge-ready` warns of each ticket the branch changed whose `**Status:**` is not `done`.
 - Rule 4: a question settled by an answer given elsewhere is withdrawn in its own pane, naming that answer; a ticket's number is claimed by committing its file before it is announced.
 - Rule 5: the time quoted is the stamp on the operator's message, or the time a seat's report quotes, never an estimate; a claim about state, by anyone, names the read it rests on, made after the last step that could change it (moved from rule 10, which bound only the lead); an answer about now is recorded as a choice for now, and a standing rule changes only on the operator's words naming it.
 - Rule 9: the seat merges the integration branch into its branch before each review pass too; a change to a shared file merges into the integration branch on its own, from its owner's branch, first.
