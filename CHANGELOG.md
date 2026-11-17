@@ -2,6 +2,18 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [1.9.0] - 2026-11-17
+
+### Added
+
+- `team.sh doctor` has an `http <url> <status> | <fix>` kind: the URL must answer with that status within 5 s, and no answer is a FAIL.
+- `team.sh status` ends a QUEUED line with `(no deliverer: ...)` when no deliverer is running for that queue.
+- `/open-questions` lists each assumption recorded for the operator to confirm ("assumption: <ID>, confirm") as an open question, with the assumed answer as the ➡️. The input box prefill also takes `-A<n>` IDs, e.g. `VW-A3`.
+
+### Fixed
+
+- `team.sh` starts its deliverer from the tmux server, outside the caller's process tree. A `team.sh` call run under `timeout(1)` (a process reaper on FreeBSD), or by a harness that kills its process group, no longer kills the deliverer and strands queued messages. Without a reachable tmux server, the message stays queued and `send` says so.
+
 ## [1.8.0] - 2026-11-17
 
 ### Added
@@ -121,6 +133,7 @@ The `matias-pizarro/skills` repo becomes `matias-pizarro/agentic_workflow`, and 
 
 - `skills/review-loop/SKILL.md`, emptied by a commit on main (8639493), is restored.
 
+[1.9.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.9.0
 [1.8.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.8.0
 [1.7.1]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.1
 [1.7.0]: https://github.com/matias-pizarro/agentic_workflow/releases/tag/v1.7.0
