@@ -16,7 +16,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
     Adopting existing code is a ticket of its own.
 
-2. **Live first.** Verify every ticket by running it for real on an expendable host (a disposable container or jail, a test VM, a cloud sandbox), by trial and error, before any review. Throw the host away after. Verification is real runs: build no fixture, fake or dry run where a live test is practical. A fixture standing in for a tool's output is copied from a real run and says where from. When a live run is impractical, ask the operator for the exception as its own question.
+2. **Live first.** Verify every ticket whose tier has a live check (all but `research`, `write-up` and `retro`) by running it for real on an expendable host (a disposable container or jail, a test VM, a cloud sandbox), by trial and error, before any review. Throw the host away after. Verification is real runs: build no fixture, fake or dry run where a live test is practical. A fixture standing in for a tool's output is copied from a real run and says where from. When a live run is impractical, ask the operator for the exception as its own question.
 
 3. **Compromised by design.** Treat every sandbox and agent, yourself included, as able to do the worst its environment allows. Contain by disposable environments and isolation: tests run in a child container or jail. Expose only what is expendable. Seats sharing one cloud account each use their own seat name as their project name for cloud sandboxes (e.g. `sandbox cloud create <seat>`), so each gets its own servers, disks, keys and known_hosts. Write files with the write and edit tools, never through a shell heredoc.
 
