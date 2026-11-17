@@ -39,7 +39,9 @@ const NONE_LINE = /^(\s*)`?(Open questions for the operator: )none`?\s*$/gimu;
 const NO_QUESTIONS_LINE = /^(\s*)(No questions of mine are open\.)\s*$/gmu;
 const MARKED_LINE = /^(\s*)(🔴|🟠|🟡)(.*)$/gmu;
 const CRITICALITY = /^\s*(🔴|🟠|🟡)\s*(high|medium|low)\b/iu;
-const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-Q[0-9]+[a-z]?)/u;
+// A question ID: a prefix, then -Q<n> for a question or -A<n> for an assumption
+// awaiting confirmation (VW-A3), e.g. AW-Q3, NET-Q6b, CHK-net-Q1.
+const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-[QA][0-9]+[a-z]?)/u;
 const TABS: Record<string, string> = {
 	high: "bg=colour88,fg=colour254",
 	medium: "bg=colour208,fg=black",
