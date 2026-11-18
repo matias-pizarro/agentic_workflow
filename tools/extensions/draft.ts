@@ -43,18 +43,20 @@ function tmuxOut(args: string[]): string | undefined {
 	return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : undefined;
 }
 
-// Relay to the lead; undefined on success, else why not.
-function relay(text: string): string | undefined {
+// Relay to the lead: "relayed", "queued" (no deliverer started yet), or why not.
+function relay(text: string): "relayed" | "queued" | { failure: string } {
 	const pane = process.env.TMUX_PANE;
 	const seat = pane ? tmuxOut(["display", "-p", "-t", pane, "#{window_name}"]) : undefined;
-	if (!seat) return "this pane's tmux window name cannot be read";
+	if (!seat) return { failure: "this pane's tmux window name cannot be read" };
 	const team = tmuxOut(["show", "-gv", "@team-sh"]);
-	if (!team) return "no team.sh path (tmux option @team-sh); it is set at the next team.sh send, report, spawn or revive";
+	if (!team) return { failure: "no team.sh path (tmux option @team-sh); it is set at the next team.sh send, report, spawn or revive" };
 	// One line: team.sh types the report into the lead's pane, where a newline is dropped, gluing the lines.
 	const line = `${seat}: /draft typed in ${seat}'s pane: ${text.replace(/\s*\n\s*/g, " ")}`;
-	const r = spawnSync("sh", [team, "report", line], { encoding: "utf8" });
-	if (r.status === 0) return undefined;
-	return `team.sh report exited ${r.status ?? r.signal}: ${(r.stderr || r.stdout || r.error?.message || "").trim()}`;
+	// TEAM_QIDS_SKIP: a "❓ <ID>" in the description is text, not this seat's question (AW-Q75).
+	const r = spawnSync("sh", [team, "report", line], { encoding: "utf8", env: { ...process.env, TEAM_QIDS_SKIP: "1" } });
+	if (r.status !== 0) return { failure: `team.sh report exited ${r.status ?? r.signal}: ${(r.stderr || r.stdout || r.error?.message || "").trim()}` };
+	// team.sh keeps the message queued when it cannot start its deliverer (AW-Q77).
+	return /no deliverer started/.test(r.stderr) ? "queued" : "relayed";
 }
 
 export default function draft(pi: ExtensionAPI) {
@@ -69,11 +71,13 @@ export default function draft(pi: ExtensionAPI) {
 		const text = draftText(description);
 		const pane = process.env.TMUX_PANE;
 		if (pane && tmuxOut(["show", "-pv", "-t", pane, "@role"]) === "lead") return { action: "transform", text };
-		const failure = relay(text);
+		const result = relay(text);
 		if (ctx.hasUI) {
-			if (failure === undefined) ctx.ui.notify("/draft relayed to the lead (team.sh report); this pane carries on", "info");
+			if (result === "relayed") ctx.ui.notify("/draft relayed to the lead (team.sh report); this pane carries on", "info");
+			else if (result === "queued")
+				ctx.ui.notify("/draft queued for the lead, not yet delivered: delivery starts with the next team.sh message; this pane carries on", "warning");
 			else {
-				ctx.ui.notify(`/draft not relayed: ${failure}. Your line is back in the input box.`, "error");
+				ctx.ui.notify(`/draft not relayed: ${result.failure}. Your line is back in the input box.`, "error");
 				ctx.ui.setEditorText(event.text);
 			}
 		}
