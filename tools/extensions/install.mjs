@@ -5,7 +5,8 @@
 // which foreground subagents load. It removes heredoc-guard.ts and its entry,
 // now a handler of guards.ts. It copies open-questions.ts there too, for the
 // main session only (the pane side of /open-questions; subagents have no
-// pane), and removes criticality-colours.ts, now part of it. It also copies
+// pane), and removes criticality-colours.ts, now part of it; and draft.ts, the
+// /draft command, for the main session only too. It also copies
 // the prompt templates in
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
@@ -29,6 +30,8 @@ rmSync(heredoc, { force: true });
 const colours = join(agent, "extensions", "open-questions.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "open-questions.ts"), colours);
 rmSync(join(agent, "extensions", "criticality-colours.ts"), { force: true });
+const draft = join(agent, "extensions", "draft.ts");
+copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "draft.ts"), draft);
 
 const prompts = join(dirname(fileURLToPath(import.meta.url)), "..", "prompts");
 mkdirSync(join(agent, "prompts"), { recursive: true });
@@ -44,7 +47,7 @@ settings.subagents.defaultSubagentOnlyExtensions = list;
 writeFileSync(`${file}.new`, `${JSON.stringify(settings, null, 2)}\n`);
 chmodSync(`${file}.new`, statSync(file).mode);
 renameSync(`${file}.new`, file);
-console.log(`install: ${target} and ${colours} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
+console.log(`install: ${target}, ${colours} and ${draft} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
 
 // The panes running pi: the pane's process is pi itself (`exec pi`), titled "node: pi" or "pi".
 const panes = spawnSync("tmux", ["list-panes", "-a", "-F", "#{pane_pid} #{session_name}:#{window_index} #{window_name}"], { encoding: "utf8" });
