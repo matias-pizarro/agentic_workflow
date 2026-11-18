@@ -33,7 +33,7 @@ The lead then repeats the terms back as one block, writes them at the top of the
 
 ## Start
 
-The lead records the start time in the ledger and sends each taking-part seat one message: the window has started, rule 15 applies, the terms and the ledger are at `<path>`. Relaxations are made first, each as a ledger line with its undo.
+The lead records the start time in the ledger and sends each taking-part seat one message: the window has started, rule 15 applies, the terms and the ledger are at `<path>`. Relaxations are made first, each as a ledger line with its undo. A grill question unanswered at the start grants nothing; the lead lists it in the ledger's terms as not granted.
 
 ## The ledger
 

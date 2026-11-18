@@ -11,7 +11,8 @@
 //   stamps no /command). The state lives in that pane's tmux option
 //   @unattended: unset, "grill" or "open"; it survives a restart of the lead's
 //   pi in the same pane.
-// - A command out of order, or typed in any other pane, is refused in the pane;
+// - A command out of order, typed in any other pane, or met by an unknown
+//   @unattended value, is refused in the pane;
 //   the agent starts no turn and the line goes back into the input box.
 import { spawnSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -96,7 +97,9 @@ export default function unattended(pi: ExtensionAPI) {
 		if (!pane || tmux(["show", "-pv", "-t", pane, "@role"]).out !== "lead") return refuse("it is valid only in the lead's pane");
 		const read = tmux(["show", "-pqv", "-t", pane, "@unattended"]);
 		if (!read.ok) return refuse("this pane's tmux option @unattended cannot be read");
-		const state = (["grill", "open"].includes(read.out) ? read.out : "") as State;
+		if (!["", "grill", "open"].includes(read.out))
+			return refuse(`this pane's tmux option @unattended holds '${read.out}', not grill or open; reset it with tmux set -pu @unattended`);
+		const state = read.out as State;
 		const after = next(state, line.command, line.arg);
 		if ("refused" in after) return refuse(after.refused);
 		const write = after.state ? tmux(["set", "-p", "-t", pane, "@unattended", after.state]) : tmux(["set", "-pu", "-t", pane, "@unattended"]);
