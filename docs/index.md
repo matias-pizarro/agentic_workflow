@@ -10,6 +10,7 @@ The repo holds:
 - **[kickoff.md](kickoff.md)**: a checklist for your first hour.
 - **[rules.md](rules.md)**: the rules, worded for agents. Point every agent at it.
 - **[unattended-windows.md](unattended-windows.md)**: how the lead runs work while you are away (rule 15).
+- **[commands.md](commands.md)**: the commands you type in a pane, and the extensions and prompt templates behind them.
 - **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard; **`tools/wiki-pre-commit`**: the wiki's, refusing a file emptied by accident; **`tools/merge-ready`**: the check before a branch merges (rule 9).
 - **`skills/`**: the skills this process adds to the ones it installs from elsewhere, such as `review-loop`.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
