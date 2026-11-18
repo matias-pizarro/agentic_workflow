@@ -14,7 +14,7 @@ Decisions, with the operator's words: [../perimeter.md](../perimeter.md) (RF-Q1 
   - selftest cases for the above, stub pi for spawn/refresh mechanics, a real pi pane for the reads.
 - `tools/extensions/ledger.ts`: on pi's `session_start` and `session_shutdown` (reason not `reload`), append `start` / `stop` to the path in `@team-ledger`, seat = the tmux window name; set the pane options `@session-id` and `@session-name` (read by `team.sh refresh` for its own ledger lines, the lead having no registry line). Writes nothing outside a team tmux server.
 - `tools/extensions/refresh.ts`: `/refresh <names>` typed in the lead's pane runs `team.sh refresh <names> "<typed line>" "lead pane hh:mm"` (path from `@team-sh`) and shows its output; the lead's agent starts no turn. Elsewhere, refused with the usage.
-- `tools/prompts/handoff.md`: the handoff template (sections of the 17 Nov handoffs; open questions in full, rule 6's form; a lead section).
+- `tools/handoff.md`: the handoff template (sections of the 17 Nov handoffs; open questions in full, rule 6's form; a lead section).
 - `tools/extensions/install.mjs` installs the two extensions (main session only); `.gitignore` gains `tools/ledger`; README, `docs/index.md` and `CHANGELOG.md` gain a few lines.
 
 ## Acceptance criteria

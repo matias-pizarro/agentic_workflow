@@ -6,7 +6,7 @@ Every release of this repo, newest first, in the [Keep a Changelog](https://keep
 
 ### Added
 
-- `/refresh <seat>…|all|lead`, typed in the lead's pane, and `team.sh refresh`: hand a seat, or the lead, to a new pi session in the same pane through a handoff (`tools/prompts/handoff.md`), deferred while the seat is busy, typing or has a message queued, refused when the seat answers it is unadvisable; the lead's pane is free at once and gets one report per seat.
+- `/refresh <seat>…|all|lead`, typed in the lead's pane, and `team.sh refresh`: hand a seat, or the lead, to a new pi session in the same pane through a handoff (`tools/handoff.md`), deferred while the seat is busy, typing or has a message queued, refused when the seat answers it is unadvisable; the lead's pane is free at once and gets one report per seat.
 - The session ledger, `tools/ledger`: `ledger.ts` logs every pi session's start and stop with its seat, session id and session name; `team.sh refresh` logs its steps. Add `tools/ledger` to the wiki's `.gitignore` beside `tools/agents`.
 - `team.sh spawn` names each session `<seat> <YYYY-MM-DD hh:mm>`.
 

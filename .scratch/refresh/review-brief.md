@@ -16,7 +16,7 @@ Read them against:
 - `.scratch/refresh/perimeter.md` (the operator's decisions RF-Q1 to RF-Q12, with their words) and `.scratch/refresh/issues/01-refresh.md` (acceptance criteria and the `## Failure modes` table)
 - `GLOSSARY.md`
 - `docs/rules.md`, above all rule 1's `full` tier (every read of state says yes, no or failed, and a failed read is never taken as absent), rule 3 and rule 8 (over-build)
-- `tools/team.sh` (`refresh`, `_refresh`, `refresh_run` and its helpers, `spawn`'s `--name`, `publish_qids`, the selftest's `st_refresh` and `box-pi`), `tools/extensions/ledger.ts`, `tools/extensions/refresh.ts`, `tools/extensions/install.mjs`, `tools/prompts/handoff.md`, `tests/refresh/run.mjs`, `README.md`, `docs/index.md`, `CHANGELOG.md`
+- `tools/team.sh` (`refresh`, `_refresh`, `refresh_run` and its helpers, `spawn`'s `--name`, `publish_qids`, the selftest's `st_refresh` and `box-pi`), `tools/extensions/ledger.ts`, `tools/extensions/refresh.ts`, `tools/extensions/install.mjs`, `tools/handoff.md`, `tests/refresh/run.mjs`, `README.md`, `docs/index.md`, `CHANGELOG.md`
 - `tools/extensions/draft.ts`, the sibling command whose conventions `refresh.ts` follows
 - the responses in `.scratch/refresh/reviews/` (files ending in `-response.md`), the latest being for <prior hash> (left out until a topic has a prior review)
 

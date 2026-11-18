@@ -508,7 +508,7 @@ refresh_run() { # seat words source
   # A refresh of the seat earlier in the same minute left its file: take the next free name.
   h=$handoffs/handoff-$stamp-$seat.md k=1
   while [ -e "$h" ]; do k=$((k + 1)); h=$handoffs/handoff-$stamp-$seat-$k.md; done
-  enqueue "$qt" "Lead: a refresh of your seat is requested (the user, \"$words\", $src): write your handoff to $h following $real/prompts/handoff.md, its first line exactly '# Handoff: seat $seat, <d Mon YYYY> <hh:mm>'. If a refresh now would lose work (an async subagent or background job that reports to this session, a live run under way, a merge stopped mid-conflict, an answer of the user's you are about to act on), write there only the line 'REFRESH-UNADVISABLE: <reason>' instead. Then end your turn: this session then stops, and a new one takes the seat from your handoff." > /dev/null
+  enqueue "$qt" "Lead: a refresh of your seat is requested (the user, \"$words\", $src): write your handoff to $h following $real/handoff.md, its first line exactly '# Handoff: seat $seat, <d Mon YYYY> <hh:mm>'. If a refresh now would lose work (an async subagent or background job that reports to this session, a live run under way, a merge stopped mid-conflict, an answer of the user's you are about to act on), write there only the line 'REFRESH-UNADVISABLE: <reason>' instead. Then end your turn: this session then stops, and a new one takes the seat from your handoff." > /dev/null
   deadline=$(($(date +%s) + wait_max))
   while :; do
     if [ -f "$h" ] && [ "$(queued_for "$qt")" = no ]; then
