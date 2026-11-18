@@ -12,7 +12,8 @@
 #                                            <pane> <time> is where and when the user gave it, e.g. "prod-net pane 22:57"
 #   team.sh report "<text>"                  agent -> lead: queue one message for the lead's pane; registers
 #                                            each "❓ <ID>" it carries in tools/qids (TEAM_QIDS overrides) and
-#                                            refuses an ID registered to another seat, naming it
+#                                            refuses an ID registered to another seat, naming it;
+#                                            TEAM_QIDS_SKIP=1 relays the text as is, registering nothing
 #   team.sh status                           last STATUS line of every agent, [busy], [input box holds text] and
 #                                            [input box unreadable] flags; queued messages (saying which) and failed ones;
 #                                            a CRON line when the last run in tools/spool/cron.log exited non-zero
@@ -40,7 +41,8 @@
 # status lists every queued message with its age.
 # send, go, report, spawn and revive set the tmux server option @team-qids to
 # the question-ID registry's path, where the pi extension open-questions.ts
-# registers each pane's new IDs (RT3-Q9).
+# registers each pane's new IDs (RT3-Q9), and @team-sh to this script's path,
+# which the pi extension draft.ts runs to relay a /draft to the lead (AW-Q70).
 # tools/ is the directory of the path the script was invoked by, not of its
 # resolved target: a symlink <root>/wiki/tools/team.sh to
 # <root>/agentic_workflow/tools/team.sh
@@ -116,7 +118,7 @@ resolve() { # target -> pane id (empty if absent)
 }
 
 # Tell pi panes where the question-ID registry is; no tmux server, no matter.
-publish_qids() { tmux set -g @team-qids "$qids" 2> /dev/null || true; }
+publish_qids() { tmux set -g @team-qids "$qids" 2> /dev/null && tmux set -g @team-sh "$self" 2> /dev/null || true; }
 
 # The last cron run, when it exited non-zero: "CRON <name> exit <n>, <d Mon hh:mm>: see <log>".
 # cron.log lines: "<YYYY-MM-DD> <hh:mm:ss> <TZ> run: <command>", then its output, then "... exit <n>".
@@ -471,6 +473,8 @@ status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliv
 spawned() { # name cwd task
   TEAM_ROLE=lead sh "$self" spawn "$@" > /dev/null 2>&1 && recorded_as "$1" "$2" "$3"
 }
+reports_as_text() { TEAM_QIDS_SKIP=1 TEAM_WAIT=3 sh "$self" report "$1" > /dev/null 2>&1; }
+unregistered() { ! grep -q "^$1$tab" "$TEAM_QIDS"; }
 status_has() { sh "$self" status | grep -qxF -- "$1"; }
 status_lacks() { ! sh "$self" status | grep -q -- "$1"; }
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
@@ -562,8 +566,11 @@ selftest() {
   printf '2026-11-23 09:00:00 CET run: /w/tools/team.sh spawn lint-2 /w /w/t.md\n2026-11-23 09:00:01 CET exit 0\n' >> "$spool/cron.log"
   check "... and is silent once a later run succeeds" status_lacks CRON
   check "send publishes the question-ID registry to pi panes" [ "$(tmux show -gv @team-qids)" = "$TEAM_QIDS" ]
+  check "... and its own path, for /draft's relay" [ "$(tmux show -gv @team-sh)" = "$self" ]
   printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
   check "report refuses a ❓ ID registered to another seat, naming it" refused_with "XX-Q1 is other's (14 Nov 2026)" report "a1: ❓ XX-Q1 – taken?"
+  check "report with TEAM_QIDS_SKIP=1 relays quoted IDs as text" reports_as_text "a1: /draft quoting ❓ XX-Q1 – taken? and ❓ XX-Q9"
+  check "... and registers none of them" unregistered XX-Q9
   TEAM_WAIT=3 sh "$self" report "a1: ❓ XX-Q2 – new? reply with only OK" > /dev/null
   check "report registers a new ❓ ID to its seat" grep -q "^XX-Q2${tab}a1${tab}" "$TEAM_QIDS"
 
@@ -655,7 +662,7 @@ go)
   ;;
 report)
   [ $# -eq 2 ] || { echo "usage: $0 report <text>" >&2; exit 2; }
-  register_qids "$2"
+  [ "${TEAM_QIDS_SKIP:-}" = 1 ] || register_qids "$2"
   enqueue lead "$2"
   ;;
 _deliver)
