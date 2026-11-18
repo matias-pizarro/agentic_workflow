@@ -25,7 +25,7 @@
 #   team.sh retire <name> [--no-checkout "<reason>"]
 #                                            close a finished agent's window, drop its record; refused while
 #                                            wiki/sources/checkouts/<yyyy-mm-dd>-<name>.md (TEAM_CHECKOUTS overrides
-#                                            the directory) is missing or empty, unless --no-checkout gives a
+#                                            the directory) is missing, unreadable or empty, unless --no-checkout gives a
 #                                            reason, which goes to the log (rules.md, Team mechanics; AW-Q86)
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
@@ -1108,6 +1108,14 @@ STUB
   check "... and leaves the others" recorded_as a2 "$t" "$t/task"
   check "revive refuses an unrecorded name" refused revive a1
   printf '# Check-out: x-a5 (18 Nov 2026)\n' > "$TEAM_CHECKOUTS/2026-11-18-x-a5.md"
+  : > "$TEAM_CHECKOUTS/2026-11-18-a6.md"
+  check "retire refuses an empty check-out, saying it is empty" refused_with "2026-11-18-a6.md is empty" retire a6
+  printf 'x\n' > "$TEAM_CHECKOUTS/2026-11-17-a6.md" && chmod 000 "$TEAM_CHECKOUTS/2026-11-17-a6.md"
+  rm -f "$TEAM_CHECKOUTS/2026-11-18-a6.md"
+  if [ "$(id -u)" != 0 ]; then
+    check "retire refuses an unreadable check-out, saying it cannot read it" refused_with "cannot read $TEAM_CHECKOUTS/2026-11-17-a6.md" retire a6
+  fi
+  chmod 644 "$TEAM_CHECKOUTS/2026-11-17-a6.md" && rm -f "$TEAM_CHECKOUTS/2026-11-17-a6.md"
   check "retire takes no other seat's check-out for its own (x-a5 is not a5)" refused retire a5
   check "retire --no-checkout refuses an empty reason" refused retire a5 --no-checkout " "
   check "... and retires nothing" recorded_as a5 "$t" "$t/research-task"
@@ -1296,8 +1304,16 @@ retire)
     [ -n "$(printf '%s' "$4" | tr -d ' \t\n')" ] || die "retire: --no-checkout needs a reason"
     mkdir -p "$spool" && log "retired $2 without a check-out: $4"
   else
-    found=''
-    for f in "$checkouts"/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-"$2".md; do task_ok "$f" && found=$f; done
+    # Present, unreadable or empty: each said as such; only no file at all suggests --no-checkout (AW-Q91).
+    found='' bad=''
+    for f in "$checkouts"/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-"$2".md; do
+      [ -e "$f" ] || continue
+      if ! [ -r "$f" ] || ! c=$(cat "$f" 2> /dev/null); then bad="cannot read $f"
+      elif [ -z "$(printf '%s' "$c" | tr -d ' \t\n')" ]; then bad="$f is empty"
+      else found=$f
+      fi
+    done
+    [ -n "$found" ] || [ -z "$bad" ] || die "retire: $2's check-out: $bad; fix it, then retire again"
     [ -n "$found" ] || die "retire: no check-out for $2: the seat writes $checkouts/$(date +%F)-$2.md following $(cd "$(dirname "$(readlink -f "$self")")" && pwd)/checkout.md and commits it, then retire again; or retire $2 --no-checkout \"<reason>\""
   fi
   if window_exists "$2"; then tmux kill-window -t "$2"; fi
