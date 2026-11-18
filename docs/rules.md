@@ -70,6 +70,6 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 - After a host reboot, the lead runs `team.sh doctor`, hands the operator the one fix block it prints, runs it again until it passes, then `team.sh revive --all`.
 - Seats report with `team.sh report "<name>: <one or two sentences> <pointer>"`, then end the turn. The lead sends with `team.sh send`, and relays a go only with `team.sh go`.
 - Before `team.sh retire <seat>`, the seat writes its check-out to `<root>/wiki/sources/checkouts/<yyyy-mm-dd>-<seat>.md`, following `<root>/agentic_workflow/tools/checkout.md`, and commits it in the wiki; then the lead retires it. A seat going on in a new session is refreshed, with a handoff, instead.
-- Messages, task files and reports carry pointers (a path or a commit), never pasted contents.
+- Messages, task files and reports carry pointers (a path or a commit), never pasted contents. A path is given in full, from `/` (`/agents/sessions/freebsd/sandbox/worktrees/feat/vikunja-phone/infra/vikunja/README.md`, not `infra/vikunja/architecture.svg`), so one click selects it; in a reply to the operator too.
 - The lead's session stays free for the operator: long work runs in seats and background subagents, and nobody waits in a polling loop.
 - Each turn the lead checks `date`, `team.sh status` and the repos' recent commits.

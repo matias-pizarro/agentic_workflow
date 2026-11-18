@@ -38,6 +38,8 @@ Print each open question in full as it stands now, updated to what you know at t
 ➡️ <recommended answer, starting "Yes">
 ```
 
+Every path in a question is given in full, from `/`, so one click selects it (rules.md, Team mechanics).
+
 The `**Issue:**` line and its six bullets are for an issue or finding (rules.md rule 6). For any other decision, put one or two plain lines of context in their place. Print the skeleton's lines as plain Markdown, not inside a code block. Impact, each solution and the recommendation lead with the absolute value against the threshold that matters (a requirement, a limit, a budget, a deadline) and give the relative change only after; where no threshold is known, say so.
 
 Start with one line (after the lead's table, if you are the lead): `Open questions for the operator: <n>`. If there are none, print only `Open questions for the operator: NONE`, as plain text (the pane colours it green). If part of this session was compacted and you cannot see whether some questions were answered, say so on that first line. End your turn with your usual STATUS line, its `open=<n>` matching the count above and its `worst=` the highest criticality listed (no `worst=` when there are none).
