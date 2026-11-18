@@ -8,14 +8,35 @@ Each acts only when the operator types it in the lead's pane, and arrives stampe
 
 | Command | Valid | The lead then |
 |---|---|---|
-| `/unattended-window <intent>` | no window open or being grilled | takes `<intent>` as the statement of what the window is for and runs the opening grill |
+| `/unattended-window <intent>` | no window open or being grilled | takes `<intent>` as the statement of what the window is for and runs the opening grill, starting with the readiness round |
 | `/abort-unattended-window` | only while the grill runs, before the start | drops the grill; nothing was started |
 | `/start-unattended-window` | only after the grill | starts the window on the terms settled |
 | `/end-unattended-window` | only while a window runs | ends it: stop and hold, the sweep of temporary credentials, then the morning report |
 
 ## Opening: the grill
 
-The lead turns the intent into terms with a short grill, its questions in rule 4's and rule 6's form, under its own question prefix. It is free to propose whatever the intent suggests; rule 10 still holds: each `➡️` is the smallest option that meets the operator's words, and anything beyond them is labelled `widens:`. The grill settles at least:
+The grill begins with a readiness round, then settles the terms.
+
+### The readiness round
+
+First, the lead finds out what each seat needs to reach its targets without the operator, so that is settled before they leave rather than met in the night (LD-Q17, 18 Nov 2026).
+
+1. **Seats and targets.** From the intent, the lead names the taking-part seats and each one's targets (the project's work items, e.g. tasks on its board).
+2. **Each seat's needs.** The lead asks each of those seats, in one message naming a file at a full path for its answer, what it needs to reach its targets unattended. The seat writes there, then reports the path with `team.sh report`:
+    - credentials and keys (which of them it could make itself as temporary credentials, and which only the operator can give);
+    - host, Console or account steps only the operator can take;
+    - questions the operator must answer first, in full, under their IDs;
+    - files it shares with another seat, and who owns each;
+    - relaxations it needs, each with its undo and who runs it;
+    - its fallback queue if blocked.
+3. **Review across seats.** The project's architecture seat, or the lead where there is none, reviews the lists together for conflicts: files two seats change, address or name clashes, steps nobody owns, and anything that would need rule 15's floor. Its findings go to the lead.
+4. **One list for the operator.** The lead consolidates the lists and the review into one, grouped as: things for the operator to do before leaving; answers to give; items that cannot be granted (the floor, or the review's conflicts left open). That list opens the grill, and each item in it is answered there.
+
+At the start, every need still unmet is recorded in the ledger's terms as not granted, and that seat's target drops to its fallback queue.
+
+### The terms
+
+The lead turns the intent and the readiness list into terms with a short grill, its questions in rule 4's and rule 6's form, under its own question prefix. It is free to propose whatever the intent suggests; rule 10 still holds: each `➡️` is the smallest option that meets the operator's words, and anything beyond them is labelled `widens:`. The grill settles at least:
 
 - **The expected end.** A guide for planning; only `/end-unattended-window` ends the window.
 - **Where.** The projects, accounts and components the window may touch, and the seats taking part.
@@ -34,7 +55,7 @@ The lead then repeats the terms back as one block, writes them at the top of the
 
 ## Start
 
-The lead records the start time in the ledger and sends each taking-part seat one message: the window has started, rule 15 applies, the terms and the ledger are at `<path>`. Relaxations are made first, each as a ledger line with its undo. A grill question unanswered at the start grants nothing; the lead lists it in the ledger's terms as not granted.
+The lead records the start time in the ledger and sends each taking-part seat one message: the window has started, rule 15 applies, the terms and the ledger are at `<path>`. Relaxations are made first, each as a ledger line with its undo. A grill question unanswered at the start grants nothing; the lead lists it in the ledger's terms as not granted, as it does each readiness need still unmet, whose seat's target drops to its fallback queue.
 
 ## The ledger
 
