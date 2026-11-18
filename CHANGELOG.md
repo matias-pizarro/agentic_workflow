@@ -2,6 +2,17 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.5.0] - 2026-11-18
+
+### Added
+
+- Unattended windows: a readiness round opens the grill (`docs/unattended-windows.md`, "Opening: the grill"; rule 15). The lead names the taking-part seats and their targets; each seat writes what it needs to reach them unattended (credentials, operator-only steps, questions, shared files, relaxations, its fallback queue); the architecture seat, or the lead, reviews the lists across seats; one consolidated list for the operator opens the grill. At the start, an unmet need is not granted and that seat drops to its fallback queue.
+- Unattended windows: temporary credentials. The grill may let seats make WireGuard peers, ssh keys or tokens for the window, narrowly scoped; each is a ledger line with its undo; the seat retires its own once its work is done; an end-of-window sweep retires the rest before the morning report, and one it cannot retire is the report's first incident; at close, the lead asks the operator for long-term credentials made outside the agents' environment.
+
+### Changed
+
+- Rule 15's floor forbids revoking or deleting a credential the window did not create (before: any credential). **Act:** the lead runs the end-of-window sweep before the morning report.
+
 ## [2.4.0] - 2026-11-18
 
 ### Added
