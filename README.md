@@ -12,7 +12,7 @@ A way to run software work with a team of [Pi](https://github.com/earendil-works
 Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-git clone --branch v2.0.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+git clone --branch v2.1.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
 ```
 
 Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:

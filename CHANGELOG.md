@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.1.0] - 2026-11-18
+
+### Added
+
+- `/draft <description>` (`tools/extensions/draft.ts`, installed by `install.mjs` for the main session). Typed in the lead's pane (tmux pane option `@role=lead`), it becomes, stamped with the time: "Task an agent with <description>.", the request to settle the task's perimeter with the operator using `grill-with-docs` and to propose how to follow (`implement`, `to-spec` + `to-tickets`, a new task on the board, or something else altogether), and to choose the seat, its working directory, branch and worktree. Typed in another pane, it is relayed to the lead with `team.sh report` and that seat carries on; a failed relay puts the line back in the input box. After installing, `/reload` the panes `install.mjs` lists.
+- `team.sh` publishes its own path as the tmux option `@team-sh`; `team.sh report` with `TEAM_QIDS_SKIP=1` relays the text without registering its `❓` IDs.
+
 ## [2.0.0] - 2026-11-17
 
 ### Changed
