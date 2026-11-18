@@ -2,6 +2,18 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.4.0] - 2026-11-18
+
+### Added
+
+- `team.sh retire <seat>` refuses until the seat's check-out exists at `wiki/sources/checkouts/<yyyy-mm-dd>-<seat>.md` (2.3.0's rule), naming an unreadable or empty one as such; `retire <seat> --no-checkout "<reason>"` retires a seat that crashed or never started, and logs the reason. **Act:** the lead has each seat write its check-out before retiring it, as rules.md already says.
+- Rules (Team mechanics): a path is given in full, from `/`, and reachable from outside the sandbox (never `/tmp`), so one click selects it; the `/open-questions` template says the same. A Mermaid diagram meant for the operator also goes in an HTML page made from `tools/mermaid.html` (Mermaid 12.3.0 from jsDelivr).
+- `docs/kickoff.md` installs the `show-me` skill (humanlayer/skills), typed as `/skill:show-me`.
+
+### Fixed
+
+- A refresh's report and the new session's task file show `unnamed` for an old session that has no name (one spawned before 2.3.0), not a blank.
+
 ## [2.3.0] - 2026-11-18
 
 ### Added
