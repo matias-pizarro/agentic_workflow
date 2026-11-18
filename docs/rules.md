@@ -69,7 +69,7 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 - Before saying a seat missed a message, the lead checks `team.sh status` for it listed as `QUEUED`.
 - After a host reboot, the lead runs `team.sh doctor`, hands the operator the one fix block it prints, runs it again until it passes, then `team.sh revive --all`.
 - Seats report with `team.sh report "<name>: <one or two sentences> <pointer>"`, then end the turn. The lead sends with `team.sh send`, and relays a go only with `team.sh go`.
-- Before `team.sh retire <seat>`, the seat writes its check-out to `<root>/wiki/sources/checkouts/<yyyy-mm-dd>-<seat>.md`, following `<root>/agentic_workflow/tools/checkout.md`, and commits it in the wiki; then the lead retires it. A seat going on in a new session is refreshed, with a handoff, instead.
+- Before `team.sh retire <seat>`, the seat writes its check-out to `<root>/wiki/sources/checkouts/<yyyy-mm-dd>-<seat>.md`, following `<root>/agentic_workflow/tools/checkout.md`, and commits it in the wiki; then the lead retires it. `team.sh retire` refuses without it; `--no-checkout "<reason>"` retires a seat that crashed or never started, and logs the reason. A seat going on in a new session is refreshed, with a handoff, instead.
 - Messages, task files and reports carry pointers (a path or a commit), never pasted contents.
 - The lead's session stays free for the operator: long work runs in seats and background subagents, and nobody waits in a polling loop.
 - Each turn the lead checks `date`, `team.sh status` and the repos' recent commits.
