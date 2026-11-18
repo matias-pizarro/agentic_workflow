@@ -23,6 +23,40 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 
 - **review-loop**: commits pending work, has Codex review one topic under `.scratch/`, grills you through each finding and records the response, turn after turn until a review has no findings. Needs `codex` (logged in) or `pi` with `OPENAI_API_KEY`, and the `grilling` and `domain-modeling` skills, which the CLI does not install with it: `npx skills@latest add mattpocock/skills -g --skill grilling domain-modeling`.
 
+## What the install puts in pi
+
+`node tools/extensions/install.mjs` (below) installs these into `~/.pi/agent/`.
+
+**Extensions** (`tools/extensions/` → `~/.pi/agent/extensions/`):
+
+| Extension | Loaded by | What it does |
+|---|---|---|
+| `guards.ts` | every session and subagent | sibling-guard, heredoc-guard, and the time stamp on each typed message |
+| `open-questions.ts` | the main session | `/o`; question colours and the answer prefill; the tab's colour, `[n]` and ⚡; question-ID registration; the `reload_runtime` tool and `/reload-runtime` |
+| `draft.ts` | the main session | `/draft` |
+| `unattended.ts` | the main session | the four unattended-window commands |
+
+**Prompt templates** (`tools/prompts/` → `~/.pi/agent/prompts/`):
+
+| Template | What it is for |
+|---|---|
+| `open-questions.md` | `/open-questions`: the seat prints its unanswered questions |
+| `draft.md` | lists `/draft` in autocomplete; its text runs only when `draft.ts` is not loaded, and asks for `/reload` |
+| `unattended-window.md`, `abort-unattended-window.md`, `start-unattended-window.md`, `end-unattended-window.md` | list the four unattended-window commands in autocomplete; same fallback, with `unattended.ts` |
+
+**Commands and tools**, typed in a pane:
+
+| Command | Where | Provided by | What it does |
+|---|---|---|---|
+| `/open-questions`, `/o` | any pane | `open-questions.md`; `/o` by `open-questions.ts` | prints the seat's unanswered questions and prefills the answer rows |
+| `/draft <description>` | the lead's pane; elsewhere relayed to the lead | `draft.ts` (listed by `draft.md`) | asks the lead to task an agent, with the grilling first |
+| `/unattended-window <intent>` | the lead's pane | `unattended.ts` (listed by its template) | opens an unattended window's grill |
+| `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
+| `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
+| `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
+| `/reload-runtime` | any pane | `open-questions.ts` | reloads the session, as `/reload` |
+| `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
+
 ## Guards
 
 `tools/extensions/guards.ts` is one pi extension with one handler per guard:
