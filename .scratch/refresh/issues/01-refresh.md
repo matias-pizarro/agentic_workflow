@@ -55,6 +55,10 @@ Decisions, with the operator's words: [../perimeter.md](../perimeter.md) (RF-Q1 
 | any | the report cannot be queued | the outcome in the ledger | a `NOT QUEUED` line with the report in `tools/spool/log` |
 | ext | `ledger.ts` cannot append | pi runs on | a pi notification in that pane |
 
+## Checks changed
+
+The selftest checks strengthened in review round 1 (findings 5 and 8: `reported_once`, `all_requested`, the unadvisable checks' order, the setup waits as checks, `box-pi` setting `@session-id`, the EXIT-trap checks), each first shown failing on broken code: accepted (CHK-Q1, the operator, "yes", 18 Nov 2026 19:01).
+
 ## Live check
 
 On `tmux -L teamtest`, with its own spool, registry, ledger and handoff directory, never the team's panes: real pi panes as a seat and a lead (a real model writing a real handoff), each criterion above, and the failure rows that can be caused on purpose (unknown seat, a running refresh, deferral timeout with a short `TEAM_WAIT`, unadvisable, bad handoff, unreadable pane).
