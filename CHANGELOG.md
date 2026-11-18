@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [Unreleased]
+
+### Added
+
+- Rule 15 and `docs/unattended-windows.md`: unattended windows. The operator opens one with a grill, starts it and ends it, in the lead's pane; in it, agents never cross a fixed floor (irreversible destruction, cutting the path back in, the host, new internet exposure), write each change's undo before making it and report it for the window's ledger, merge nothing resting on unconfirmed assumptions, take queued work when blocked, and on a failing check run only that change's own undo, once. The end is stop and hold, then a morning report in a fixed order.
+
 ## [2.0.0] - 2026-11-17
 
 ### Changed
