@@ -54,7 +54,7 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 | `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
 | `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
 | `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
-| `/reload-runtime` | any pane | `open-questions.ts` | reloads the session, as `/reload` |
+| `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
 | `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
 
 ## Guards
