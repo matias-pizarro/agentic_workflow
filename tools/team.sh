@@ -515,7 +515,8 @@ refresh_exit() { # exit status
     ledger_add refresh-failed "$seat" "${old_id:-}" "${old_name:-}" "step $step: stopped unexpectedly (exit $1)"
     refresh_report "failed: step $step: the run stopped unexpectedly (exit $1); see $spool/log"
   fi
-  rm -rf "$lk"
+  # Only this run's own lock (review round 2, finding 5).
+  [ "$(cat "$lk/pid" 2> /dev/null)" != "$$" ] || rm -rf "$lk"
 }
 
 # The background run of one seat's refresh: defer, ask for the handoff, check
@@ -526,7 +527,7 @@ refresh_run() { # seat words source
   step=0 ended='' old_id='' old_name=''
   trap 'refresh_exit $?' EXIT
   trap 'exit 1' INT TERM HUP
-  echo $$ > "$lk/pid"
+  (set -C; echo $$ > "$lk/pid") # claim the lock the foreground took; fails if a run holds it
   real=$(cd "$(dirname "$(readlink -f "$self")")" && pwd)
   rules=$(cd "$real/../docs" && pwd)/rules.md
   qt=$(target_of "$seat")
