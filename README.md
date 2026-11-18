@@ -23,6 +23,40 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 
 - **review-loop**: commits pending work, has Codex review one topic under `.scratch/`, grills you through each finding and records the response, turn after turn until a review has no findings. Needs `codex` (logged in) or `pi` with `OPENAI_API_KEY`, and the `grilling` and `domain-modeling` skills, which the CLI does not install with it: `npx skills@latest add mattpocock/skills -g --skill grilling domain-modeling`.
 
+## What the install puts in pi
+
+`node tools/extensions/install.mjs` (below) installs these into `~/.pi/agent/`.
+
+**Extensions** (`tools/extensions/` → `~/.pi/agent/extensions/`):
+
+| Extension | Loaded by | What it does |
+|---|---|---|
+| `guards.ts` | every session and subagent | sibling-guard, heredoc-guard, and the time stamp on each typed message |
+| `open-questions.ts` | the main session | `/o`; question colours and the answer prefill; the tab's colour, `[n]` and ⚡; question-ID registration; the `reload_runtime` tool and `/reload-runtime` |
+| `draft.ts` | the main session | `/draft` |
+| `unattended.ts` | the main session | the four unattended-window commands |
+
+**Prompt templates** (`tools/prompts/` → `~/.pi/agent/prompts/`):
+
+| Template | What it is for |
+|---|---|
+| `open-questions.md` | `/open-questions`: the seat prints its unanswered questions |
+| `draft.md` | lists `/draft` in autocomplete; its text runs only when `draft.ts` is not loaded, and asks for `/reload` |
+| `unattended-window.md`, `abort-unattended-window.md`, `start-unattended-window.md`, `end-unattended-window.md` | list the four unattended-window commands in autocomplete; same fallback, with `unattended.ts` |
+
+**Commands and tools**, typed in a pane:
+
+| Command | Where | Provided by | What it does |
+|---|---|---|---|
+| `/open-questions`, `/o` | any pane | `open-questions.md`; `/o` by `open-questions.ts` | prints the seat's unanswered questions and prefills the answer rows |
+| `/draft <description>` | the lead's pane; elsewhere relayed to the lead | `draft.ts` (listed by `draft.md`) | asks the lead to task an agent, with the grilling first |
+| `/unattended-window <intent>` | the lead's pane | `unattended.ts` (listed by its template) | opens an unattended window's grill |
+| `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
+| `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
+| `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
+| `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
+| `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
+
 ## Guards
 
 `tools/extensions/guards.ts` is one pi extension with one handler per guard:
@@ -40,7 +74,7 @@ node tools/extensions/install.mjs
 
 This copies it into `~/.pi/agent/extensions/`, which every pi session loads at its start, and lists it in `settings.json`'s `subagents.defaultSubagentOnlyExtensions`, which foreground subagents load. Running sessions pick it up at their next start or `/reload`, and the install ends by listing the tmux panes running pi that need it. It also removes `heredoc-guard.ts` and its entry, installed separately before it became a handler here. Its tests: `node tests/guards/run.mjs` and `tests/guards/heredoc/run_tests`.
 
-The same step copies the prompt templates in `tools/prompts/` into `~/.pi/agent/prompts/`. Today that is `/open-questions`, or `/o` for short: typed in a seat's pane, it makes the seat print, in that pane, every question it has put to the operator that is still unanswered, each in full in rule 6's form, or `none`. Its pane side, `tools/extensions/open-questions.ts` (installed by the same step), colours each question's criticality line (🔴 high, 🟠 medium, 🟡 low) and then fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. Messages from `team.sh` wait while the box holds those rows. It also colours the seat's tmux window tab from the STATUS line that ends each turn (`docs/rules.md`, Team mechanics): green at `open=0`; red, orange or yellow by `worst=` when questions are open. A turn without that line leaves the colour as it is, and the tab turns green once you type in the pane (not a `Lead:` message or a `/command`), until the seat's next STATUS line. At the end of each turn it registers each new `❓ <ID>` of the reply to the seat in the question-ID registry `team.sh` names (the tmux option `@team-qids`), and warns in the pane of an ID another seat holds. It gives the seat a `reload_runtime` tool, so a seat reloads itself when the lead or the operator says so.
+The same step copies the prompt templates in `tools/prompts/` into `~/.pi/agent/prompts/`: `/open-questions`, and one template each for `/draft` and the four unattended-window commands, so that pi's autocomplete lists them (their extensions handle them before any template expands; a template's own text only tells you to `/reload` when its extension is not loaded). `/open-questions`, or `/o` for short: typed in a seat's pane, it makes the seat print, in that pane, every question it has put to the operator that is still unanswered, each in full in rule 6's form, or `none`. Its pane side, `tools/extensions/open-questions.ts` (installed by the same step), colours each question's criticality line (🔴 high, 🟠 medium, 🟡 low) and then fills the empty input box with one row per question, `<marker> <criticality> · <ID>: Yes`, to edit and send. Messages from `team.sh` wait while the box holds those rows. It also colours the seat's tmux window tab from the STATUS line that ends each turn (`docs/rules.md`, Team mechanics): green at `open=0`; red, orange or yellow by `worst=` when questions are open. A turn without that line leaves the colour as it is, and the tab turns green once you type in the pane (not a `Lead:` message or a `/command`), until the seat's next STATUS line. At the end of each turn it registers each new `❓ <ID>` of the reply to the seat in the question-ID registry `team.sh` names (the tmux option `@team-qids`), and warns in the pane of an ID another seat holds. It gives the seat a `reload_runtime` tool, so a seat reloads itself when the lead or the operator says so.
 
 The same step installs `tools/extensions/draft.ts`, the `/draft <description>` command, for the main session only. Typed in the lead's pane (the pane whose tmux option `@role` is `lead`), it becomes "Task an agent with <description>.", stamped with the time, then the request to settle the task's perimeter with you using `grill-with-docs` and to propose how to follow, and to choose the seat, its working directory, branch and worktree. Typed in any other pane, it is relayed to the lead with `team.sh report`, and that seat carries on; if the relay fails, the pane says why and your line goes back into the input box. Its tests: `node tests/draft/run.mjs`. It also installs `tools/extensions/unattended.ts`, the four unattended-window commands (`docs/unattended-windows.md`, rule 15), for the main session only: `/unattended-window <intent>` opens the lead's grill, `/abort-unattended-window` drops it before the start, `/start-unattended-window` starts the window, `/end-unattended-window` ends it. Each acts only when typed in the lead's pane, in that order, and reaches the lead stamped with its time; the window's state is that pane's tmux option `@unattended` (`grill` or `open`). Typed anywhere else, or out of order, it is refused in the pane, no turn starts, and your line goes back into the input box; an unknown value in `@unattended` refuses every command. To reset the state by hand (a turn that failed after the command, or a corrupt value): `tmux set -pu -t <the lead's pane> @unattended`. Its tests: `node tests/unattended/run.mjs`. While a seat works, its window carries the tmux option `@working`; to show it as ⚡ after the tab's name, put this in your tmux config:
 
