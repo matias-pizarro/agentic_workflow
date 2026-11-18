@@ -1,0 +1,35 @@
+<!doctype html>
+<!--
+  Mermaid template (rules.md, Team mechanics; the operator, 18 Nov 2026, AW-Q94).
+  Copy this file to a full path reachable outside the sandbox, named <topic>.html,
+  replace TITLE (twice) and the sample diagram below the heading, and name the
+  file's full path in your reply. One diagram per mermaid block; for more
+  diagrams, repeat a heading and a block. Mermaid is loaded from jsDelivr,
+  pinned to 12.3.0; the browser needs internet access.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TITLE</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 70rem; padding: 0 1rem; }
+  pre.mermaid { background: transparent; text-align: center; }
+  .note { color: GrayText; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>TITLE</h1>
+<pre class="mermaid">
+flowchart LR
+  A[Replace this] --> B[with your diagram]
+</pre>
+<p class="note">Rendered by Mermaid 12.3.0 in the browser.</p>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs";
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict" });
+</script>
+</body>
+</html>

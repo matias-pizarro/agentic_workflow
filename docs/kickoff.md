@@ -12,7 +12,9 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
    ```sh
    npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling
    npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop
+   npx -y skills@latest add humanlayer/skills -g -a pi -y --skill show-me
    ```
+   `show-me` explains the current topic with diagrams, code-shape sketches and focused HTML pages; it runs only when you type `/skill:show-me`. Where it would `open` an HTML file, the agent names its full path instead (rules.md, Team mechanics).
    `grilling` stays installed: `grill-with-docs` and `review-loop` load it. `review-loop` must be from `v1.0.0` or later: earlier versions lack the impact ratings, backlog, drift question and delete option. Check: `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` prints a number above 0.
 
 4. **Lay out `<root>`.** `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
