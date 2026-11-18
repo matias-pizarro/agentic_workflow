@@ -9,6 +9,7 @@ The repo holds:
 - **`docs/index.md`** (this page): what the process is, who does what, and why each rule exists.
 - **[kickoff.md](kickoff.md)**: a checklist for your first hour.
 - **[rules.md](rules.md)**: the rules, worded for agents. Point every agent at it.
+- **[unattended-windows.md](unattended-windows.md)**: how the lead runs work while you are away (rule 15).
 - **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard; **`tools/wiki-pre-commit`**: the wiki's, refusing a file emptied by accident; **`tools/merge-ready`**: the check before a branch merges (rule 9).
 - **`skills/`**: the skills this process adds to the ones it installs from elsewhere, such as `review-loop`.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
@@ -114,6 +115,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 12. **Retros on about one session in five.** *Why: most of these rules came out of retros; without them the same failure recurs with a new name.*
 13. **Outward-facing steps wait for your go.** *Why: a push, a publication or money spent cannot be taken back.*
 14. **A change to a check, not the code, is flagged loudly and asked; a new check must first fail on the broken code.** *Why: changing a check to make it pass is the easiest way to hide a real failure, and a weakened check silently weakens everything resting on it.*
+15. **An unattended window is opened and ended by you; in it, agents never cross a fixed floor, write each change's undo first, and hold rather than improvise.** *Why: on the project's two overnight rehearsals the terms were written fresh each night, so you had to widen them at 01:11; a relaxation with no undo kept production reachable from every agent for 21 hours; seats went idle within an hour and a half, held by unanswered questions, with no other work queued; and confirming the night's assumptions, gathered pane by pane, and merging its work took the whole morning, 07:27 to 12:34. During the day, a probe that tripped a firewall's brute-force rule locked agents out until you rebooted the server, and a routine rerun upgraded a database under its running server: unattended, the first would have waited for you anyway, and an improvised fix to the second would have been an unreviewed production change at night.*
 
 ## Keeping the team running
 
