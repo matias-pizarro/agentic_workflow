@@ -25,37 +25,17 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 
 ## What the install puts in pi
 
-`node tools/extensions/install.mjs` (below) installs these into `~/.pi/agent/`.
+`node tools/extensions/install.mjs` (below) installs the team's extensions and prompt templates into `~/.pi/agent/`. [docs/commands.md](docs/commands.md) lists each, with where each command is typed and which file provides it. The commands:
 
-**Extensions** (`tools/extensions/` → `~/.pi/agent/extensions/`):
-
-| Extension | Loaded by | What it does |
-|---|---|---|
-| `guards.ts` | every session and subagent | sibling-guard, heredoc-guard, and the time stamp on each typed message |
-| `open-questions.ts` | the main session | `/o`; question colours and the answer prefill; the tab's colour, `[n]` and ⚡; question-ID registration; the `reload_runtime` tool and `/reload-runtime` |
-| `draft.ts` | the main session | `/draft` |
-| `unattended.ts` | the main session | the four unattended-window commands |
-
-**Prompt templates** (`tools/prompts/` → `~/.pi/agent/prompts/`):
-
-| Template | What it is for |
+| Command | What it does |
 |---|---|
-| `open-questions.md` | `/open-questions`: the seat prints its unanswered questions |
-| `draft.md` | lists `/draft` in autocomplete; its text runs only when `draft.ts` is not loaded, and asks for `/reload` |
-| `unattended-window.md`, `abort-unattended-window.md`, `start-unattended-window.md`, `end-unattended-window.md` | list the four unattended-window commands in autocomplete; same fallback, with `unattended.ts` |
-
-**Commands and tools**, typed in a pane:
-
-| Command | Where | Provided by | What it does |
-|---|---|---|---|
-| `/open-questions`, `/o` | any pane | `open-questions.md`; `/o` by `open-questions.ts` | prints the seat's unanswered questions and prefills the answer rows |
-| `/draft <description>` | the lead's pane; elsewhere relayed to the lead | `draft.ts` (listed by `draft.md`) | asks the lead to task an agent, with the grilling first |
-| `/unattended-window <intent>` | the lead's pane | `unattended.ts` (listed by its template) | opens an unattended window's grill |
-| `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
-| `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
-| `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
-| `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
-| `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
+| `/open-questions`, `/o` | prints the seat's unanswered questions and prefills the answer rows |
+| `/draft <description>` | asks the lead to task an agent, with the grilling first |
+| `/unattended-window <intent>` | opens an unattended window's grill, in the lead's pane |
+| `/abort-unattended-window` | drops that grill before the start |
+| `/start-unattended-window` | starts the window |
+| `/end-unattended-window` | ends the window |
+| `/reload-runtime` | the same as pi's `/reload`; there for the `reload_runtime` tool |
 
 ## Guards
 
