@@ -1,4 +1,5 @@
 tools/spool/
 tools/agents
+tools/ledger
 tools/qids
 tools/expect

@@ -477,6 +477,7 @@ refresh_run() { # seat words source
   trap 'rm -rf "$lk"' EXIT
   trap 'exit 1' INT TERM HUP
   real=$(cd "$(dirname "$(readlink -f "$self")")" && pwd)
+  rules=$(cd "$real/../docs" && pwd)/rules.md
   qt=$(target_of "$seat")
   pane=$(seat_pane "$seat")
   s=$(session_of "$seat" "$pane")
@@ -538,10 +539,10 @@ refresh_run() { # seat words source
     printf 'Ceremony: none (the user, "%s", %s %s)\n\n' "$words" "$day" "${src##* }"
     if [ "$seat" = lead ]; then
       printf 'You are the lead, the chief of staff of this team, taking over from session `%s` (%s), refreshed at the user'\''s request. Load the chief-of-staff skill. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n3. %s.\n\nThen run `%s status`.\n' \
-        "$old_name" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$real/../docs/rules.md" "$here/team.sh"
+        "$old_name" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$rules" "$here/team.sh"
     else
       printf 'You take over the seat `%s` from session `%s` (%s), refreshed at the user'\''s request. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n\nAsk again in your pane, in full, every open question the handoff lists, under the same IDs. Then report to the lead with `team.sh report` that you hold the seat, naming the handoff, and end your turn with your STATUS line.\n' \
-        "$seat" "$old_name" "$old_id" "$h" "$real/../docs/rules.md"
+        "$seat" "$old_name" "$old_id" "$h" "$rules"
     fi
   } > "$task" 2> /dev/null || refresh_end refresh-failed "task file: cannot write $task" "failed: cannot write the task file $task"
 

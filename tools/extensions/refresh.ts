@@ -41,7 +41,7 @@ export default function refresh(pi: ExtensionAPI) {
 		const pane = process.env.TMUX_PANE;
 		const lead = pane !== undefined && tmuxOut(["show", "-pv", "-t", pane, "@role"]) === "lead";
 		if (!lead || names.length === 0) {
-			if (ctx.hasUI) ctx.ui.notify(lead ? USAGE : `/refresh refused: it is typed in the lead's pane. ${USAGE}`, "warning");
+			if (ctx.hasUI) ctx.ui.notify(lead ? USAGE : `/refresh refused here: it works only in the lead's pane. ${USAGE}`, "warning");
 			return { action: "handled" };
 		}
 		const team = tmuxOut(["show", "-gv", "@team-sh"]);
