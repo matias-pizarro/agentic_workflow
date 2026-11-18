@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.1.1] - 2026-11-18
+
+### Fixed
+
+- `install.mjs` lists, among the panes needing `/reload`, a pane whose shell runs pi, as the lead's does; before, it listed only panes whose own process is pi.
+
 ## [2.1.0] - 2026-11-18
 
 ### Added
