@@ -10,6 +10,26 @@ Every release of this repo, newest first, in the [Keep a Changelog](https://keep
 - The session ledger, `tools/ledger`: `ledger.ts` logs every pi session's start and stop with its seat, session id and session name; `team.sh refresh` logs its steps. Add `tools/ledger` to the wiki's `.gitignore` beside `tools/agents`.
 - `team.sh spawn` names each session `<seat> <YYYY-MM-DD hh:mm>`.
 
+## [2.2.0] - 2026-11-18
+
+### Added
+
+- Rule 15, unattended windows, and `docs/unattended-windows.md`, the lead's procedure: only the operator opens, starts, aborts or ends a window, with four commands typed in the lead's pane. The window's grill sets its terms (end, where, production changes, spend, outward steps, merges on assumptions, the queue, recovery, relaxations); what it grants is the operator's go for that window only. Whatever is granted, agents never cross the rule's fixed floor, write each change's undo before making it, report each change for the window's ledger, proceed on their own recommendation recorded as an assumption, and hold rather than improvise when a check fails.
+- `tools/extensions/unattended.ts`, installed by `install.mjs` for the main session: `/unattended-window <intent>`, `/abort-unattended-window`, `/start-unattended-window` and `/end-unattended-window`, each acting only in the lead's pane and in that order (state: the pane's tmux option `@unattended`), refused elsewhere with the line put back. After installing, `/reload` the panes `install.mjs` lists. Its tests: `node tests/unattended/run.mjs`.
+
+## [2.1.1] - 2026-11-18
+
+### Fixed
+
+- `install.mjs` lists, among the panes needing `/reload`, a pane whose shell runs pi, as the lead's does; before, it listed only panes whose own process is pi.
+
+## [2.1.0] - 2026-11-18
+
+### Added
+
+- `/draft <description>` (`tools/extensions/draft.ts`, installed by `install.mjs` for the main session). Typed in the lead's pane (tmux pane option `@role=lead`), it becomes, stamped with the time: "Task an agent with <description>.", the request to settle the task's perimeter with the operator using `grill-with-docs` and to propose how to follow (`implement`, `to-spec` + `to-tickets`, a new task on the board, or something else altogether), and to choose the seat, its working directory, branch and worktree. Typed in another pane, it is relayed to the lead with `team.sh report` and that seat carries on; a failed relay puts the line back in the input box. After installing, `/reload` the panes `install.mjs` lists.
+- `team.sh` publishes its own path as the tmux option `@team-sh`; `team.sh report` with `TEAM_QIDS_SKIP=1` relays the text without registering its `❓` IDs.
+
 ## [2.0.0] - 2026-11-17
 
 ### Changed

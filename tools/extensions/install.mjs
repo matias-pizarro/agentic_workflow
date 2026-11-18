@@ -6,9 +6,9 @@
 // now a handler of guards.ts. It copies open-questions.ts there too, for the
 // main session only (the pane side of /open-questions; subagents have no
 // pane), and removes criticality-colours.ts, now part of it; and draft.ts, the
-// /draft command, for the main session only too, and so are ledger.ts (the
-// session ledger's start and stop lines) and refresh.ts (the /refresh
-// command). It also copies
+// /draft command, unattended.ts, the unattended-window commands, ledger.ts
+// (the session ledger's start and stop lines) and refresh.ts (the /refresh
+// command), for the main session only too. It also copies
 // the prompt templates in
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
@@ -34,6 +34,8 @@ copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "open-questions.ts"),
 rmSync(join(agent, "extensions", "criticality-colours.ts"), { force: true });
 const draft = join(agent, "extensions", "draft.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "draft.ts"), draft);
+const unattended = join(agent, "extensions", "unattended.ts");
+copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "unattended.ts"), unattended);
 const mainOnly = ["ledger.ts", "refresh.ts"].map((name) => {
 	const path = join(agent, "extensions", name);
 	copyFileSync(join(dirname(fileURLToPath(import.meta.url)), name), path);
@@ -54,16 +56,26 @@ settings.subagents.defaultSubagentOnlyExtensions = list;
 writeFileSync(`${file}.new`, `${JSON.stringify(settings, null, 2)}\n`);
 chmodSync(`${file}.new`, statSync(file).mode);
 renameSync(`${file}.new`, file);
-console.log(`install: ${target}, ${colours}, ${draft}, ${mainOnly.join(", ")} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
+console.log(`install: ${target}, ${colours}, ${draft}, ${unattended}, ${mainOnly.join(", ")} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
 
-// The panes running pi: the pane's process is pi itself (`exec pi`), titled "node: pi" or "pi".
+// The panes running pi: the pane's process is pi itself (`exec pi`, as team.sh
+// starts seats), or a direct child of it (pi run from the pane's shell, as in
+// the lead's pane: AW-Q78). pi's process is titled "node: pi" or "pi".
 const panes = spawnSync("tmux", ["list-panes", "-a", "-F", "#{pane_pid} #{session_name}:#{window_index} #{window_name}"], { encoding: "utf8" });
+// One -o per column: FreeBSD's ps takes all of "pid=,ppid=,args=" after the first = as pid's header.
+const procs = spawnSync("ps", ["-ax", "-o", "pid=", "-o", "ppid=", "-o", "args="], { encoding: "utf8" });
 if (panes.status !== 0) console.log("install: no tmux server read, so no list of panes to /reload");
+else if (procs.status !== 0) console.log("install: no process list read (ps), so no list of panes to /reload");
 else {
+	const isPi = (args) => /^(node: pi|pi|node \S*\/pi)(\s|$)/.test(args);
+	const table = procs.stdout.split("\n").filter(Boolean).map((line) => {
+		const [, pid, ppid, args] = line.match(/^\s*(\d+)\s+(\d+)\s+(.*)$/) ?? [];
+		return { pid, ppid, args: (args ?? "").trim() };
+	});
 	const pi = panes.stdout.split("\n").filter(Boolean).flatMap((line) => {
 		const [pid, where, ...name] = line.split(" ");
-		const ps = spawnSync("ps", ["-o", "args=", "-p", pid], { encoding: "utf8" });
-		return /^(node: pi|pi|node \S*\/pi)(\s|$)/.test(ps.stdout.trim()) ? [`${where} ${name.join(" ")}`] : [];
+		const runs = table.some((p) => (p.pid === pid || p.ppid === pid) && isPi(p.args));
+		return runs ? [`${where} ${name.join(" ")}`] : [];
 	});
 	console.log(pi.length ? `install: each of these panes runs pi and needs /reload (or the reload_runtime tool, on your word):\n  ${pi.join("\n  ")}` : "install: no pane runs pi");
 }
