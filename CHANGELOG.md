@@ -10,6 +10,16 @@ Every release of this repo, newest first, in the [Keep a Changelog](https://keep
 - The session ledger, `tools/ledger`: `ledger.ts` logs every pi session's start and stop with its seat, session id and session name; `team.sh refresh` logs its steps. Add `tools/ledger` to the wiki's `.gitignore` beside `tools/agents`.
 - `team.sh spawn` names each session `<seat> <YYYY-MM-DD hh:mm>`.
 
+## [2.2.1] - 2026-11-18
+
+### Fixed
+
+- `/draft` and the four unattended-window commands are listed in pi's autocomplete: one prompt template each in `tools/prompts/`. Their extensions still handle the typed line first; a template's own text only asks for `/reload` when its extension is not loaded. After installing, `/reload` the panes `install.mjs` lists.
+
+### Changed
+
+- `docs/commands.md` lists the commands, extensions and prompt templates, with where each command is typed and the file that provides it; the README lists the commands one per row and links to it.
+
 ## [2.2.0] - 2026-11-18
 
 ### Added
