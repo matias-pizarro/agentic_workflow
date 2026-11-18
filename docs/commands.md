@@ -12,7 +12,7 @@ What `node tools/extensions/install.mjs` puts in pi, and the commands you type i
 | `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
 | `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
 | `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
-| `/refresh` | | | coming: aw-refresh's branch, not merged yet; its row is added when it merges |
+| `/refresh <seat>…`, `all`, `lead` | the lead's pane; refused elsewhere | `refresh.ts` (listed by `refresh.md`) | hands each seat to a new session in its pane through a handoff (`team.sh refresh`); reports to the lead per seat |
 | `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
 | `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
 
@@ -26,6 +26,8 @@ From `tools/extensions/`, installed into `~/.pi/agent/extensions/`.
 | `open-questions.ts` | the main session | `/o`; question colours and the answer prefill; the tab's colour, `[n]` and ⚡; question-ID registration; the `reload_runtime` tool and `/reload-runtime` |
 | `draft.ts` | the main session | `/draft` |
 | `unattended.ts` | the main session | the four unattended-window commands |
+| `ledger.ts` | the main session | appends each session's start and stop to the ledger, `tools/ledger`; sets the pane's `@session-id` and `@session-name`, which `team.sh refresh` reads |
+| `refresh.ts` | the main session | `/refresh` |
 
 ## Prompt templates
 
@@ -36,5 +38,8 @@ From `tools/prompts/`, installed into `~/.pi/agent/prompts/`.
 | `open-questions.md` | `/open-questions`: the seat prints its unanswered questions |
 | `draft.md` | lists `/draft` in autocomplete; its text runs only when `draft.ts` is not loaded, and asks for `/reload` |
 | `unattended-window.md`, `abort-unattended-window.md`, `start-unattended-window.md`, `end-unattended-window.md` | list the four unattended-window commands in autocomplete; same fallback, with `unattended.ts` |
+| `refresh.md` | lists `/refresh` in autocomplete; same fallback, with `refresh.ts` |
+
+Not installed: `tools/handoff.md`, the template a seat follows when `team.sh refresh` asks it for its handoff.
 
 After an install, `/reload` each pane it lists.

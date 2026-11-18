@@ -6,8 +6,9 @@
 // now a handler of guards.ts. It copies open-questions.ts there too, for the
 // main session only (the pane side of /open-questions; subagents have no
 // pane), and removes criticality-colours.ts, now part of it; and draft.ts, the
-// /draft command, and unattended.ts, the unattended-window commands, for the
-// main session only too. It also copies
+// /draft command, unattended.ts, the unattended-window commands, ledger.ts
+// (the session ledger's start and stop lines) and refresh.ts (the /refresh
+// command), for the main session only too. It also copies
 // the prompt templates in
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
@@ -35,6 +36,11 @@ const draft = join(agent, "extensions", "draft.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "draft.ts"), draft);
 const unattended = join(agent, "extensions", "unattended.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "unattended.ts"), unattended);
+const mainOnly = ["ledger.ts", "refresh.ts"].map((name) => {
+	const path = join(agent, "extensions", name);
+	copyFileSync(join(dirname(fileURLToPath(import.meta.url)), name), path);
+	return path;
+});
 
 const prompts = join(dirname(fileURLToPath(import.meta.url)), "..", "prompts");
 mkdirSync(join(agent, "prompts"), { recursive: true });
@@ -50,7 +56,7 @@ settings.subagents.defaultSubagentOnlyExtensions = list;
 writeFileSync(`${file}.new`, `${JSON.stringify(settings, null, 2)}\n`);
 chmodSync(`${file}.new`, statSync(file).mode);
 renameSync(`${file}.new`, file);
-console.log(`install: ${target}, ${colours}, ${draft} and ${unattended} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
+console.log(`install: ${target}, ${colours}, ${draft}, ${unattended}, ${mainOnly.join(", ")} copied, ${heredoc} removed; ${file} lists only guards.ts in subagents.defaultSubagentOnlyExtensions; prompts copied to ${join(agent, "prompts")}: ${templates.join(" ")}`);
 
 // The panes running pi: the pane's process is pi itself (`exec pi`, as team.sh
 // starts seats), or a direct child of it (pi run from the pane's shell, as in
