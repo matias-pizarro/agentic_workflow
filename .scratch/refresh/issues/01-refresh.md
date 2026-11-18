@@ -2,6 +2,8 @@ Ceremony: full (the operator, "yes", 18 Nov 2026 01:38, RF-Q13)
 
 # 01: /refresh <seat>…|all|lead, and the session ledger
 
+**Status:** done (live checks last run on 1b61783, 18 Nov 2026 19:05–19:11; review loop stopped on drift, DRIFT-Q1; awaiting the lead's merge)
+
 Decisions, with the operator's words: [../perimeter.md](../perimeter.md) (RF-Q1 to RF-Q12). Terms: [GLOSSARY.md](../../../GLOSSARY.md).
 
 ## What
