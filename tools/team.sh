@@ -539,6 +539,7 @@ refresh_run() { # seat words source
   pane=$(seat_pane "$seat") || pane=''
   s=$(session_of "$seat" "$pane")
   old_id=$(printf '%s' "$s" | cut -f1) old_name=$(printf '%s' "$s" | cut -f2)
+  old_shown=${old_name:-unnamed} # a session spawned before v2.3.0 has no name (AW-Q88)
 
   # 1. Deferred while busy, typing or a message is queued (RF-Q6).
   step=1
@@ -603,10 +604,10 @@ refresh_run() { # seat words source
     printf 'Ceremony: none (the user, "%s", %s %s)\n\n' "$words" "$day" "${src##* }"
     if [ "$seat" = lead ]; then
       printf 'You are the lead, the chief of staff of this team, taking over from session `%s` (%s), refreshed at the user'\''s request. Load the chief-of-staff skill. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n3. %s.\n\nThen run `%s status`.\n' \
-        "$old_name" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$rules" "$here/team.sh"
+        "$old_shown" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$rules" "$here/team.sh"
     else
       printf 'You take over the seat `%s` from session `%s` (%s), refreshed at the user'\''s request. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n\nAsk again in your pane, in full, every open question the handoff lists, under the same IDs. Then report to the lead with `team.sh report` that you hold the seat, naming the handoff, and end your turn with your STATUS line.\n' \
-        "$seat" "$old_name" "$old_id" "$h" "$rules"
+        "$seat" "$old_shown" "$old_id" "$h" "$rules"
     fi
   } > "$task" 2> /dev/null || refresh_end refresh-failed "task file: cannot write $task" "failed: cannot write the task file $task"
 
@@ -636,7 +637,7 @@ refresh_run() { # seat words source
       refresh_end refresh-failed "respawn: $seat's directory cannot be read from $agents" "failed: respawn: $seat's directory cannot be read from $agents; old session $old_id kept; the registry names the new session $new_id: team.sh revive $seat"
     cmd="bash -ic $(q "unset TEAM_ROLE; exec $(pi_line "$new_id" "$name" "$(compose_prompt "$seat" "$task")")")"
   fi
-  both="old session $old_id ($old_name), new $new_id ($name)"
+  both="old session $old_id ($old_shown), new $new_id ($name)"
   err=$(tmux respawn-pane -k -t "$pane" -c "$cwd" "$cmd" 2>&1) ||
     refresh_end refresh-failed "respawn: $err" "failed: respawn: $err; $both; the registry names the new one: team.sh revive $seat"
 
@@ -657,7 +658,7 @@ refresh_run() { # seat words source
     fi
     sleep 1
   done
-  refresh_end '' '' "done: $name ($new_id) holds the seat, from $h and $task (uncommitted); $old_name ($old_id) stopped"
+  refresh_end '' '' "done: $name ($new_id) holds the seat, from $h and $task (uncommitted); $old_shown ($old_id) stopped"
 }
 
 # doctor: check each host dependency in tools/expect (TEAM_EXPECT overrides),
@@ -909,6 +910,7 @@ BOX
   check "... the first message is the protocol header and the task file" grep -qF "You are the agent \`b1\`" "$t/prompt-$n1"
   check "... the ledger logs the handoff" ledgered handoff-written b1 "$h"
   check "(the lead gets a report)" waitfor 10 reported "refresh b1: done"
+  check "... naming an old session without a name 'unnamed'" reported "; unnamed ($b1) stopped"
   sleep 3 # time for a second report, were one sent
   check "... and the lead gets exactly one report" reported_once "refresh b1: done"
   check "... and the lock is released" waitfor 10 unlocked b1
