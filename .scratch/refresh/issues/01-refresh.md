@@ -14,6 +14,7 @@ Decisions, with the operator's words: [../perimeter.md](../perimeter.md) (RF-Q1 
   - selftest cases for the above, stub pi for spawn/refresh mechanics, a real pi pane for the reads.
 - `tools/extensions/ledger.ts`: on pi's `session_start` and `session_shutdown` (reason not `reload`), append `start` / `stop` to the path in `@team-ledger`, seat = the tmux window name; set the pane options `@session-id` and `@session-name` (read by `team.sh refresh` for its own ledger lines, the lead having no registry line). Writes nothing outside a team tmux server.
 - `tools/extensions/refresh.ts`: `/refresh <names>` typed in the lead's pane runs `team.sh refresh <names> "<typed line>" "lead pane hh:mm"` (path from `@team-sh`) and shows its output; the lead's agent starts no turn. Elsewhere, refused with the usage.
+- `tools/prompts/refresh.md`: a prompt template so `/refresh` autocompletes, as for `/draft` (the operator, "Yes, we will the same for /refresh", agentic-workflow's pane, 18 Nov 07:56, relayed by the lead 07:58): a description, an argument hint, and a body that only says to `/reload` when refresh.ts is not loaded.
 - `tools/handoff.md`: the handoff template (sections of the 17 Nov handoffs; open questions in full, rule 6's form; a lead section).
 - `tools/extensions/install.mjs` installs the two extensions (main session only); `.gitignore` gains `tools/ledger`; README, `docs/index.md` and `CHANGELOG.md` gain a few lines.
 
@@ -36,17 +37,22 @@ Decisions, with the operator's words: [../perimeter.md](../perimeter.md) (RF-Q1 
 |---|---|---|---|
 | 0 | unknown seat, or no window | nothing started; no ledger line | refused at once in the lead's pane, naming the seat |
 | 0 | a refresh of that seat already running | the running one | refused at once: running since hh:mm |
+| 0 | the registry or tmux's pane list cannot be read | nothing started; no ledger line | refused at once: cannot read <what> |
 | 0 | the background run cannot be started | lock removed; `refresh-requested` logged | refused at once with tmux's error; `refresh-failed start` in the ledger |
 | 1 | still deferred after `TEAM_WAIT` | old session | report `refresh-failed still deferred: <reason>` |
 | 1 | the pane cannot be read as a pi pane | old session | report `refresh-unadvisable pane unreadable` |
+| 2 | the handoff directory cannot be created or read | old session | report `refresh-failed cannot create/read <dir>` |
 | 2 | no handoff file, or the pane never idle again, within `TEAM_WAIT` | old session; the request in the spool | report `refresh-failed no handoff at <path>` |
 | 2 | the seat answers unadvisable | old session | report `refresh-unadvisable <reason>` |
 | 3 | handoff empty or first line wrong | old session; the file left | report `refresh-failed bad handoff <path>: <first line>` |
-| 4 | task file not written | old session | report `refresh-failed task file: <error>` |
+| 4 | no session id from `uuidgen`, or the task file not written | old session | report `refresh-failed uuidgen gave no session id` or `task file: <error>` |
 | 5 | registry not rewritten | old session | report `refresh-failed registry: <error>` |
+| 6 | the seat's pane or directory cannot be read | old session; the registry names the new one | report `refresh-failed respawn: <what> cannot be read`, `team.sh revive <seat>` |
 | 6 | `respawn-pane` fails | the registry names the new session | report `refresh-failed respawn: <error>`, both ids, `team.sh revive <seat>` |
 | 7 | no pi input box within 60 s | old pi stopped, its session saved | report `refresh-failed no pi in pane`, the pane's last lines, both ids |
 | any | a ledger append fails | the refresh carries on | the report says `ledger write failed: <error>` |
+| any | the run stops unexpectedly (a failed command under `set -e`) | the old session, unless at step 6 or 7 | ledger and report `refresh-failed step <n>: stopped unexpectedly (exit <code>)` |
+| any | the report cannot be queued | the outcome in the ledger | a `NOT QUEUED` line with the report in `tools/spool/log` |
 | ext | `ledger.ts` cannot append | pi runs on | a pi notification in that pane |
 
 ## Live check

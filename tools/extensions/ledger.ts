@@ -10,7 +10,9 @@
 // - It keeps this pane's tmux options @session-id and @session-name current,
 //   so team.sh refresh can name the session it stops (the lead has no
 //   registry line).
-// - An append that fails is shown in the pane; pi carries on.
+// - An append that fails is shown in the pane; pi carries on. A seat that
+//   cannot be read is written "(unreadable)", and a failed read or option set
+//   is shown in the pane too (RF-Q22).
 import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -39,22 +41,28 @@ function tmux(args: string[]): string | undefined {
 	return r.status === 0 ? r.stdout.trim() : undefined;
 }
 
+function warn(ctx: ExtensionContext, text: string) {
+	if (ctx.hasUI) ctx.ui.notify(`ledger: ${text}`, "error");
+}
+
 function mark(ctx: ExtensionContext) {
 	const pane = process.env.TMUX_PANE;
-	if (!pane) return;
-	tmux(["set", "-p", "-t", pane, "@session-id", ctx.sessionManager.getSessionId()]);
-	tmux(["set", "-p", "-t", pane, "@session-name", ctx.sessionManager.getSessionName() ?? ""]);
+	if (!pane || !process.env.TMUX) return;
+	const id = tmux(["set", "-p", "-t", pane, "@session-id", ctx.sessionManager.getSessionId()]);
+	const name = tmux(["set", "-p", "-t", pane, "@session-name", ctx.sessionManager.getSessionName() ?? ""]);
+	if (id === undefined || name === undefined) warn(ctx, "cannot set this pane's @session-id or @session-name: team.sh refresh will not see this session start");
 }
 
 function write(event: "start" | "stop", reason: string, ctx: ExtensionContext) {
 	const pane = process.env.TMUX_PANE;
 	const path = tmux(["show", "-gv", "@team-ledger"]);
 	if (!pane || !path) return;
-	const seat = tmux(["display", "-p", "-t", pane, "#{window_name}"]) ?? "";
+	const seat = tmux(["display", "-p", "-t", pane, "#{window_name}"]);
+	if (seat === undefined) warn(ctx, `this pane's window name cannot be read; ${event} written with the seat (unreadable)`);
 	try {
-		appendFileSync(path, ledgerLine(event, seat, ctx.sessionManager.getSessionId(), ctx.sessionManager.getSessionName(), reason));
+		appendFileSync(path, ledgerLine(event, seat ?? "(unreadable)", ctx.sessionManager.getSessionId(), ctx.sessionManager.getSessionName(), reason));
 	} catch (e) {
-		if (ctx.hasUI) ctx.ui.notify(`ledger: ${event} not written to ${path}: ${(e as Error).message}`, "error");
+		warn(ctx, `${event} not written to ${path}: ${(e as Error).message}`);
 	}
 }
 

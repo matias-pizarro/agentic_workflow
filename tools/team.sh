@@ -298,6 +298,16 @@ HDR
   echo "$full"
 }
 
+# The registry's lock, taken by every change to it: spawn, retire and refresh
+# (RF-Q18). Fails after 10 s.
+registry_lock() {
+  i=0
+  until lock "$agents.lock"; do
+    i=$((i + 1)); [ $i -lt 100 ] || return 1
+    sleep 0.1
+  done
+}
+
 # The agent's line in the registry: name, cwd, task file, session id (tabs).
 record() { # name
   [ -f "$agents" ] && awk -F '\t' -v n="$1" '$1 == n { print; f = 1; exit } END { exit !f }' "$agents"
@@ -393,10 +403,16 @@ ledger_add() { # event seat session-id session-name detail
     ledger_err="ledger write failed: cannot append to $ledger"
 }
 
-# The pane of a seat (lead: the pane with @role=lead); empty if none.
+# The pane of a seat (lead: the pane with @role=lead); empty if none; fails
+# (status 2) if tmux's panes cannot be read (RF-Q19).
 seat_pane() { # seat
-  if [ "$1" = lead ]; then lead_pane; return; fi
-  tmux list-panes -a -F '#{window_name} #{pane_id}' 2> /dev/null | awk -v n="$1" '$1 == n { print $2; exit }'
+  if [ "$1" = lead ]; then
+    ps=$(tmux list-panes -a -F '#{@role} #{pane_id}' 2> /dev/null) || return 2
+    printf '%s\n' "$ps" | awk '$1 == "lead" { print $2; exit }'
+  else
+    ps=$(tmux list-panes -a -F '#{window_name} #{pane_id}' 2> /dev/null) || return 2
+    printf '%s\n' "$ps" | awk -v n="$1" '$1 == n { print $2; exit }'
+  fi
 }
 
 # The spool target of a seat's messages.
@@ -414,13 +430,23 @@ pane_state() { # pane
   if [ -n "$(printf '%s' "$box" | tr -d ' \t\n')" ]; then echo typing; else echo idle; fi
 }
 
-# Whether a message waits in a target's queue: yes, no, or failed.
+# Whether a message waits in a target's queue: yes, no, or failed. A queue
+# is absent only when the nearest directory above it can be searched (RF-Q19).
 queued_for() { # target
   d=$spool/$1/q
-  [ -e "$d" ] || { echo no; return; }
-  [ -r "$d" ] && [ -x "$d" ] || { echo failed; return; }
-  for f in "$d"/*; do [ -e "$f" ] && { echo yes; return; }; done
-  echo no
+  if [ -e "$d" ]; then
+    [ -r "$d" ] && [ -x "$d" ] || { echo failed; return; }
+    for f in "$d"/*; do [ -e "$f" ] && { echo yes; return; }; done
+    echo no
+    return
+  fi
+  for a in "$spool/$1" "$spool" "$(dirname "$spool")"; do
+    if [ -e "$a" ]; then
+      if [ -x "$a" ]; then echo no; else echo failed; fi
+      return
+    fi
+  done
+  echo failed
 }
 
 # Take a seat's refresh lock, or print since when a refresh of it runs. The
@@ -444,10 +470,15 @@ refresh_lock() { # seat
 
 # The session a seat's pane holds: "<id><TAB><name>", from the pane options
 # ledger.ts sets, else the registry's id.
+# A failed read is written "(unreadable)", never replaced by another value
+# (RF-Q19); the registry's id stands in only for an unset option.
 session_of() { # seat pane
-  i=$(tmux display -p -t "$2" '#{@session-id}' 2> /dev/null) || i=''
-  n=$(tmux display -p -t "$2" '#{@session-name}' 2> /dev/null) || n=''
-  [ -n "$i" ] || [ "$1" = lead ] || i=$(record "$1" | cut -f4) || i=''
+  if [ -z "$2" ]; then printf '(unreadable)\t(unreadable)\n'; return; fi
+  i=$(tmux display -p -t "$2" '#{@session-id}' 2> /dev/null) || i='(unreadable)'
+  n=$(tmux display -p -t "$2" '#{@session-name}' 2> /dev/null) || n='(unreadable)'
+  if [ -z "$i" ] && [ "$1" != lead ]; then
+    if r=$(record "$1"); then i=$(printf '%s\n' "$r" | cut -f4); else i='(unreadable)'; fi
+  fi
   printf '%s\t%s\n' "$i" "$n"
 }
 
@@ -463,9 +494,28 @@ run_env() {
 
 # End a refresh run: log the event (none if empty), report to the lead once.
 refresh_end() { # event detail report
+  ended=1
   [ -z "$1" ] || ledger_add "$1" "$seat" "$old_id" "$old_name" "$2"
-  enqueue lead "refresh $seat: $3${ledger_err:+; $ledger_err}" > /dev/null
+  refresh_report "$3"
   exit 0
+}
+
+# Queue the run's one report; one that cannot be queued goes to the spool's
+# log (RF-Q20).
+refresh_report() { # text
+  t="refresh $seat: $1${ledger_err:+; $ledger_err}"
+  (enqueue lead "$t") > /dev/null 2>&1 || log "report for the lead NOT QUEUED: $t"
+}
+
+# The run's EXIT trap: an end that did not go through refresh_end (a failed
+# command under set -e) is logged and reported too (RF-Q20).
+refresh_exit() { # exit status
+  if [ -z "$ended" ]; then
+    ended=1
+    ledger_add refresh-failed "$seat" "${old_id:-}" "${old_name:-}" "step $step: stopped unexpectedly (exit $1)"
+    refresh_report "failed: step $step: the run stopped unexpectedly (exit $1); see $spool/log"
+  fi
+  rm -rf "$lk"
 }
 
 # The background run of one seat's refresh: defer, ask for the handoff, check
@@ -473,20 +523,22 @@ refresh_end() { # event detail report
 refresh_run() { # seat words source
   seat=$1 words=$2 src=$3
   lk=$spool/refresh/$seat.lock
-  echo $$ > "$lk/pid"
-  trap 'rm -rf "$lk"' EXIT
+  step=0 ended='' old_id='' old_name=''
+  trap 'refresh_exit $?' EXIT
   trap 'exit 1' INT TERM HUP
+  echo $$ > "$lk/pid"
   real=$(cd "$(dirname "$(readlink -f "$self")")" && pwd)
   rules=$(cd "$real/../docs" && pwd)/rules.md
   qt=$(target_of "$seat")
-  pane=$(seat_pane "$seat")
+  pane=$(seat_pane "$seat") || pane=''
   s=$(session_of "$seat" "$pane")
   old_id=$(printf '%s' "$s" | cut -f1) old_name=$(printf '%s' "$s" | cut -f2)
 
   # 1. Deferred while busy, typing or a message is queued (RF-Q6).
+  step=1
   deadline=$(($(date +%s) + wait_max)) last=''
   while :; do
-    pane=$(seat_pane "$seat")
+    pane=$(seat_pane "$seat") || pane='' # a failed read: unreadable, below
     why=''
     case $(pane_state "$pane") in
     unreadable) refresh_end refresh-unadvisable "pane unreadable" "unadvisable: pane unreadable (no pi input box in $seat's pane)" ;;
@@ -503,6 +555,7 @@ refresh_run() { # seat words source
   done
 
   # 2. Ask for the handoff; wait for the file and the pane idle again (RF-Q7).
+  step=2
   stamp=$(date '+%Y-%m-%d-%H%M')
   mkdir -p "$handoffs" 2> /dev/null || refresh_end refresh-failed "handoff directory: cannot create $handoffs" "failed: cannot create $handoffs"
   # A refresh of the seat earlier in the same minute left its file: take the next free name.
@@ -511,14 +564,17 @@ refresh_run() { # seat words source
   enqueue "$qt" "Lead: a refresh of your seat is requested (the user, \"$words\", $src): write your handoff to $h following $real/handoff.md, its first line exactly '# Handoff: seat $seat, <d Mon YYYY> <hh:mm>'. If a refresh now would lose work (an async subagent or background job that reports to this session, a live run under way, a merge stopped mid-conflict, an answer of the user's you are about to act on), write there only the line 'REFRESH-UNADVISABLE: <reason>' instead. Then end your turn: this session then stops, and a new one takes the seat from your handoff." > /dev/null
   deadline=$(($(date +%s) + wait_max))
   while :; do
+    [ -e "$h" ] || { [ -d "$handoffs" ] && [ -x "$handoffs" ]; } ||
+      refresh_end refresh-failed "cannot read $handoffs" "failed: cannot read the handoff directory $handoffs"
     if [ -f "$h" ] && [ "$(queued_for "$qt")" = no ]; then
-      case $(pane_state "$(seat_pane "$seat")") in idle | typing) break ;; esac
+      [ "$(pane_state "$(seat_pane "$seat")")" != idle ] || break # never while its box holds text (RF-Q17)
     fi
     [ "$(date +%s)" -lt "$deadline" ] || refresh_end refresh-failed "no handoff at $h" "failed: no handoff at $h, or the pane not idle, after ${wait_max}s"
     sleep "$poll"
   done
 
   # 3. Check it.
+  step=3
   first=$(head -n 1 "$h" 2> /dev/null) || refresh_end refresh-failed "handoff unreadable: $h" "failed: handoff unreadable: $h"
   case $first in
   REFRESH-UNADVISABLE:*)
@@ -530,7 +586,9 @@ refresh_run() { # seat words source
   ledger_add handoff-written "$seat" "$old_id" "$old_name" "$h"
 
   # 4. The task file (RF-Q9).
+  step=4
   new_id=$(uuidgen | tr '[:upper:]' '[:lower:]')
+  [ -n "$new_id" ] || refresh_end refresh-failed "uuidgen gave no session id" "failed: uuidgen gave no session id"
   name=$(session_name "$seat")
   task=$handoffs/task-$seat-refresh-$stamp.md
   [ "$k" = 1 ] || task=$handoffs/task-$seat-refresh-$stamp-$k.md
@@ -547,27 +605,29 @@ refresh_run() { # seat words source
   } > "$task" 2> /dev/null || refresh_end refresh-failed "task file: cannot write $task" "failed: cannot write the task file $task"
 
   # 5. The registry, under a lock: runs of /refresh all rewrite it at once.
+  step=5
   if [ "$seat" != lead ]; then
-    i=0
-    until lock "$agents.lock"; do
-      i=$((i + 1)); [ $i -lt 100 ] || refresh_end refresh-failed "registry: cannot lock $agents.lock" "failed: registry: cannot lock $agents.lock"
-      sleep 0.1
-    done
-    if ! awk -F '\t' -v OFS='\t' -v n="$seat" -v t="$task" -v i="$new_id" '$1 == n { $3 = t; $4 = i } { print }' "$agents" > "$agents.new.$$" 2> /dev/null ||
-      ! mv "$agents.new.$$" "$agents" 2> /dev/null; then
+    registry_lock || refresh_end refresh-failed "registry: cannot lock $agents.lock" "failed: registry: cannot lock $agents.lock"
+    if ! err=$(awk -F '\t' -v OFS='\t' -v n="$seat" -v t="$task" -v i="$new_id" '$1 == n { $3 = t; $4 = i } { print }' "$agents" 2>&1 > "$agents.new.$$") ||
+      ! err=$(mv "$agents.new.$$" "$agents" 2>&1); then
       rm -rf "$agents.lock" "$agents.new.$$"
-      refresh_end refresh-failed "registry: cannot rewrite $agents" "failed: registry: cannot rewrite $agents"
+      err=$(printf '%s' "$err" | tr '\n' ' ')
+      refresh_end refresh-failed "registry: cannot rewrite $agents: $err" "failed: registry: cannot rewrite $agents: $err"
     fi
     rm -rf "$agents.lock"
   fi
 
   # 6. Stop the old pi, start the new one in the same pane (RF-Q2, RF-Q12).
-  pane=$(seat_pane "$seat")
+  step=6
+  pane=$(seat_pane "$seat") && [ -n "$pane" ] ||
+    refresh_end refresh-failed "respawn: the pane cannot be found" "failed: respawn: $seat's pane cannot be found or read; the registry names the new session $new_id: team.sh revive $seat"
   if [ "$seat" = lead ]; then
-    cwd=$(tmux display -p -t "$pane" '#{pane_current_path}' 2> /dev/null) || cwd=$here/..
+    cwd=$(tmux display -p -t "$pane" '#{pane_current_path}' 2> /dev/null) && [ -n "$cwd" ] ||
+      refresh_end refresh-failed "respawn: the lead pane's directory cannot be read" "failed: respawn: the lead pane's directory cannot be read; old session $old_id kept"
     cmd="bash -ic $(q "TEAM_ROLE=lead $(pi_line "$new_id" "$name" "$task"); exec bash")"
   else
-    cwd=$(record "$seat" | cut -f2)
+    r=$(record "$seat") && cwd=$(printf '%s\n' "$r" | cut -f2) && [ -n "$cwd" ] ||
+      refresh_end refresh-failed "respawn: $seat's directory cannot be read from $agents" "failed: respawn: $seat's directory cannot be read from $agents; old session $old_id kept; the registry names the new session $new_id: team.sh revive $seat"
     cmd="bash -ic $(q "unset TEAM_ROLE; exec $(pi_line "$new_id" "$name" "$(compose_prompt "$seat" "$task")")")"
   fi
   both="old session $old_id ($old_name), new $new_id ($name)"
@@ -575,8 +635,11 @@ refresh_run() { # seat words source
     refresh_end refresh-failed "respawn: $err" "failed: respawn: $err; $both; the registry names the new one: team.sh revive $seat"
 
   # 7. Wait for the new pi's input box.
+  step=7
+  # Done only once pi's input box shows and ledger.ts has set the pane's
+  # @session-id to the new id (RF-Q21).
   i=0
-  until [ "$(pane_state "$pane")" != unreadable ]; do
+  until input_box "$pane" > /dev/null && [ "$(tmux display -p -t "$pane" '#{@session-id}' 2> /dev/null)" = "$new_id" ]; do
     i=$((i + 1))
     if [ $i -ge "$start_wait" ]; then
       if shown=$(tmux capture-pane -p -t "$pane" 2> /dev/null); then
@@ -584,7 +647,7 @@ refresh_run() { # seat words source
       else
         shown='the pane closed'
       fi
-      refresh_end refresh-failed "no pi in pane" "failed: no pi in pane after ${start_wait}s; $both, the old one stopped, its session saved; $shown"
+      refresh_end refresh-failed "no pi in pane" "failed: no pi in pane after ${start_wait}s; $both, the old one stopped, its session saved; $shown (a pi without ledger.ts loaded never sets @session-id: is it installed?)"
     fi
     sleep 1
   done
@@ -743,17 +806,31 @@ ledgered() { # event seat [text]
 reported() { # text: queued for the lead, or typed into a box-pi pane (the lead's, once it is one)
   cat "$spool"/lead/q/* "$t"/got-* 2> /dev/null | grep -qF -- "$1"
 }
+reported_once() { # text: exactly one such report (RF-Q24); a queued report is a file with no final newline
+  rcnt=$({
+    for f in "$spool"/lead/q/*; do [ -f "$f" ] && grep -qF -- "$1" "$f" && echo queued; done
+    cat "$t"/got-* 2> /dev/null | grep -F -- "$1"
+  } | grep -c .) || true
+  [ "${rcnt:-0}" -eq 1 ]
+}
+all_requested() { # one /refresh all request per recorded seat, polled (RF-Q24)
+  [ "$(grep -c 'refresh-requested.*/refresh all' "$TEAM_LEDGER")" -eq "$(grep -c . "$TEAM_AGENTS")" ]
+}
 requested_path() { # seat -> the handoff path its request names
   sed -n 's/.*write your handoff to \([^ ]*\) .*/\1/p' "$t/got-$(id_of "$1")" 2> /dev/null | tail -1
 }
 handoff_asked() { [ -n "$(requested_path "$1")" ]; }
+# Play the seat: write its answer at the path its last request names, if any
+# (none after an earlier check failed: that check reports it).
+answer() { # seat text
+  ap=$(requested_path "$1"); [ -z "$ap" ] || printf '%s\n' "$2" > "$ap"
+}
 unlocked() { [ ! -d "$spool/refresh/$1.lock" ]; }
 asks() { cnt=$(cat "$t/got-$(id_of "$1")" 2> /dev/null | grep -c 'write your handoff to') || true; echo "${cnt:-0}"; }
 asked_more() { [ "$(asks "$1")" -gt "$2" ]; } # seat count
 asked_anew() { # seat path: asked for a handoff at another path than this one
   p=$(requested_path "$1"); [ -n "$p" ] && [ "$p" != "$2" ]
 }
-refreshes() { sh "$self" refresh "$@" 2>&1; }
 quick() { # seconds command... : the command succeeds within that time
   lim=$1; shift
   s=$(date +%s); "$@" > /dev/null 2>&1 || return 1
@@ -770,6 +847,8 @@ id=$2; name=''; shift 2
 [ "${1:-}" = --name ] && { name=$2; shift 2; }
 d=$(dirname "$0")
 if [ $# -ge 1 ]; then p=yes; printf '%s\n' "$1" > "$d/prompt-$id"; else p=no; fi
+# As ledger.ts does at session start (RF-Q21).
+[ -z "${TMUX_PANE:-}" ] || tmux set -p -t "$TMUX_PANE" @session-id "$id"
 r=$(printf '%.0s\342\224\200' $(seq 1 40))
 stty -echo 2> /dev/null
 pad=$(printf '%*s' $(($(tput lines 2> /dev/null || echo 24) - 7)) '' | tr ' ' '\n')
@@ -791,18 +870,23 @@ BOX
   check "... and writes no ledger line" [ ! -s "$TEAM_LEDGER" ]
   check "refresh refuses empty words" refused refresh a2 "" "$src"
   check "refresh refuses a source without a time" refused refresh a2 "$w" "lead pane"
+  sh "$self" _refresh ghost2 "$w" "$src" > /dev/null 2>&1 || true # no lock to write its pid into
+  check "a run that stops unexpectedly logs it" ledgered refresh-failed ghost2 "step 0: stopped unexpectedly"
+  check "... and reports it to the lead" reported "refresh ghost2: failed: step 0: the run stopped unexpectedly"
   TEAM_PI=$t/box-pi pi_cmd=$t/box-pi
   TEAM_ROLE=lead sh "$self" spawn b1 "$t" "$t/task" > /dev/null
   TEAM_ROLE=lead sh "$self" spawn b2 "$t" "$t/task" > /dev/null
   b1=$(id_of b1) b2=$(id_of b2)
   check "spawn names the session '<seat> <YYYY-MM-DD hh:mm>'" waitfor 10 has b1 "box-pi TEAM_ROLE=unset id=$b1 name=b1 $(date +%F) "
-  : > "$t/busy-$b1"; waitfor 5 has b1 Working || true
+  : > "$t/busy-$b1"
+  check "(setup: b1 shows busy)" waitfor 5 has b1 Working
   check "refresh returns at once while the seat is busy" quick 3 sh "$self" refresh b1 "$w" "$src"
   check "... and logs the request with the user's words" ledgered refresh-requested b1 "$w"
   check "a second refresh of the seat is refused while one runs" refused_with "already running since" refresh b1 "$w" "$src"
   check "a busy seat is deferred, and the reason logged" waitfor 10 ledgered refresh-deferred b1 busy
   check "... and is not asked for a handoff" not_got b1 "handoff"
-  : > "$t/typing-$b1"; waitfor 5 has b1 'half a sentence' || true
+  : > "$t/typing-$b1"
+  check "(setup: b1 shows text in its box)" waitfor 5 has b1 'half a sentence'
   rm -f "$t/busy-$b1"
   check "a seat whose input box holds text is deferred, and the new reason logged" waitfor 10 ledgered refresh-deferred b1 "input box holds text"
   check "... and is not asked for a handoff" not_got b1 "handoff"
@@ -810,7 +894,7 @@ BOX
   check "an idle seat is asked once for its handoff" waitfor 20 handoff_asked b1
   h=$(requested_path b1)
   check "... at a path in the handoff directory" [ "${h%/*}" = "$t/handoffs" ]
-  printf '# Handoff: seat b1, 18 Nov 2026 01:51\nselftest handoff\n' > "$h"
+  [ -z "$h" ] || printf '# Handoff: seat b1, 18 Nov 2026 01:51\nselftest handoff\n' > "$h"
   check "after a valid handoff, a new pi with a new session and name holds the pane" waitfor 30 refreshed b1 "$b1"
   n1=$(id_of b1) task1=$(record b1 | cut -f3)
   check "... the registry names the new task file" [ "${task1%/*}" = "$t/handoffs" ]
@@ -818,57 +902,65 @@ BOX
   check "... and which points at the handoff" grep -qF "$h" "$task1"
   check "... the first message is the protocol header and the task file" grep -qF "You are the agent \`b1\`" "$t/prompt-$n1"
   check "... the ledger logs the handoff" ledgered handoff-written b1 "$h"
-  check "... and the lead gets one report" waitfor 10 reported "refresh b1: done"
+  check "(the lead gets a report)" waitfor 10 reported "refresh b1: done"
+  sleep 3 # time for a second report, were one sent
+  check "... and the lead gets exactly one report" reported_once "refresh b1: done"
   check "... and the lock is released" waitfor 10 unlocked b1
   c=$(asks b1)
   sh "$self" refresh b1 "$w" "$src" > /dev/null
   check "... (the next refresh asks again)" waitfor 20 asked_more b1 "$c"
   h=$(requested_path b1)
-  printf 'REFRESH-UNADVISABLE: a live run is under way\n' > "$h"
-  waitfor 20 unlocked b1 || true
-  sh "$self" refresh b1 "$w" "$src" > /dev/null
-  check "a refresh in the same minute asks at a new path, not the last one's" waitfor 20 asked_anew b1 "$h"
-  printf 'REFRESH-UNADVISABLE: selftest\n' > "$(requested_path b1)"
+  [ -z "$h" ] || printf 'REFRESH-UNADVISABLE: a live run is under way\n' > "$h"
   check "a seat answering unadvisable is logged with its reason" waitfor 20 ledgered refresh-unadvisable b1 "a live run is under way"
   check "... reported to the lead" waitfor 10 reported "refresh b1: unadvisable: a live run is under way"
   check "... and keeps its session" [ "$(id_of b1)" = "$n1" ]
+  check "(setup: b1's lock released)" waitfor 20 unlocked b1
+  sh "$self" refresh b1 "$w" "$src" > /dev/null
+  check "a refresh in the same minute asks at a new path, not the last one's" waitfor 20 asked_anew b1 "$h"
+  answer b1 'REFRESH-UNADVISABLE: selftest'
   sh "$self" refresh b2 "$w" "$src" > /dev/null
   check "(b2 is asked)" waitfor 20 handoff_asked b2
-  printf 'hello\n' > "$(requested_path b2)"
+  answer b2 'hello'
   check "a handoff with a wrong first line fails the refresh" waitfor 20 ledgered refresh-failed b2 "bad handoff"
   check "... reported to the lead" waitfor 10 reported "refresh b2: failed: bad handoff"
   check "... and the seat keeps its session" [ "$(id_of b2)" = "$b2" ]
-  : > "$t/busy-$b2"; waitfor 5 has b2 Working || true
-  waitfor 10 unlocked b2 || true
+  : > "$t/busy-$b2"
+  check "(setup: b2 shows busy)" waitfor 5 has b2 Working
+  check "(setup: b2's lock released)" waitfor 10 unlocked b2
   TEAM_WAIT=3 sh "$self" refresh b2 "$w" "$src" > /dev/null
   check "a seat still deferred after TEAM_WAIT fails the refresh" waitfor 20 ledgered refresh-failed b2 "still deferred: busy"
   check "... reported to the lead" waitfor 10 reported "refresh b2: failed: still deferred: busy"
   sh "$self" refresh a2 "$w" "$src" > /dev/null
   check "a pane with no input box is unadvisable" waitfor 20 ledgered refresh-unadvisable a2 "pane unreadable"
-  waitfor 20 unlocked b1 || true; waitfor 20 unlocked b2 || true
+  check "(setup: b1's lock released)" waitfor 20 unlocked b1
+  check "(setup: b2's lock released)" waitfor 20 unlocked b2
   : > "$t/busy-$n1"; rm -f "$t/busy-$b2"
-  waitfor 5 has b1 Working || true; waitfor 5 lacks b2 Working || true
+  check "(setup: b1 shows busy)" waitfor 5 has b1 Working
+  check "(setup: b2 shows idle)" waitfor 5 lacks b2 Working
   c1=$(asks b1) c2=$(asks b2)
   TEAM_WAIT=30 sh "$self" refresh all "/refresh all" "$src" > /dev/null
-  check "all runs one refresh per recorded seat" waitfor 10 [ "$(grep -c "refresh-requested.*/refresh all" "$TEAM_LEDGER")" -eq "$(grep -c . "$TEAM_AGENTS")" ]
+  check "all runs one refresh per recorded seat" waitfor 10 all_requested
   check "... one seat deferred does not hold another" waitfor 20 asked_more b2 "$c2"
   check "... the deferred one is not asked" not_got b1 "/refresh all"
   rm -f "$t/busy-$n1"
-  printf 'REFRESH-UNADVISABLE: selftest\n' > "$(requested_path b2)"
-  waitfor 20 asked_more b1 "$c1" && printf 'REFRESH-UNADVISABLE: selftest\n' > "$(requested_path b1)"
-  waitfor 20 unlocked b1 || true; waitfor 20 unlocked b2 || true
+  answer b2 'REFRESH-UNADVISABLE: selftest'
+  check "... the deferred one is asked once idle" waitfor 20 asked_more b1 "$c1"
+  answer b1 'REFRESH-UNADVISABLE: selftest'
+  check "(setup: b1's lock released)" waitfor 20 unlocked b1
+  check "(setup: b2's lock released)" waitfor 20 unlocked b2
   tmux respawn-pane -k -t "$lp" "$t/box-pi --session-id lead0"
   sh "$self" refresh lead "/refresh lead" "$src" > /dev/null
   check "the lead is asked for its handoff" waitfor 30 grep -qs "write your handoff to $t/handoffs/handoff-.*-lead.md" "$t/got-lead0"
   hl=$(sed -n 's/.*write your handoff to \([^ ]*\) .*/\1/p' "$t/got-lead0" | tail -1)
-  printf '# Handoff: seat lead, 18 Nov 2026 01:52\n' > "$hl"
+  [ -z "$hl" ] || printf '# Handoff: seat lead, 18 Nov 2026 01:52\n' > "$hl"
   check "the new lead runs with TEAM_ROLE=lead" waitfor 30 has "$lp" "box-pi TEAM_ROLE=lead id="
   check "... its pane keeps @role=lead" is_lead "$lp"
   nl=$(screen "$lp" | sed -n 's/^box-pi TEAM_ROLE=lead id=\([^ ]*\) .*/\1/p')
   check "... its first message names the chief of staff and the handoff" grep -qF "chief of staff" "$t/prompt-$nl"
   c2=$(asks b2)
   TEAM_PI=$t/no-such-pi sh "$self" refresh b2 "$w" "$src" > /dev/null
-  waitfor 20 asked_more b2 "$c2" && printf '# Handoff: seat b2, 18 Nov 2026 01:53\n' > "$(requested_path b2)"
+  check "(b2 is asked)" waitfor 20 asked_more b2 "$c2"
+  answer b2 '# Handoff: seat b2, 18 Nov 2026 01:53'
   check "no pi input box after the respawn fails the refresh" waitfor 40 ledgered refresh-failed b2 "no pi in pane"
   check "... reported with both session ids" waitfor 10 reported "$b2"
   check "the new lead leaves a shell when it exits" lead_shell_left "$nl"
@@ -1029,7 +1121,9 @@ spawn)
   ! record "$name" > /dev/null || die "$name is recorded in $agents: team.sh revive or retire it"
   id=$(uuidgen | tr '[:upper:]' '[:lower:]')
   open_window "$name" "$cwd" "$id" "$(session_name "$name")" "$(compose_prompt "$name" "$task")"
+  registry_lock || die "spawn: cannot lock $agents.lock; $name started but not recorded: team.sh retire $name"
   printf '%s\t%s\t%s\t%s\n' "$name" "$cwd" "$task" "$id" >> "$agents"
+  rm -rf "$agents.lock"
   echo "spawned $name (session $id)"
   ;;
 send)
@@ -1141,12 +1235,14 @@ refresh)
       seats="$seats $s"
     fi
   done
+  [ ! -e "$agents" ] || [ -r "$agents" ] || die "refresh: cannot read $agents; nothing started"
   for s in $seats; do
+    p=$(seat_pane "$s") || die "refresh: cannot read tmux's panes; nothing started"
     if [ "$s" = lead ]; then
-      [ -n "$(lead_pane)" ] || die "refresh: no pane has @role=lead"
+      [ -n "$p" ] || die "refresh: no pane has @role=lead; nothing started"
     else
       record "$s" > /dev/null || die "refresh: $s is not recorded in $agents; nothing started"
-      [ -n "$(seat_pane "$s")" ] || die "refresh: $s has no window; nothing started"
+      [ -n "$p" ] || die "refresh: $s has no window; nothing started"
     fi
   done
   taken=''
@@ -1158,14 +1254,15 @@ refresh)
   done
   rc=0
   for s in $seats; do
-    ss=$(session_of "$s" "$(seat_pane "$s")")
+    ss=$(session_of "$s" "$(seat_pane "$s" || true)")
     ledger_add refresh-requested "$s" "$(printf '%s' "$ss" | cut -f1)" "$(printf '%s' "$ss" | cut -f2)" "the user, \"$words\", $src"
-    if tmux run-shell -b "$(run_env)sh $(q "$self") _refresh $(q "$s") $(q "$words") $(q "$src") >> $(q "$spool/log") 2>&1" 2> /dev/null; then
+    if err=$(tmux run-shell -b "$(run_env)sh $(q "$self") _refresh $(q "$s") $(q "$words") $(q "$src") >> $(q "$spool/log") 2>&1" 2>&1); then
       echo "refresh of $s started; the lead gets a report when it ends"
     else
       rm -rf "$spool/refresh/$s.lock"
-      ledger_add refresh-failed "$s" "$(printf '%s' "$ss" | cut -f1)" "$(printf '%s' "$ss" | cut -f2)" "start: the tmux server cannot be reached"
-      echo "refresh of $s not started: the tmux server cannot be reached" >&2
+      err=$(printf '%s' "${err:-no message}" | tr '\n' ' ') # tmux's own error (RF-Q23)
+      ledger_add refresh-failed "$s" "$(printf '%s' "$ss" | cut -f1)" "$(printf '%s' "$ss" | cut -f2)" "start: $err"
+      echo "refresh of $s not started: tmux run-shell: $err" >&2
       rc=1
     fi
   done
@@ -1180,7 +1277,10 @@ retire)
   window_exists "$2" || record "$2" > /dev/null || die "no window or record $2"
   if window_exists "$2"; then tmux kill-window -t "$2"; fi
   if [ -f "$agents" ]; then
-    awk -F '\t' -v n="$2" '$1 != n' "$agents" > "$agents.new" && mv "$agents.new" "$agents"
+    registry_lock || die "retire: cannot lock $agents.lock; $2's window is closed, its record kept"
+    awk -F '\t' -v n="$2" '$1 != n' "$agents" > "$agents.new" && mv "$agents.new" "$agents" ||
+      { rm -rf "$agents.lock"; die "retire: cannot rewrite $agents"; }
+    rm -rf "$agents.lock"
   fi
   ;;
 revive)
