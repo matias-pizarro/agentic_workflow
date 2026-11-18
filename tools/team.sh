@@ -22,7 +22,11 @@
 #                                            new session in its pane, through a handoff; returns at once,
 #                                            one background run per seat reporting to the lead when it ends
 #                                            (.scratch/refresh/perimeter.md; typed as /refresh in the lead's pane)
-#   team.sh retire <name>                    close a finished agent's window, drop its record
+#   team.sh retire <name> [--no-checkout "<reason>"]
+#                                            close a finished agent's window, drop its record; refused while
+#                                            wiki/sources/checkouts/<yyyy-mm-dd>-<name>.md (TEAM_CHECKOUTS overrides
+#                                            the directory) is missing, unreadable or empty, unless --no-checkout gives a
+#                                            reason, which goes to the log (rules.md, Team mechanics; AW-Q86)
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
@@ -68,6 +72,7 @@ agents=${TEAM_AGENTS:-$here/agents}
 qids=${TEAM_QIDS:-$here/qids}
 ledger=${TEAM_LEDGER:-$here/ledger}
 handoffs=${TEAM_HANDOFFS:-$here/../sources/cos-archive}
+checkouts=${TEAM_CHECKOUTS:-$here/../sources/checkouts}
 start_wait=${TEAM_START_WAIT:-60}
 pi_cmd=${TEAM_PI:-pi}
 tab=$(printf '\t')
@@ -534,6 +539,7 @@ refresh_run() { # seat words source
   pane=$(seat_pane "$seat") || pane=''
   s=$(session_of "$seat" "$pane")
   old_id=$(printf '%s' "$s" | cut -f1) old_name=$(printf '%s' "$s" | cut -f2)
+  old_shown=${old_name:-unnamed} # a session spawned before v2.3.0 has no name (AW-Q88)
 
   # 1. Deferred while busy, typing or a message is queued (RF-Q6).
   step=1
@@ -598,10 +604,10 @@ refresh_run() { # seat words source
     printf 'Ceremony: none (the user, "%s", %s %s)\n\n' "$words" "$day" "${src##* }"
     if [ "$seat" = lead ]; then
       printf 'You are the lead, the chief of staff of this team, taking over from session `%s` (%s), refreshed at the user'\''s request. Load the chief-of-staff skill. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n3. %s.\n\nThen run `%s status`.\n' \
-        "$old_name" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$rules" "$here/team.sh"
+        "$old_shown" "$old_id" "$h" "$(cd "$here/.." && pwd)/index.md" "$rules" "$here/team.sh"
     else
       printf 'You take over the seat `%s` from session `%s` (%s), refreshed at the user'\''s request. Read first, whole, in order:\n1. %s (the outgoing session'\''s handoff).\n2. %s.\n\nAsk again in your pane, in full, every open question the handoff lists, under the same IDs. Then report to the lead with `team.sh report` that you hold the seat, naming the handoff, and end your turn with your STATUS line.\n' \
-        "$seat" "$old_name" "$old_id" "$h" "$rules"
+        "$seat" "$old_shown" "$old_id" "$h" "$rules"
     fi
   } > "$task" 2> /dev/null || refresh_end refresh-failed "task file: cannot write $task" "failed: cannot write the task file $task"
 
@@ -631,7 +637,7 @@ refresh_run() { # seat words source
       refresh_end refresh-failed "respawn: $seat's directory cannot be read from $agents" "failed: respawn: $seat's directory cannot be read from $agents; old session $old_id kept; the registry names the new session $new_id: team.sh revive $seat"
     cmd="bash -ic $(q "unset TEAM_ROLE; exec $(pi_line "$new_id" "$name" "$(compose_prompt "$seat" "$task")")")"
   fi
-  both="old session $old_id ($old_name), new $new_id ($name)"
+  both="old session $old_id ($old_shown), new $new_id ($name)"
   err=$(tmux respawn-pane -k -t "$pane" -c "$cwd" "$cmd" 2>&1) ||
     refresh_end refresh-failed "respawn: $err" "failed: respawn: $err; $both; the registry names the new one: team.sh revive $seat"
 
@@ -652,7 +658,7 @@ refresh_run() { # seat words source
     fi
     sleep 1
   done
-  refresh_end '' '' "done: $name ($new_id) holds the seat, from $h and $task (uncommitted); $old_name ($old_id) stopped"
+  refresh_end '' '' "done: $name ($new_id) holds the seat, from $h and $task (uncommitted); $old_shown ($old_id) stopped"
 }
 
 # doctor: check each host dependency in tools/expect (TEAM_EXPECT overrides),
@@ -904,6 +910,7 @@ BOX
   check "... the first message is the protocol header and the task file" grep -qF "You are the agent \`b1\`" "$t/prompt-$n1"
   check "... the ledger logs the handoff" ledgered handoff-written b1 "$h"
   check "(the lead gets a report)" waitfor 10 reported "refresh b1: done"
+  check "... naming an old session without a name 'unnamed'" reported "; unnamed ($b1) stopped"
   sleep 3 # time for a second report, were one sent
   check "... and the lead gets exactly one report" reported_once "refresh b1: done"
   check "... and the lock is released" waitfor 10 unlocked b1
@@ -978,8 +985,8 @@ selftest() {
   st_dir=$(mktemp -d "${TMPDIR:-/tmp}/teamtest.XXXXXX")
   st_fails=0
   TEAM_SPOOL=$st_dir/spool TEAM_AGENTS=$st_dir/agents TEAM_POLL=1
-  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions TEAM_QIDS=$st_dir/qids
-  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR TEAM_QIDS
+  PI_CODING_AGENT_SESSION_DIR=$st_dir/sessions TEAM_QIDS=$st_dir/qids TEAM_CHECKOUTS=$st_dir/checkouts
+  export TEAM_TMUX TEAM_SPOOL TEAM_AGENTS TEAM_POLL PI_CODING_AGENT_SESSION_DIR TEAM_QIDS TEAM_CHECKOUTS
   unset TMUX TMUX_PANE TEAM_ROLE TEAM_WAIT TEAM_PI
   spool=$TEAM_SPOOL agents=$TEAM_AGENTS poll=1
   trap st_cleanup EXIT
@@ -1095,10 +1102,28 @@ STUB
   check "revive restarts an agent with no saved session from its task file" waitfor 10 has st:a2 "--session-id $id2 prompt=yes"
   check "revive leaves a running agent alone" revive_leaves_alone
   check "status flags an agent whose input box cannot be read" status_flags_unreadable a1
-  sh "$self" retire a1 > /dev/null
+  check "retire refuses a seat with no check-out, naming where it goes" refused_with "$TEAM_CHECKOUTS/" retire a1
+  check "... and leaves its window and record" recorded_as a1 "$t" "$t/task"
+  mkdir -p "$TEAM_CHECKOUTS" && printf '# Check-out: a1 (18 Nov 2026)\n' > "$TEAM_CHECKOUTS/2026-11-18-a1.md"
+  sh "$self" retire a1 > /dev/null || true # the next check reads the result
   check "retire closes the window and drops the record" gone a1
   check "... and leaves the others" recorded_as a2 "$t" "$t/task"
   check "revive refuses an unrecorded name" refused revive a1
+  printf '# Check-out: x-a5 (18 Nov 2026)\n' > "$TEAM_CHECKOUTS/2026-11-18-x-a5.md"
+  : > "$TEAM_CHECKOUTS/2026-11-18-a6.md"
+  check "retire refuses an empty check-out, saying it is empty" refused_with "2026-11-18-a6.md is empty" retire a6
+  printf 'x\n' > "$TEAM_CHECKOUTS/2026-11-17-a6.md" && chmod 000 "$TEAM_CHECKOUTS/2026-11-17-a6.md"
+  rm -f "$TEAM_CHECKOUTS/2026-11-18-a6.md"
+  if [ "$(id -u)" != 0 ]; then
+    check "retire refuses an unreadable check-out, saying it cannot read it" refused_with "cannot read $TEAM_CHECKOUTS/2026-11-17-a6.md" retire a6
+  fi
+  chmod 644 "$TEAM_CHECKOUTS/2026-11-17-a6.md" && rm -f "$TEAM_CHECKOUTS/2026-11-17-a6.md"
+  check "retire takes no other seat's check-out for its own (x-a5 is not a5)" refused retire a5
+  check "retire --no-checkout refuses an empty reason" refused retire a5 --no-checkout " "
+  check "... and retires nothing" recorded_as a5 "$t" "$t/research-task"
+  sh "$self" retire a5 --no-checkout "selftest: never started" > /dev/null || true # the next check reads the result
+  check "retire --no-checkout with a reason retires" gone a5
+  check "... and logs the reason" grep -q 'retired a5 without a check-out: selftest: never started' "$spool/log"
 
   st_refresh
 
@@ -1274,8 +1299,25 @@ _refresh)
   refresh_run "$2" "$3" "$4"
   ;;
 retire)
-  [ $# -eq 2 ] || { echo "usage: $0 retire <name>" >&2; exit 2; }
+  { [ $# -eq 2 ] || { [ $# -eq 4 ] && [ "$3" = --no-checkout ]; }; } ||
+    { echo "usage: $0 retire <name> [--no-checkout \"<reason>\"]" >&2; exit 2; }
   window_exists "$2" || record "$2" > /dev/null || die "no window or record $2"
+  if [ $# -eq 4 ]; then
+    [ -n "$(printf '%s' "$4" | tr -d ' \t\n')" ] || die "retire: --no-checkout needs a reason"
+    mkdir -p "$spool" && log "retired $2 without a check-out: $4"
+  else
+    # Present, unreadable or empty: each said as such; only no file at all suggests --no-checkout (AW-Q91).
+    found='' bad=''
+    for f in "$checkouts"/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-"$2".md; do
+      [ -e "$f" ] || continue
+      if ! [ -r "$f" ] || ! c=$(cat "$f" 2> /dev/null); then bad="cannot read $f"
+      elif [ -z "$(printf '%s' "$c" | tr -d ' \t\n')" ]; then bad="$f is empty"
+      else found=$f
+      fi
+    done
+    [ -n "$found" ] || [ -z "$bad" ] || die "retire: $2's check-out: $bad; fix it, then retire again"
+    [ -n "$found" ] || die "retire: no check-out for $2: the seat writes $checkouts/$(date +%F)-$2.md following $(cd "$(dirname "$(readlink -f "$self")")" && pwd)/checkout.md and commits it, then retire again; or retire $2 --no-checkout \"<reason>\""
+  fi
   if window_exists "$2"; then tmux kill-window -t "$2"; fi
   if [ -f "$agents" ]; then
     registry_lock || die "retire: cannot lock $agents.lock; $2's window is closed, its record kept"
