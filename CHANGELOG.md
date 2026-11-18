@@ -2,6 +2,16 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.2.1] - 2026-11-18
+
+### Fixed
+
+- `/draft` and the four unattended-window commands are listed in pi's autocomplete: one prompt template each in `tools/prompts/`. Their extensions still handle the typed line first; a template's own text only asks for `/reload` when its extension is not loaded. After installing, `/reload` the panes `install.mjs` lists.
+
+### Changed
+
+- `docs/commands.md` lists the commands, extensions and prompt templates, with where each command is typed and the file that provides it; the README lists the commands one per row and links to it.
+
 ## [2.2.0] - 2026-11-18
 
 ### Added
