@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.2.0] - 2026-11-18
+
+### Added
+
+- Rule 15, unattended windows, and `docs/unattended-windows.md`, the lead's procedure: only the operator opens, starts, aborts or ends a window, with four commands typed in the lead's pane. The window's grill sets its terms (end, where, production changes, spend, outward steps, merges on assumptions, the queue, recovery, relaxations); what it grants is the operator's go for that window only. Whatever is granted, agents never cross the rule's fixed floor, write each change's undo before making it, report each change for the window's ledger, proceed on their own recommendation recorded as an assumption, and hold rather than improvise when a check fails.
+- `tools/extensions/unattended.ts`, installed by `install.mjs` for the main session: `/unattended-window <intent>`, `/abort-unattended-window`, `/start-unattended-window` and `/end-unattended-window`, each acting only in the lead's pane and in that order (state: the pane's tmux option `@unattended`), refused elsewhere with the line put back. After installing, `/reload` the panes `install.mjs` lists. Its tests: `node tests/unattended/run.mjs`.
+
 ## [2.1.1] - 2026-11-18
 
 ### Fixed
