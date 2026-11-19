@@ -28,6 +28,11 @@
 //   seat waits on the operator, with or without a question (AW-Q99, the user,
 //   19 Nov 14:42). Cleared like the green tab: by the seat's next STATUS line
 //   saying another state, or once the operator types in the pane.
+// - While the last STATUS line says state=ready-for-lead or waiting-for-seat,
+//   the window carries @wait, which the tab format in tmux.conf shows as " ⏳"
+//   after the name: the seat waits on the team, not on the operator (AW-Q118,
+//   the user, 19 Nov 22:07). Cleared by the seat's next STATUS line saying
+//   another state.
 // - While the agent works, its window carries the tmux option @working, which
 //   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 // - At the end of each turn, each new "❓ <ID>" of the reply (an -Q ID, as
@@ -90,6 +95,19 @@ export function openFor(reply: string): number | undefined {
 export function todoFor(reply: string): boolean | undefined {
 	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
 	return last ? last[1] === "waiting-for-PM" : undefined;
+}
+
+// Whether a reply's last STATUS line says the seat waits on the team (the lead
+// or another seat), or undefined without one.
+export function waitFor(reply: string): boolean | undefined {
+	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
+	return last ? last[1] === "ready-for-lead" || last[1] === "waiting-for-seat" : undefined;
+}
+
+// The tab's ⏳ after the name: the window option @wait (AW-Q118).
+function showWait(on: boolean) {
+	if (on) setWindowOption([], "@wait", "1");
+	else setWindowOption(["-u"], "@wait");
 }
 
 // The tab's ✋ after the name: the window option @todo, shown by the tab
@@ -304,6 +322,8 @@ export default function openQuestions(pi: ExtensionAPI) {
 			if (open !== undefined) showOpen(open);
 			const todo = todoFor(reply);
 			if (todo !== undefined) showTodo(todo);
+			const wait = waitFor(reply);
+			if (wait !== undefined) showWait(wait);
 			const notice = registerIds(reply);
 			if (notice && ctx.hasUI) ctx.ui.notify(notice, "warning");
 		}
