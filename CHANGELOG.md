@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.10.2] - 2026-11-20
+
+### Fixed
+
+- Rules (Team mechanics): `state=waiting-for-PM` only when the operator can act now; while the lead or another seat must act first (a grill, a consolidation, a merge authorisation, a review), the state is `waiting-for-seat`, even when the operator's step comes after theirs (AW-Q138). Two seats had raised ✋ while waiting on the lead's grill. **Act:** every seat, from its next STATUS line.
+
 ## [2.10.1] - 2026-11-19
 
 ### Fixed
