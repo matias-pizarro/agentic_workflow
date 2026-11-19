@@ -2,6 +2,17 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.7.0] - 2026-11-19
+
+### Added
+
+- Rules (Team mechanics): `state=waiting-for-PM` whenever a seat's next step waits on the operator (an answer, a go, a release or a step only they can run), with or without an open question; the `ask=` says what it waits for (AW-Q112). With 2.6.0, its tab then shows ✋. **Act:** every seat follows it from its next turn.
+- `team.sh status` opens with `NO DELIVERER for <target>: <n> message(s) queued …` for each queue whose deliverer is not running, with the command that starts one.
+
+### Fixed
+
+- `team.sh send`, `report` and `go` piped into a reader that stops early (`… | head -1`) started no deliverer when the target was busy: the second line of output killed team.sh first, and the message stayed queued until the next send to that seat. The deliverer now starts before anything is printed, and output that nobody reads no longer stops `refresh` or `revive --all` part-way (CS-Q40). **Act:** none: team.sh runs from the team's checkout, which moves to 2.7.0.
+
 ## [2.6.0] - 2026-11-19
 
 ### Added
