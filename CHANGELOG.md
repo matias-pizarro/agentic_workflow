@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.9.0] - 2026-11-19
+
+### Added
+
+- A seat's tmux tab shows ⏳ after its name while its last STATUS line says `state=ready-for-lead` or `state=waiting-for-seat`, the seat waiting on the team rather than the operator: `open-questions.ts` sets the window option `@wait`, cleared by the seat's next STATUS line saying another state (AW-Q118). **Act:** the operator adds `#{?@wait, ⏳,}` to both tab formats in their tmux config, as `README.md` shows; each seat takes it at its next `/reload` or refresh.
+
 ## [2.8.0] - 2026-11-19
 
 ### Added
