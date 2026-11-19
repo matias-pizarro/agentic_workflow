@@ -23,6 +23,11 @@
 //   not a /command), until the seat's next STATUS line says otherwise.
 // - While open= is above 0, the window carries @open=<n>, which the tab format
 //   in tmux.conf shows as " [n]" after the name (the user, 17 Nov).
+// - While the last STATUS line says state=waiting-for-PM, the window carries
+//   @todo, which the tab format in tmux.conf shows as " ✋" after the name: the
+//   seat waits on the operator, with or without a question (AW-Q99, the user,
+//   19 Nov 14:42). Cleared like the green tab: by the seat's next STATUS line
+//   saying another state, or once the operator types in the pane.
 // - While the agent works, its window carries the tmux option @working, which
 //   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 // - At the end of each turn, each new "❓ <ID>" of the reply (an -Q ID, as
@@ -63,7 +68,7 @@ const TABS: Record<string, string> = {
 };
 // A whole STATUS line, its fields in their fixed order from the line's start
 // (SOCR-Q1): a quoted example or an ask="... open=1 ..." text does not count.
-const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=\S+ open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
+const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=(\S+) open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
 
 // The tab's colour a reply's last STATUS line asks for: "green" at open=0,
 // its worst= ("low" without one) above 0, or undefined to leave the tab as is.
@@ -71,13 +76,27 @@ export function tabFor(reply: string): string | undefined {
 	const open = openFor(reply);
 	if (open === undefined) return undefined;
 	if (open === 0) return "green";
-	return [...reply.matchAll(STATUS_LINE)].at(-1)![2] ?? "low";
+	return [...reply.matchAll(STATUS_LINE)].at(-1)![3] ?? "low";
 }
 
 // The open= count of a reply's last STATUS line, or undefined without one.
 export function openFor(reply: string): number | undefined {
 	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
-	return last ? Number(last[1]) : undefined;
+	return last ? Number(last[2]) : undefined;
+}
+
+// Whether a reply's last STATUS line says the seat waits on the operator, or
+// undefined without one.
+export function todoFor(reply: string): boolean | undefined {
+	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
+	return last ? last[1] === "waiting-for-PM" : undefined;
+}
+
+// The tab's ✋ after the name: the window option @todo, shown by the tab
+// format in tmux.conf (AW-Q99).
+function showTodo(on: boolean) {
+	if (on) setWindowOption([], "@todo", "1");
+	else setWindowOption(["-u"], "@todo");
 }
 
 // The tab's [n] after the name: the window option @open, shown by the tab
@@ -237,6 +256,7 @@ export default function openQuestions(pi: ExtensionAPI) {
 		if (event.source === "interactive" && !NOT_TYPED_BY_OPERATOR.test(event.text)) {
 			colourTab("green");
 			showOpen(0);
+			showTodo(false);
 		}
 		if (/^\s*\/o\s*$/.test(event.text)) {
 			asked = true;
@@ -282,6 +302,8 @@ export default function openQuestions(pi: ExtensionAPI) {
 			if (tab) colourTab(tab);
 			const open = openFor(reply);
 			if (open !== undefined) showOpen(open);
+			const todo = todoFor(reply);
+			if (todo !== undefined) showTodo(todo);
 			const notice = registerIds(reply);
 			if (notice && ctx.hasUI) ctx.ui.notify(notice, "warning");
 		}
