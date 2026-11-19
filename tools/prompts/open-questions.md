@@ -38,7 +38,7 @@ Print each open question in full as it stands now, updated to what you know at t
 ➡️ <recommended answer, starting "Yes">
 ```
 
-Every path in a question is given in full, from `/`, and reachable from outside the sandbox (never `/tmp`), so one click selects it, and nothing follows it but a space or the end of its line, no punctuation; a Markdown file is named by its HTML version, made with `tools/md-html` (rules.md, Team mechanics).
+Every path in a question is given in full, from `/`, and reachable from outside the sandbox (never `/tmp`), so one click selects it, and nothing follows it but a space or the end of its line, no punctuation; a Markdown file is named by its HTML version, made or remade with `tools/md-html` after the Markdown's last change (rules.md, Team mechanics).
 
 The `**Issue:**` line and its six bullets are for an issue or finding (rules.md rule 6). For any other decision, put one or two plain lines of context in their place. Print the skeleton's lines as plain Markdown, not inside a code block. Impact, each solution and the recommendation lead with the absolute value against the threshold that matters (a requirement, a limit, a budget, a deadline) and give the relative change only after; where no threshold is known, say so.
 

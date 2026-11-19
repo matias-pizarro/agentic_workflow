@@ -12,7 +12,7 @@
 // one loads nothing.
 //
 // It prints each page's full path on its own line. Exit 1 if a file cannot be
-// read or written, 2 on bad usage.
+// read or written, 2 on bad usage or a file not named .md or .markdown.
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
@@ -90,6 +90,8 @@ ${hasMermaid ? MERMAID : ""}
 async function main() {
 	const files = process.argv.slice(2);
 	if (files.length === 0 || files.some((f) => f.startsWith("-"))) fail(2, "usage: md-html <file.md>...");
+	const notMarkdown = files.filter((f) => !/\.(md|markdown)$/i.test(f));
+	if (notMarkdown.length) fail(2, `not a .md or .markdown file: ${notMarkdown.join(" ")}`);
 	const { Marked } = await loadMarked();
 	let failed = false;
 	for (const file of files) {
