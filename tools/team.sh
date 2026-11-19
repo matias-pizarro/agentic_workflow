@@ -127,7 +127,7 @@ log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$spool/log"; }
 # failed write under set -e, would: the write is tried with SIGPIPE ignored,
 # in a subshell, and its failure dropped. say_err prints to stderr.
 say() { (trap '' PIPE; printf '%s\n' "$*") 2> /dev/null || true; }
-say_err() { (trap '' PIPE; printf '%s\n' "$*" >&2) 2> /dev/null || true; }
+say_err() { (trap '' PIPE; printf '%s\n' "$*" >&2) || true; }
 
 # mkdir lock holding the owner's pid; a lock whose owner is gone is removed.
 lock() { # dir
@@ -391,16 +391,16 @@ revive_one() { # name
 ensure_lead() {
   [ -z "$(lead_pane 2>/dev/null)" ] || return 0
   if [ -z "${TMUX_PANE:-}" ]; then
-    echo "no pane has @role=lead; run tmux set -p @role lead in the lead pane" >&2
+    say_err "no pane has @role=lead; run tmux set -p @role lead in the lead pane"
     return 0
   fi
   win=$(tmux display -p -t "$TMUX_PANE" '#{window_name}')
   if record "$win" > /dev/null; then
-    echo "no pane has @role=lead, and $TMUX_PANE is agent $win's; run tmux set -p @role lead in the lead pane" >&2
+    say_err "no pane has @role=lead, and $TMUX_PANE is agent $win's; run tmux set -p @role lead in the lead pane"
     return 0
   fi
   tmux set -p -t "$TMUX_PANE" @role lead
-  echo "set @role=lead on $TMUX_PANE"
+  say "set @role=lead on $TMUX_PANE"
 }
 
 # refresh: decisions RF-Q1 to RF-Q12 in .scratch/refresh/perimeter.md, failure
@@ -785,6 +785,7 @@ deliverer_alive() { # target
   p=$(cat "$spool/$1/deliver.lock/pid" 2> /dev/null) && kill -0 "$p" 2> /dev/null
 }
 status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliverer"; }
+no_deliverer() { ! deliverer_alive "$1"; }
 status_loud_no_deliverer() { sh "$self" status | grep -q "^NO DELIVERER for $1: 1 message(s) queued"; }
 spawned() { # name cwd task
   TEAM_ROLE=lead sh "$self" spawn "$@" > /dev/null 2>&1 && recorded_as "$1" "$2" "$3"
@@ -1048,7 +1049,9 @@ selftest() {
   check "... and delivers the message once the box is empty" waitfor 30 has "$ap" "selftest: sent under timeout"
   waitfor 60 input_empty "$ap" || true
   # The lead's "team.sh send … | head -1": the reader is gone before send
-  # prints, so its first write meets a closed pipe (19 Nov).
+  # prints, so its first write meets a closed pipe (19 Nov). The previous
+  # deliverer is gone first, so only this send's own deliverer can deliver.
+  check "(setup: no deliverer for agent is alive)" waitfor 10 no_deliverer to-agent
   sh -c 'sleep 1; exec sh "$1" send agent "selftest: sent into a closed pipe; reply with only OK"' _ "$self" | true
   check "a send whose caller stopped reading still starts a deliverer, which delivers" waitfor 30 has "$ap" "selftest: sent into a closed pipe"
   waitfor 60 input_empty "$ap" || true
