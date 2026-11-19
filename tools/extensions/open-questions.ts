@@ -40,11 +40,16 @@
 //   name, in the question-ID registry whose path team.sh puts in the tmux
 //   server option @team-qids, under team.sh's lock; an ID another seat holds is
 //   noticed in the pane (RT3-Q9), and so is a turn whose IDs it cannot register.
+// - Every full path to an existing Markdown file in a reply gets its md-html
+//   page (AW-Q135, the user, 20 Nov 00:00): the pane lists the pages before the
+//   reply's STATUS line, display only, and the end of the turn runs md-html,
+//   the one beside team.sh, on those files; a failure is noticed in the pane.
 // - A reload_runtime tool, so a seat reloads its own extensions when the lead
 //   or the operator says so (RT3-Q5): it ends the turn, then runs
 //   /reload-runtime once the agent has settled (pi docs, extensions.md).
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const COLOURS: Record<string, string> = {
@@ -257,15 +262,78 @@ function lastAssistantText(ctx: ExtensionContext): string | undefined {
 	return undefined;
 }
 
+// Pages for the Markdown a reply names (AW-Q135, the user, 20 Nov 00:00): every
+// full path to an existing .md or .markdown file gets its md-html page, made at
+// the end of the turn, and the pane lists the pages under the reply. md-html is
+// the one beside team.sh (the tmux option @team-sh); its pages go under
+// <root>/html/, mirroring the Markdown's full path, as md-html writes them.
+const MD_PATH = /(?<![\w./-])\/[^\s`'"<>()[\]{}|*]+\.(?:md|markdown)(?![\w-]|\.\w)/gu;
+
+// The full paths to existing Markdown files a text names, each once, in order.
+export function mdPaths(text: string, exists: (p: string) => boolean = existsSync): string[] {
+	return [...new Set(text.match(MD_PATH) ?? [])].filter((p) => exists(p));
+}
+
+// The page md-html writes for a Markdown file, given md-html's own path.
+export function pageFor(md: string, mdHtml: string): string {
+	return join(resolve(dirname(mdHtml), "..", ".."), "html", `${md.replace(/\.(md|markdown)$/i, "")}.html`);
+}
+
+// The reply as the pane shows it, with a "Pages" list before its STATUS line
+// (or at its end): one page per Markdown path, each on its own line.
+export function withPages(markdown: string, pages: string[]): string {
+	if (pages.length === 0) return markdown;
+	const block = `Pages to open in a browser:\n${pages.map((p) => `- ${p}`).join("\n")}\n`;
+	const lines = markdown.split("\n");
+	let at = lines.length;
+	while (at > 0 && lines[at - 1].trim() === "") at--;
+	if (at > 0 && /^\s*`?STATUS seat=/.test(lines[at - 1])) {
+		lines.splice(at - 1, 0, block);
+		return lines.join("\n");
+	}
+	return `${markdown.replace(/\s*$/, "")}\n\n${block}`;
+}
+
+let mdHtmlPath: string | null | undefined;
+// md-html beside team.sh, or null outside the team's tmux server.
+function mdHtml(): string | null {
+	if (mdHtmlPath !== undefined) return mdHtmlPath;
+	const teamSh = tmuxOut(["show", "-gv", "@team-sh"]);
+	mdHtmlPath = null;
+	if (teamSh) {
+		try {
+			const p = join(dirname(realpathSync(teamSh)), "md-html");
+			if (existsSync(p)) mdHtmlPath = p;
+		} catch {
+			// team.sh unreadable: no pages
+		}
+	}
+	return mdHtmlPath;
+}
+
+// Make the pages of the Markdown a reply names; a sentence for the pane on failure.
+function makePages(reply: string): string | undefined {
+	const files = mdPaths(reply);
+	const tool = mdHtml();
+	if (files.length === 0 || !tool) return undefined;
+	const r = spawnSync(tool, files, { encoding: "utf8", timeout: 60_000 });
+	if (r.status === 0) return undefined;
+	const why = (r.stderr || r.error?.message || `exit ${r.status}`).trim().split("\n").slice(-1)[0];
+	return `md-html pages not made: ${why}`;
+}
+
 export default function openQuestions(pi: ExtensionAPI) {
 	pi.registerMarkdownTransformer(
-		(markdown: string) =>
-			markdown
+		(markdown: string) => {
+			const tool = mdHtml();
+			const pages = tool ? mdPaths(markdown).map((md) => pageFor(md, tool)) : [];
+			return withPages(markdown, pages)
 				.replace(MARKED_LINE, (_m: string, indent: string, dot: string, rest: string) =>
 					`${indent}${dot}${COLOURS[dot]}${rest.replaceAll("`", "")}${FG_RESET}`,
 				)
 				.replace(NONE_LINE, (_m: string, indent: string, lead: string) => `${indent}${GREEN}${lead}NONE${FG_RESET}`)
-				.replace(NO_QUESTIONS_LINE, (_m: string, indent: string, text: string) => `${indent}${GREEN}${text}${FG_RESET}`),
+				.replace(NO_QUESTIONS_LINE, (_m: string, indent: string, text: string) => `${indent}${GREEN}${text}${FG_RESET}`);
+		},
 		{ messageTypes: ["assistant"] },
 	);
 
@@ -326,6 +394,8 @@ export default function openQuestions(pi: ExtensionAPI) {
 			if (wait !== undefined) showWait(wait);
 			const notice = registerIds(reply);
 			if (notice && ctx.hasUI) ctx.ui.notify(notice, "warning");
+			const pageNotice = makePages(reply);
+			if (pageNotice && ctx.hasUI) ctx.ui.notify(pageNotice, "warning");
 		}
 		if (!asked) return;
 		asked = false;
