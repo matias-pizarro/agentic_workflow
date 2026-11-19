@@ -48,7 +48,7 @@
 //   or the operator says so (RT3-Q5): it ends the turn, then runs
 //   /reload-runtime once the agent has settled (pi docs, extensions.md).
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync, appendFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
@@ -270,7 +270,14 @@ function lastAssistantText(ctx: ExtensionContext): string | undefined {
 const MD_PATH = /(?<![\w./-])\/[^\s`'"<>()[\]{}|*]+\.(?:md|markdown)(?![\w-]|\.\w)/gu;
 
 // The full paths to existing Markdown files a text names, each once, in order.
-export function mdPaths(text: string, exists: (p: string) => boolean = existsSync): string[] {
+const isFile = (p: string) => {
+	try {
+		return statSync(p).isFile();
+	} catch {
+		return false;
+	}
+};
+export function mdPaths(text: string, exists: (p: string) => boolean = isFile): string[] {
 	return [...new Set(text.match(MD_PATH) ?? [])].filter((p) => exists(p));
 }
 
@@ -285,30 +292,34 @@ export function withPages(markdown: string, pages: string[]): string {
 	if (pages.length === 0) return markdown;
 	const block = `Pages to open in a browser:\n${pages.map((p) => `- ${p}`).join("\n")}\n`;
 	const lines = markdown.split("\n");
-	let at = lines.length;
-	while (at > 0 && lines[at - 1].trim() === "") at--;
-	if (at > 0 && /^\s*`?STATUS seat=/.test(lines[at - 1])) {
-		lines.splice(at - 1, 0, block);
-		return lines.join("\n");
+	const status = /^\s*`?STATUS seat=\S+ state=\S+ open=\d+/;
+	for (let at = lines.length - 1; at >= 0; at--) {
+		if (status.test(lines[at])) {
+			lines.splice(at, 0, block);
+			return lines.join("\n");
+		}
 	}
 	return `${markdown.replace(/\s*$/, "")}\n\n${block}`;
 }
 
-let mdHtmlPath: string | null | undefined;
-// md-html beside team.sh, or null outside the team's tmux server.
+let mdHtmlPath: string | undefined;
+let mdHtmlTried = 0;
+// md-html beside team.sh, or null outside the team's tmux server. Found once,
+// then kept; until found, looked up again at most every 30 s, since team.sh
+// sets @team-sh at its next send, report, spawn or revive.
 function mdHtml(): string | null {
-	if (mdHtmlPath !== undefined) return mdHtmlPath;
+	if (mdHtmlPath) return mdHtmlPath;
+	if (Date.now() - mdHtmlTried < 30_000) return null;
+	mdHtmlTried = Date.now();
 	const teamSh = tmuxOut(["show", "-gv", "@team-sh"]);
-	mdHtmlPath = null;
-	if (teamSh) {
-		try {
-			const p = join(dirname(realpathSync(teamSh)), "md-html");
-			if (existsSync(p)) mdHtmlPath = p;
-		} catch {
-			// team.sh unreadable: no pages
-		}
+	if (!teamSh) return null;
+	try {
+		const p = join(dirname(realpathSync(teamSh)), "md-html");
+		if (existsSync(p)) mdHtmlPath = p;
+	} catch {
+		// team.sh unreadable: no pages this time
 	}
-	return mdHtmlPath;
+	return mdHtmlPath ?? null;
 }
 
 // Make the pages of the Markdown a reply names; a sentence for the pane on failure.
