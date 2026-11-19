@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.10.1] - 2026-11-19
+
+### Fixed
+
+- `md-html` wrote its page beside the Markdown, which left an untracked `.html` in a repo for every tracked file it was run on. It now writes under `<root>/html/`, mirroring the Markdown's full path, outside every repo; relative links and images point at the Markdown's own folder; it refuses when that folder would be inside a git work tree (AW-Q128, AW-Q130 to AW-Q132). **Act:** every seat names the page path md-html prints; the lead removes `src/infra/vikunja/README.html`, left by 2.10.0.
+- The README's tab format shows only ⚡ while a seat works, hiding ✋ and ⏳ until the turn ends; `[n]` stays (AW-Q133). **Act:** the operator updates both tab formats in their tmux config, as `README.md` shows.
+
 ## [2.10.0] - 2026-11-19
 
 ### Added
