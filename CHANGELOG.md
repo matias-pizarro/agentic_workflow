@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.8.0] - 2026-11-19
+
+### Added
+
+- Rules (Team mechanics): when relaying that a seat waits on the operator, the lead names the question's ID and the pane it is in (AW-Q114, CS-Q43). **Act:** the lead, from its next relay.
+- Rules (Team mechanics) and the `/open-questions` template: nothing follows a path but a space or the end of its line, no full stop, comma, colon or bracket, which a double-click would select with it (AW-Q116). **Act:** every seat, from its next turn.
+
 ## [2.7.0] - 2026-11-19
 
 ### Added
