@@ -122,6 +122,13 @@ mtime() { stat -c %Y "$1" 2> /dev/null || stat -f %m "$1"; }
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$spool/log"; }
 
+# Print a line for the caller. A caller that stopped reading ("team.sh send …
+# | head -1") must not kill team.sh before its next step, as SIGPIPE, or a
+# failed write under set -e, would: the write is tried with SIGPIPE ignored,
+# in a subshell, and its failure dropped. say_err prints to stderr.
+say() { (trap '' PIPE; printf '%s\n' "$*") 2> /dev/null || true; }
+say_err() { (trap '' PIPE; printf '%s\n' "$*" >&2) || true; }
+
 # mkdir lock holding the owner's pid; a lock whose owner is gone is removed.
 lock() { # dir
   mkdir "$1" 2>/dev/null && { echo $$ > "$1/pid"; return 0; }
@@ -177,12 +184,7 @@ enqueue() { # target text
   f=$(printf '%s/q/%09d' "$d" "$n")
   mv "$tmp" "$f"
   rm -rf "$d/seq.lock"
-  echo "queued for $1: $f"
   log "queued $f"
-  p=$(resolve "$1" 2> /dev/null) || p=''
-  if [ -n "$p" ] && busy "$p"; then
-    echo "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
-  fi
   # Start the deliverer from the tmux server, outside the caller's process
   # tree: pi kills the process group of its bash calls, and timeout(1), a
   # process reaper on FreeBSD, kills every descendant of its command, detached
@@ -192,8 +194,13 @@ enqueue() { # target text
   # queued, and status shows it with no deliverer.
   dcmd="TEAM_SPOOL=$(q "$spool") TEAM_POLL=$(q "$poll") TEAM_WAIT=$(q "$wait_max") TEAM_TMUX=$(q "${TEAM_TMUX:-}") sh $(q "$self") _deliver $(q "$1") >> $(q "$spool/log") 2>&1"
   if ! tmux run-shell -b "$dcmd" 2> /dev/null; then
-    echo "no deliverer started for $1: the tmux server cannot be reached; it stays queued" >&2
+    say_err "no deliverer started for $1: the tmux server cannot be reached; it stays queued"
     log "no deliverer started for $1: tmux server unreachable"
+  fi
+  say "queued for $1: $f"
+  p=$(resolve "$1" 2> /dev/null) || p=''
+  if [ -n "$p" ] && busy "$p"; then
+    say "${1#to-} is busy: once typed, pi holds the message as steering until the agent's current step ends; while its input box holds text it waits here (team.sh status: QUEUED)"
   fi
 }
 
@@ -360,21 +367,21 @@ EOF
 }
 
 revive_one() { # name
-  rec=$(record "$1") || { echo "$1 is not recorded in $agents" >&2; return 1; }
+  rec=$(record "$1") || { say_err "$1 is not recorded in $agents"; return 1; }
   cwd=$(printf '%s\n' "$rec" | cut -f2)
   task=$(printf '%s\n' "$rec" | cut -f3)
   id=$(printf '%s\n' "$rec" | cut -f4)
   if window_exists "$1"; then
-    echo "$1: window exists, left alone"
+    say "$1: window exists, left alone"
   elif session_exists "$id"; then
     open_window "$1" "$cwd" "$id"
-    echo "revived $1 in session $id"
+    say "revived $1 in session $id"
   elif task_ok "$task"; then
     # pi saves a session only once it has a reply; start over from the task.
     open_window "$1" "$cwd" "$id" "$(session_name "$1")" "$(compose_prompt "$1" "$task")"
-    echo "revived $1: no saved session $id, restarted from $task"
+    say "revived $1: no saved session $id, restarted from $task"
   else
-    echo "$1: no saved session $id and task file $task is missing or empty; not revived" >&2
+    say_err "$1: no saved session $id and task file $task is missing or empty; not revived"
     return 1
   fi
 }
@@ -384,16 +391,16 @@ revive_one() { # name
 ensure_lead() {
   [ -z "$(lead_pane 2>/dev/null)" ] || return 0
   if [ -z "${TMUX_PANE:-}" ]; then
-    echo "no pane has @role=lead; run tmux set -p @role lead in the lead pane" >&2
+    say_err "no pane has @role=lead; run tmux set -p @role lead in the lead pane"
     return 0
   fi
   win=$(tmux display -p -t "$TMUX_PANE" '#{window_name}')
   if record "$win" > /dev/null; then
-    echo "no pane has @role=lead, and $TMUX_PANE is agent $win's; run tmux set -p @role lead in the lead pane" >&2
+    say_err "no pane has @role=lead, and $TMUX_PANE is agent $win's; run tmux set -p @role lead in the lead pane"
     return 0
   fi
   tmux set -p -t "$TMUX_PANE" @role lead
-  echo "set @role=lead on $TMUX_PANE"
+  say "set @role=lead on $TMUX_PANE"
 }
 
 # refresh: decisions RF-Q1 to RF-Q12 in .scratch/refresh/perimeter.md, failure
@@ -778,6 +785,8 @@ deliverer_alive() { # target
   p=$(cat "$spool/$1/deliver.lock/pid" 2> /dev/null) && kill -0 "$p" 2> /dev/null
 }
 status_flags_no_deliverer() { sh "$self" status | grep -q "^QUEUED $1 .*no deliverer"; }
+no_deliverer() { ! deliverer_alive "$1"; }
+status_loud_no_deliverer() { sh "$self" status | grep -q "^NO DELIVERER for $1: 1 message(s) queued"; }
 spawned() { # name cwd task
   TEAM_ROLE=lead sh "$self" spawn "$@" > /dev/null 2>&1 && recorded_as "$1" "$2" "$3"
 }
@@ -1039,10 +1048,18 @@ selftest() {
   tmux send-keys -t "$ap" -l -- "$cr" # the user submits the line
   check "... and delivers the message once the box is empty" waitfor 30 has "$ap" "selftest: sent under timeout"
   waitfor 60 input_empty "$ap" || true
+  # The lead's "team.sh send … | head -1": the reader is gone before send
+  # prints, so its first write meets a closed pipe (19 Nov). The previous
+  # deliverer is gone first, so only this send's own deliverer can deliver.
+  check "(setup: no deliverer for agent is alive)" waitfor 10 no_deliverer to-agent
+  sh -c 'sleep 1; exec sh "$1" send agent "selftest: sent into a closed pipe; reply with only OK"' _ "$self" | true
+  check "a send whose caller stopped reading still starts a deliverer, which delivers" waitfor 30 has "$ap" "selftest: sent into a closed pipe"
+  waitfor 60 input_empty "$ap" || true
   tmux send-keys -t "$ap" -l -- "selftest: the user types in the agent pane again"
   waitfor 5 holds_text "$ap" || true
   mkdir -p "$spool/to-ghost/q" && printf 'selftest: nobody delivers this\n' > "$spool/to-ghost/q/000000001"
   check "status flags a queue with no deliverer" status_flags_no_deliverer to-ghost
+  check "... loudly, on a line of its own" status_loud_no_deliverer to-ghost
   rm -rf "$spool/to-ghost"
   TEAM_WAIT=3 sh "$self" send agent "selftest: a message that times out" > /dev/null
   check "a message waiting past TEAM_WAIT moves to failed/" waitfor 20 failed_any to-agent
@@ -1198,6 +1215,14 @@ status)
   else
     echo "no pane has @role=lead (team.sh revive sets it from the lead pane)"
   fi
+  # First, loudly: a queue nothing will type until a deliverer starts.
+  for d in "$spool"/*/q; do
+    n=$(ls "$d" 2> /dev/null | wc -l | tr -d ' ')
+    [ "$n" -gt 0 ] || continue
+    target=${d%/q}; target=${target##*/}
+    dp=$(cat "$spool/$target/deliver.lock/pid" 2> /dev/null) && kill -0 "$dp" 2> /dev/null && continue
+    echo "NO DELIVERER for $target: $n message(s) queued and nothing will type them; start one: tmux run-shell -b \"sh $(q "$self") _deliver $target >> $(q "$spool/log") 2>&1\""
+  done
   tmux list-windows -F '#{window_index} #{window_name}' | while read -r idx name; do
     [ "$idx" = "$leadwin" ] && continue
     pane=$(tmux capture-pane -p -J -S -300 -t "$idx")
@@ -1283,12 +1308,12 @@ refresh)
     ss=$(session_of "$s" "$(seat_pane "$s" || true)")
     ledger_add refresh-requested "$s" "$(printf '%s' "$ss" | cut -f1)" "$(printf '%s' "$ss" | cut -f2)" "the user, \"$words\", $src"
     if err=$(tmux run-shell -b "$(run_env)sh $(q "$self") _refresh $(q "$s") $(q "$words") $(q "$src") >> $(q "$spool/log") 2>&1" 2>&1); then
-      echo "refresh of $s started; the lead gets a report when it ends"
+      say "refresh of $s started; the lead gets a report when it ends"
     else
       rm -rf "$spool/refresh/$s.lock"
       err=$(printf '%s' "${err:-no message}" | tr '\n' ' ') # tmux's own error (RF-Q23)
       ledger_add refresh-failed "$s" "$(printf '%s' "$ss" | cut -f1)" "$(printf '%s' "$ss" | cut -f2)" "start: $err"
-      echo "refresh of $s not started: tmux run-shell: $err" >&2
+      say_err "refresh of $s not started: tmux run-shell: $err"
       rc=1
     fi
   done
