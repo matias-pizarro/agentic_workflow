@@ -1,0 +1,154 @@
+#!/usr/bin/env node
+// md-html <file.md>...: write <file>.html beside each Markdown file, for the
+// operator to open in a browser (rules.md, Team mechanics; AW-Q120, the user,
+// 19 Nov 2026 22:16). Rerun it after each change to the Markdown: the page is
+// a copy, not a view.
+//
+// The Markdown is rendered here, with marked from pi's own install (pi is on
+// every team host). Raw HTML in the Markdown is shown as text and only http,
+// https, mailto and relative links are kept, so a page carries no script an
+// agent wrote (rules.md rule 3). Mermaid blocks are drawn in the browser by
+// Mermaid 12.3.0 from jsDelivr, as tools/mermaid.html does; a page without
+// one loads nothing.
+//
+// It prints each page's full path on its own line. Exit 1 if a file cannot be
+// read or written, 2 on bad usage or a file not named .md or .markdown.
+"use strict";
+const fs = require("node:fs");
+const path = require("node:path");
+const { execFileSync } = require("node:child_process");
+
+function fail(code, message) {
+	process.stderr.write(`md-html: ${message}\n`);
+	process.exit(code);
+}
+
+// marked, from pi's global install; MD_HTML_MARKED names another copy.
+async function loadMarked() {
+	let dir = process.env.MD_HTML_MARKED;
+	if (!dir) {
+		let root;
+		try {
+			root = execFileSync("npm", ["root", "-g"], { encoding: "utf8" }).trim();
+		} catch {
+			fail(1, "cannot run 'npm root -g' to find pi's install; set MD_HTML_MARKED to a marked package directory");
+		}
+		dir = path.join(root, "@earendil-works", "pi-coding-agent", "node_modules", "marked");
+	}
+	try {
+		const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+		return await import(path.join(dir, pkg.main ?? "lib/marked.esm.js"));
+	} catch (e) {
+		fail(1, `cannot load marked from ${dir} (${e.message}); set MD_HTML_MARKED to a marked package directory`);
+	}
+}
+
+const escapeHtml = (s) =>
+	String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+// A link or image target worth keeping: http(s), mailto, or no scheme at all.
+const SAFE_URL = /^(?:https?:|mailto:|[^:]*$|[^:]*[/?#])/i;
+const safeUrl = (href) => (href && SAFE_URL.test(href.trim()) ? href : null);
+
+const MERMAID = `<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@12.3.0/dist/mermaid.esm.min.mjs";
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default", securityLevel: "strict" });
+</script>`;
+
+function page(title, body, source, hasMermaid) {
+	const made = new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+	return `<!doctype html>
+<!-- Made by agentic_workflow tools/md-html from ${escapeHtml(source)}; rerun it after each change. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.55 system-ui, sans-serif; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; }
+  pre, code { font: 13px/1.45 ui-monospace, monospace; }
+  pre { overflow-x: auto; padding: .75rem; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 6px; }
+  pre.mermaid { border: 0; text-align: center; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid color-mix(in srgb, currentColor 25%, transparent); padding: .3rem .6rem; text-align: left; vertical-align: top; }
+  blockquote { margin-left: 0; padding-left: 1rem; border-left: 3px solid color-mix(in srgb, currentColor 30%, transparent); }
+  img { max-width: 100%; }
+  .source { color: GrayText; font-size: 13px; margin-top: 3rem; }
+</style>
+</head>
+<body>
+${body}
+<p class="source">From ${escapeHtml(source)}, ${escapeHtml(made)}.</p>
+${hasMermaid ? MERMAID : ""}
+</body>
+</html>
+`;
+}
+
+async function main() {
+	const files = process.argv.slice(2);
+	if (files.length === 0 || files.some((f) => f.startsWith("-"))) fail(2, "usage: md-html <file.md>...");
+	const notMarkdown = files.filter((f) => !/\.(md|markdown)$/i.test(f));
+	if (notMarkdown.length) fail(2, `not a .md or .markdown file: ${notMarkdown.join(" ")}`);
+	const { Marked } = await loadMarked();
+	let failed = false;
+	for (const file of files) {
+		const source = path.resolve(file);
+		let text;
+		try {
+			text = fs.readFileSync(source, "utf8");
+		} catch (e) {
+			process.stderr.write(`md-html: cannot read ${source}: ${e.message}\n`);
+			failed = true;
+			continue;
+		}
+		let hasMermaid = false;
+		let title;
+		const marked = new Marked({ gfm: true });
+		marked.use({
+			renderer: {
+				html({ text }) {
+					return escapeHtml(text);
+				},
+				code({ text, lang }) {
+					if ((lang ?? "").trim() === "mermaid") {
+						hasMermaid = true;
+						return `<pre class="mermaid">${escapeHtml(text)}</pre>\n`;
+					}
+					return false; // marked's own, which escapes
+				},
+				link({ href, title, tokens }) {
+					const inner = this.parser.parseInline(tokens);
+					const url = safeUrl(href);
+					if (!url) return inner;
+					return `<a href="${escapeHtml(url)}"${title ? ` title="${escapeHtml(title)}"` : ""}>${inner}</a>`;
+				},
+				image({ href, title, text }) {
+					const url = safeUrl(href);
+					if (!url) return escapeHtml(text);
+					return `<img src="${escapeHtml(url)}" alt="${escapeHtml(text)}"${title ? ` title="${escapeHtml(title)}"` : ""}>`;
+				},
+				heading({ tokens, depth, text }) {
+					const inner = this.parser.parseInline(tokens);
+					if (depth === 1 && title === undefined) title = text.replace(/[`*_]/g, "");
+					return `<h${depth}>${inner}</h${depth}>\n`;
+				},
+			},
+		});
+		const body = marked.parse(text);
+		const out = source.replace(/\.(md|markdown)$/i, "") + ".html";
+		try {
+			fs.writeFileSync(out, page(title ?? path.basename(source), body, source, hasMermaid));
+		} catch (e) {
+			process.stderr.write(`md-html: cannot write ${out}: ${e.message}\n`);
+			failed = true;
+			continue;
+		}
+		process.stdout.write(`${out}\n`);
+	}
+	process.exit(failed ? 1 : 0);
+}
+
+main();

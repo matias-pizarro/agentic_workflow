@@ -2,6 +2,17 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.10.0] - 2026-11-19
+
+### Added
+
+- `tools/md-html <file.md>…` writes `<file>.html` beside each Markdown file and prints its path: rendered with marked from pi's install, raw HTML shown as text and only http, https, mailto and relative links kept, so a page runs no script an agent wrote; Mermaid blocks drawn by Mermaid 12.3.0 from jsDelivr. Rules (Team mechanics) and the `/open-questions` template: every Markdown file named to the operator also goes as that HTML page, remade after the Markdown's last change, and the reply names the page (AW-Q120). **Act:** every seat, from its next turn.
+- Rules (Team mechanics): a seat reads rules.md only when its session starts, so after each release with an **Act** line for seats the lead sends that line to every running seat, with a `/reload` when an extension changed (AW-Q122). **Act:** the lead, after each release, starting with this one.
+
+### Changed
+
+- Rule 6: each solution is lettered (a), (b), (c)…, so the operator can answer with its letter, and the `➡️` names the recommended letter (the user, 19 Nov 22:37). **Act:** every seat, from its next question.
+
 ## [2.9.0] - 2026-11-19
 
 ### Added
