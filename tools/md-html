@@ -6,9 +6,10 @@
 //
 // Pages go outside every repo, under <root>/html/, mirroring the Markdown's
 // full path: <root>/html/a/b/README.html for /a/b/README.md (AW-Q128, the
-// user, 19 Nov 23:03). <root> is two levels above this file's folder;
-// MD_HTML_DIR names another folder. Relative links and images are pointed
-// at the Markdown's own folder, so they still open.
+// user, 19 Nov 23:03). <root> is two levels above this file's folder; run
+// from a checkout where that folder is inside a git work tree, it refuses
+// (AW-Q131). Relative links and images are pointed at the Markdown's own
+// folder, so they still open.
 //
 // The Markdown is rendered here, with marked from pi's own install (pi is on
 // every team host). Raw HTML in the Markdown is shown as text and only http,
@@ -25,7 +26,25 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 
-const PAGES = process.env.MD_HTML_DIR || path.join(path.resolve(__dirname, "..", ".."), "html");
+const PAGES = path.join(path.resolve(__dirname, "..", ".."), "html");
+
+// Refuse when PAGES would be inside a git work tree: read from its nearest
+// existing folder.
+function refuseInsideRepo() {
+	let dir = PAGES;
+	while (!fs.existsSync(dir)) dir = path.dirname(dir);
+	let inside;
+	try {
+		inside = execFileSync("git", ["-C", dir, "rev-parse", "--is-inside-work-tree"], {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		}).trim();
+	} catch (e) {
+		if (e.code === "ENOENT") fail(1, "cannot run git to check that the pages folder is outside every repo");
+		inside = "false"; // git exits non-zero outside a work tree
+	}
+	if (inside === "true") fail(1, `the pages folder ${PAGES} is inside a git work tree; run <root>/agentic_workflow/tools/md-html`);
+}
 
 function fail(code, message) {
 	process.stderr.write(`md-html: ${message}\n`);
@@ -63,7 +82,7 @@ const safeUrl = (href) => (href && SAFE_URL.test(href.trim()) ? href : null);
 // Markdown's folder, since the page lives elsewhere; an anchor or a URL with a
 // scheme as it is.
 function placeUrl(url, dir) {
-	if (url.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
+	if (url.startsWith("#") || url.startsWith("?") || /^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
 	try {
 		return new URL(url, pathToFileURL(dir + path.sep)).href;
 	} catch {
@@ -113,6 +132,7 @@ async function main() {
 	if (files.length === 0 || files.some((f) => f.startsWith("-"))) fail(2, "usage: md-html <file.md>...");
 	const notMarkdown = files.filter((f) => !/\.(md|markdown)$/i.test(f));
 	if (notMarkdown.length) fail(2, `not a .md or .markdown file: ${notMarkdown.join(" ")}`);
+	refuseInsideRepo();
 	const { Marked } = await loadMarked();
 	let failed = false;
 	for (const file of files) {
