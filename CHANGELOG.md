@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.6.0] - 2026-11-19
+
+### Added
+
+- A seat's tmux tab shows ✋ after its name while its last STATUS line says `state=waiting-for-PM`, with or without an open question: `open-questions.ts` sets the window option `@todo`, cleared by the seat's next STATUS line saying another state or once the operator types in its pane (AW-Q99). **Act:** the operator adds `#{?@todo, ✋,}` to both tab formats in their tmux config, as `README.md` shows; each seat takes it at its next `/reload` or refresh.
+
 ## [2.5.0] - 2026-11-18
 
 ### Added
