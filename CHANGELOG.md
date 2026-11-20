@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.12.0] - 2026-11-20
+
+### Added
+
+- Rules (rule 4 and Team mechanics): every step a seat waits on the operator for (an answer, a go, a release, a read of a diff, a look at a render, an approval) is an open question with an ID, counted in `open` and printed by `/open-questions`, so `state=waiting-for-PM` comes with `open` above 0; when the lead holds a seat's work on such a step, it tells the seat with `team.sh send`, and the seat asks it in its own pane (AW-Q140). The lead's `/open-questions` table names question IDs only, a seat's wait without one as `no ID: <its ask>` (AW-Q141, AW-Q145). **Act:** every seat, the lead included, from its next turn: ask each present wait on the operator as a question.
+- `open-questions.ts` warns in the pane when a turn's last STATUS line says `state=waiting-for-PM` with `open=0` (AW-Q140). **Act:** each seat takes it at its next `/reload` or refresh.
+
 ## [2.11.0] - 2026-11-20
 
 ### Added
