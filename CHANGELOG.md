@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.11.0] - 2026-11-20
+
+### Added
+
+- `open-questions.ts` makes md-html pages mechanical: every full path to an existing Markdown file in a reply gets its page, listed in the pane under "Pages to open in a browser" before the STATUS line (display only; the reply stays as written), and made at the end of the turn by the md-html beside team.sh; a failure is noticed in the pane; outside the team's tmux nothing happens (AW-Q135, AW-A1, AW-A2). A path containing a space gets no page (backlog). **Act:** each seat takes it at its next `/reload` or refresh; the rule to name pages stays.
+
 ## [2.10.2] - 2026-11-20
 
 ### Fixed
