@@ -1,5 +1,9 @@
 # Team board: perimeter
 
+Ceremony: script (the user, "yes", team-board pane 20 Nov 2026 20:33, to TB-Q17: `implement`, this file as the brief, in three pieces: (1) the shared changes, `open-questions.ts` publishing the seat's fields and reading `for=`, `team.sh spawn` writing a ledger line, merged on their own first, the rules.md wording handed to agentic-workflow; (2) `tools/board.mjs` iteration 1; (3) iteration 2).
+
+**If it fails:** the board shows a stale or wrong row, or exits; the seats, the ledger and Vikunja are untouched, since it only reads them and its actions are `team.sh` commands the operator confirms.
+
 The user's request (20 Nov 2026 11:38 CET), via the lead's brief: a script drawing a table of all seats in pane 0, redrawn on each new message; a second iteration as an ncurses table like top, filterable and sortable, with actions; the same for tasks.
 
 ## Decisions
