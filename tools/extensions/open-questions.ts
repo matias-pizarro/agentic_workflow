@@ -25,9 +25,11 @@
 //   in tmux.conf shows as " [n]" after the name (the user, 17 Nov).
 // - While the last STATUS line says state=waiting-for-PM, the window carries
 //   @todo, which the tab format in tmux.conf shows as " ✋" after the name: the
-//   seat waits on the operator, with or without a question (AW-Q99, the user,
-//   19 Nov 14:42). Cleared like the green tab: by the seat's next STATUS line
+//   seat waits on the operator (AW-Q99, the user, 19 Nov 14:42). Cleared like the green tab: by the seat's next STATUS line
 //   saying another state, or once the operator types in the pane.
+// - A turn whose last STATUS line says state=waiting-for-PM with open=0 gets a
+//   warning in the pane: every step the seat waits on the operator for is an
+//   open question (rules.md rule 4; AW-Q140, the user, 20 Nov 10:35).
 // - While the last STATUS line says state=ready-for-lead or waiting-for-seat,
 //   the window carries @wait, which the tab format in tmux.conf shows as " ⏳"
 //   after the name: the seat waits on the team, not on the operator (AW-Q118,
@@ -100,6 +102,12 @@ export function openFor(reply: string): number | undefined {
 export function todoFor(reply: string): boolean | undefined {
 	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
 	return last ? last[1] === "waiting-for-PM" : undefined;
+}
+
+// Whether a reply's last STATUS line says waiting-for-PM with open=0: a wait
+// on the operator not asked as a question (AW-Q140).
+export function unaskedWait(reply: string): boolean {
+	return todoFor(reply) === true && openFor(reply) === 0;
 }
 
 // Whether a reply's last STATUS line says the seat waits on the team (the lead
@@ -403,6 +411,8 @@ export default function openQuestions(pi: ExtensionAPI) {
 			if (todo !== undefined) showTodo(todo);
 			const wait = waitFor(reply);
 			if (wait !== undefined) showWait(wait);
+			if (unaskedWait(reply) && ctx.hasUI)
+				ctx.ui.notify("STATUS says waiting-for-PM with open=0: ask what you wait on the operator for as a question, counted in open (rules.md rule 4)", "warning");
 			const notice = registerIds(reply);
 			if (notice && ctx.hasUI) ctx.ui.notify(notice, "warning");
 			const pageNotice = makePages(reply);
