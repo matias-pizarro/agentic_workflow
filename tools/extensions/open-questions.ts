@@ -104,12 +104,6 @@ export function todoFor(reply: string): boolean | undefined {
 	return last ? last[1] === "waiting-for-PM" : undefined;
 }
 
-// Whether a reply's last STATUS line says waiting-for-PM with open=0: a wait
-// on the operator not asked as a question (AW-Q140).
-export function unaskedWait(reply: string): boolean {
-	return todoFor(reply) === true && openFor(reply) === 0;
-}
-
 // Whether a reply's last STATUS line says the seat waits on the team (the lead
 // or another seat), or undefined without one.
 export function waitFor(reply: string): boolean | undefined {
@@ -411,7 +405,7 @@ export default function openQuestions(pi: ExtensionAPI) {
 			if (todo !== undefined) showTodo(todo);
 			const wait = waitFor(reply);
 			if (wait !== undefined) showWait(wait);
-			if (unaskedWait(reply) && ctx.hasUI)
+			if (todo === true && open === 0 && ctx.hasUI)
 				ctx.ui.notify("STATUS says waiting-for-PM with open=0: ask what you wait on the operator for as a question, counted in open (rules.md rule 4)", "warning");
 			const notice = registerIds(reply);
 			if (notice && ctx.hasUI) ctx.ui.notify(notice, "warning");
