@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.12.2] - 2026-11-20
+
+### Fixed
+
+- Rules (Team mechanics): the STATUS states defined: `ready-for-lead` only when a deliverable waits for the lead's review or merge authorisation; `idle` when nobody owes the seat anything, a report sent included; `done`, `working` and `blocked` (AW-Q149). A seat had shown `ready-for-lead` for 25 minutes after a progress report. **Act:** every seat, from its next STATUS line.
+- Rules (Team mechanics): a request to reload (a release that changed an extension or a prompt template, a new token, a changed setting) is taken in the turn that receives it, with the `reload_runtime` tool, which takes effect when that turn ends; no longer "once idle" (AW-Q150). A seat had reloaded 1 h 24 min after a token change. **Act:** every seat, at the next request; the lead words its requests so.
+
 ## [2.12.1] - 2026-11-20
 
 ### Fixed
