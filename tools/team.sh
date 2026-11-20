@@ -31,10 +31,11 @@
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
 #   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
-# Every agent ends each turn with: STATUS seat=<name> state=<state> open=<n>
-# [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
-# (open: its questions to the operator still unanswered; worst: the highest
-# criticality among them). status prints that line; the tab colour follows it.
+# Every agent ends each turn with: STATUS seat=<name> state=<state>
+# [for=<PM|lead|seat-name>] open=<n> [worst=<high|medium|low>] [ask="<one
+# sentence>"] [pointer=<path or commit>] (for: who it waits for; open: its
+# questions to the operator still unanswered; worst: the highest criticality
+# among them). status prints that line; the tab colour follows it.
 # spawn records each agent as "name<TAB>cwd<TAB>task file<TAB>session id" in
 # tools/agents (git-ignored; TEAM_AGENTS overrides), and starts it without
 # TEAM_ROLE in its environment (the lead runs with TEAM_ROLE=lead, which the
@@ -54,7 +55,8 @@
 # which the pi extension draft.ts runs to relay a /draft to the lead (AW-Q70),
 # and @team-ledger to the ledger's path, tools/ledger (git-ignored; TEAM_LEDGER
 # overrides), where the pi extension ledger.ts logs each session's start and
-# stop, and refresh its events (RF-Q5). spawn names each session
+# stop, refresh its events (RF-Q5), and spawn a "spawn" line, the seat's
+# creation, which the team board shows (TB-Q5). spawn names each session
 # "<name> <YYYY-MM-DD hh:mm>" (RF-Q8).
 # refresh writes the handoff and task files to wiki/sources/cos-archive
 # (TEAM_HANDOFFS overrides), uncommitted: the lead commits them.
@@ -296,8 +298,9 @@ compose_prompt() { # name task-file
   cat > "$full" <<HDR
 You are the agent \`$1\` on a team led by a chief of staff (the lead). Protocol:
 - End EVERY turn with exactly one line:
-  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
-  (open: your questions to the operator still unanswered; worst: the highest criticality among them, whenever open > 0)
+  STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [for=<PM|lead|seat-name>] open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
+  (for: who you wait for, PM with waiting-for-PM, lead with ready-for-lead, the seat with waiting-for-seat, left out otherwise;
+  open: your questions to the operator still unanswered; worst: the highest criticality among them, whenever open > 0)
 - When you finish, or need the lead, also run:
   $here/team.sh report "$1: <one or two sentences, with a pointer (path or commit)>"
   then end your turn. Never paste file contents into a report; name the path.
@@ -1163,10 +1166,13 @@ spawn)
   ! window_exists "$name" || die "window $name exists"
   ! record "$name" > /dev/null || die "$name is recorded in $agents: team.sh revive or retire it"
   id=$(uuidgen | tr '[:upper:]' '[:lower:]')
-  open_window "$name" "$cwd" "$id" "$(session_name "$name")" "$(compose_prompt "$name" "$task")"
+  sname=$(session_name "$name")
+  open_window "$name" "$cwd" "$id" "$sname" "$(compose_prompt "$name" "$task")"
   registry_lock || die "spawn: cannot lock $agents.lock; $name started but not recorded: team.sh retire $name"
   printf '%s\t%s\t%s\t%s\n' "$name" "$cwd" "$task" "$id" >> "$agents"
   rm -rf "$agents.lock"
+  ledger_add spawn "$name" "$id" "$sname" "$task"
+  [ -z "$ledger_err" ] || say_err "$ledger_err"
   echo "spawned $name (session $id)"
   ;;
 send)

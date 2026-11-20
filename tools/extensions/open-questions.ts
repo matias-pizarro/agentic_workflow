@@ -35,6 +35,11 @@
 //   after the name: the seat waits on the team, not on the operator (AW-Q118,
 //   the user, 19 Nov 22:07). Cleared by the seat's next STATUS line saying
 //   another state.
+// - At the end of each turn with a STATUS line, the window carries that line's
+//   fields for the team board (TB-Q1, the user, 20 Nov 11:43): @state, @for
+//   (the waited-for party, after state=: TB-Q2, TB-Q3), @worst and @ask, the
+//   last three unset when the line has none; and, every turn, @ctx, the
+//   context window's percentage in use, when pi knows it.
 // - While the agent works, its window carries the tmux option @working, which
 //   the tab format in tmux.conf shows as ⚡ after the name (the user, 16 Nov).
 // - At the end of each turn, each new "❓ <ID>" of the reply (an -Q ID, as
@@ -80,7 +85,26 @@ const TABS: Record<string, string> = {
 };
 // A whole STATUS line, its fields in their fixed order from the line's start
 // (SOCR-Q1): a quoted example or an ask="... open=1 ..." text does not count.
-const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=(\S+) open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
+// for= sits between state= and open= (TB-Q3).
+const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=(\S+)(?: for=(\S+))? open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
+
+// The fields of a reply's last STATUS line, or undefined without one.
+export function statusOf(reply: string): { state: string; for?: string; open: number; worst?: string; ask?: string } | undefined {
+	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
+	if (!last) return undefined;
+	const line = reply.slice(last.index).split("\n")[0];
+	const ask = line.match(/ ask="([^"]*)"/u)?.[1];
+	return { state: last[1], for: last[2], open: Number(last[3]), worst: last[4], ask };
+}
+
+// The board's window options (TB-Q1): set each field, unset an absent one.
+function publish(s: NonNullable<ReturnType<typeof statusOf>>) {
+	const fields: [string, string | undefined][] = [["@state", s.state], ["@for", s.for], ["@worst", s.worst], ["@ask", s.ask]];
+	for (const [option, value] of fields) {
+		if (value === undefined) setWindowOption(["-u"], option);
+		else setWindowOption([], option, value);
+	}
+}
 
 // The tab's colour a reply's last STATUS line asks for: "green" at open=0,
 // its worst= ("low" without one) above 0, or undefined to leave the tab as is.
@@ -88,13 +112,13 @@ export function tabFor(reply: string): string | undefined {
 	const open = openFor(reply);
 	if (open === undefined) return undefined;
 	if (open === 0) return "green";
-	return [...reply.matchAll(STATUS_LINE)].at(-1)![3] ?? "low";
+	return [...reply.matchAll(STATUS_LINE)].at(-1)![4] ?? "low";
 }
 
 // The open= count of a reply's last STATUS line, or undefined without one.
 export function openFor(reply: string): number | undefined {
 	const last = [...reply.matchAll(STATUS_LINE)].at(-1);
-	return last ? Number(last[2]) : undefined;
+	return last ? Number(last[3]) : undefined;
 }
 
 // Whether a reply's last STATUS line says the seat waits on the operator, or
@@ -294,7 +318,7 @@ export function withPages(markdown: string, pages: string[]): string {
 	if (pages.length === 0) return markdown;
 	const block = `Pages to open in a browser:\n${pages.map((p) => `- ${p}`).join("\n")}\n`;
 	const lines = markdown.split("\n");
-	const status = /^\s*`?STATUS seat=\S+ state=\S+ open=\d+/;
+	const status = /^\s*`?STATUS seat=\S+ state=\S+ (?:for=\S+ )?open=\d+/;
 	for (let at = lines.length - 1; at >= 0; at--) {
 		if (status.test(lines[at])) {
 			lines.splice(at, 0, block);
@@ -397,6 +421,10 @@ export default function openQuestions(pi: ExtensionAPI) {
 		markWorking(false);
 		if (!event.aborted) {
 			const reply = lastAssistantText(ctx) ?? "";
+			const fields = statusOf(reply);
+			if (fields) publish(fields);
+			const ctxPercent = ctx.getContextUsage()?.percent;
+			if (typeof ctxPercent === "number") setWindowOption([], "@ctx", ctxPercent.toFixed(1));
 			const tab = tabFor(reply);
 			if (tab) colourTab(tab);
 			const open = openFor(reply);
