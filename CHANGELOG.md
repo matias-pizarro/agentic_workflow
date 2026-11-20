@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.12.1] - 2026-11-20
+
+### Fixed
+
+- Rules (Team mechanics) and the `/open-questions` template: the lead relays, and lists in its table, only questions the operator can answer now; a question a seat has yet to ask gets no row (AW-Q147). A table had listed "your go for the record, once it asks". **Act:** the lead, from its next summary.
+
 ## [2.12.0] - 2026-11-20
 
 ### Added
