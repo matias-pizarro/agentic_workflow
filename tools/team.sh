@@ -27,7 +27,8 @@
 #                                            wiki/sources/checkouts/<yyyy-mm-dd>-<name>.md (TEAM_CHECKOUTS overrides
 #                                            the directory) is missing, unreadable or empty, unless --no-checkout gives a
 #                                            reason, which goes to the log (rules.md, Team mechanics; AW-Q86)
-#   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions
+#   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions;
+#                                            --all also reopens the team board in window 0 (board.mjs open)
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
 #   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
@@ -1366,6 +1367,10 @@ revive)
     if [ -f "$agents" ]; then
       while IFS="$tab" read -r n _; do revive_one "$n" || rc=1; done < "$agents"
     fi
+    # The team board, back in window 0 unless open (TB-Q29); its failure is
+    # printed, the seats' exit status kept.
+    board=$(dirname "$(realpath "$self")")/board.mjs
+    node "$board" open || say_err "revive: the team board was not reopened: node $board open failed"
     exit $rc
   fi
   revive_one "$2"

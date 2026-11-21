@@ -7,6 +7,9 @@
 //                      the right (TB-Q6); Ctrl-C closes both
 //   board.mjs seats    the seats table only
 //   board.mjs tasks    the tasks table only
+//   board.mjs open     start the board in window 0 of this tmux session, the
+//                      other windows moving up one, unless a window named
+//                      board exists; team.sh revive --all runs it (TB-Q20, TB-Q29)
 //
 // Seats (TB-Q1 to TB-Q5, TB-Q16): every seat recorded in team.sh's registry
 // (tools/agents) that has a tmux window, and the lead (the pane with
@@ -29,7 +32,10 @@
 // fetch (default: the sandbox bot's, ~/.config/sandbox/vikunja-agents-jail.token,
 // TB-Q11, TB-Q28). External text (titles, ask=) is drawn with its control
 // characters removed (TB-Q21), and long rows are clipped at the pane's edge
-// (TB-Q22). Seats are polled every 2 s; the screen is redrawn when anything
+// (TB-Q22). A variable not in the environment is read from board.conf beside
+// the registry, one KEY=value per line, for a board reopened by revive, which
+// has no operator's shell to inherit from. TEAM_TMUX names a separate tmux
+// server (tmux -L), as for team.sh. Seats are polled every 2 s; the screen is redrawn when anything
 // changed, and each minute for the times.
 import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
@@ -40,7 +46,8 @@ import { fileURLToPath } from "node:url";
 const SEP = "\x1f";
 
 function tmux(args) {
-	const r = spawnSync("tmux", args, { encoding: "utf8" });
+	const server = process.env.TEAM_TMUX ? ["-L", process.env.TEAM_TMUX] : [];
+	const r = spawnSync("tmux", [...server, ...args], { encoding: "utf8" });
 	return r.status === 0 ? r.stdout : undefined;
 }
 
@@ -396,10 +403,39 @@ function runTasks() {
 	setInterval(tick, 2000);
 }
 
+const CONF_KEYS = ["VIKUNJA_URL", "VIKUNJA_PROJECT", "VIKUNJA_TOKEN_FILE", "TEAM_AGENTS", "TEAM_LEDGER"];
+
+// Fill the variables the environment lacks from board.conf beside the registry.
+function loadConf() {
+	const { agents } = teamPaths();
+	if (!agents) return;
+	for (const line of readOr(join(dirname(agents), "board.conf"), "").split("\n")) {
+		const m = line.match(/^\s*([A-Z_]+)=(.*)$/);
+		if (m && CONF_KEYS.includes(m[1]) && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+	}
+}
+
 const self = fileURLToPath(import.meta.url);
 if (process.argv[1] === self) {
 	const mode = process.argv[2] ?? "both";
-	if (mode === "seats") {
+	loadConf();
+	if (mode === "open") {
+		const names = tmux(["list-windows", "-F", "#{window_name}"]);
+		if (names === undefined) {
+			console.error("board.mjs open: cannot list this tmux session's windows");
+			process.exit(1);
+		}
+		if (names.split("\n").includes("board")) {
+			console.log("board: already open");
+			process.exit(0);
+		}
+		const env = CONF_KEYS.concat("TEAM_TMUX").filter((v) => process.env[v]).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
+		if (tmux(["new-window", "-b", "-d", "-t", ":0", "-n", "board", ...env, process.execPath, self]) === undefined) {
+			console.error("board.mjs open: tmux new-window failed");
+			process.exit(1);
+		}
+		console.log("board: opened in window 0");
+	} else if (mode === "seats") {
 		screen();
 		runSeats();
 	} else if (mode === "tasks") {
@@ -411,13 +447,13 @@ if (process.argv[1] === self) {
 			console.error("board.mjs: not in tmux; run 'board.mjs seats' or 'board.mjs tasks'");
 			process.exit(2);
 		}
-		const env = ["VIKUNJA_URL", "VIKUNJA_PROJECT", "VIKUNJA_TOKEN_FILE", "TEAM_AGENTS", "TEAM_LEDGER"]
+		const env = CONF_KEYS.concat("TEAM_TMUX")
 			.filter((v) => process.env[v]).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
 		const right = tmux(["split-window", "-h", "-d", "-P", "-F", "#{pane_id}", "-t", pane, ...env, process.execPath, self, "tasks"])?.trim();
 		screen(() => right && tmux(["kill-pane", "-t", right]));
 		runSeats();
 	} else {
-		console.error("usage: board.mjs [seats|tasks]");
+		console.error("usage: board.mjs [seats|tasks|open]");
 		process.exit(2);
 	}
 }
