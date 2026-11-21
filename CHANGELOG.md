@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.13.0] - 2026-11-21
+
+### Added
+
+- `tools/extensions/beep.ts`, `/beep-from all|<seat>` and `/mute all|<seat>`, typed in any pane: an audible signal (`beep` three times) at the end of a seat's turn that asks a new ❓ question or newly enters `waiting-for-PM`, unless that seat is muted. Everything starts muted, and is muted again after a tmux server restart; the switch is the global option `@beep-all` and a seat's window option `@beep`. Rules (Team mechanics): agents play no signal themselves (AW-Q157 to AW-Q164). **Act:** every seat: stop playing the signal by hand (the lead's 11:25 relay), and reload in the turn that receives this, with `reload_runtime`. The operator types `/beep-from all` (or `/beep-from <seat>`) to hear it.
+
 ## [2.12.2] - 2026-11-20
 
 ### Fixed
