@@ -2,6 +2,16 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.16.0] - 2026-11-21
+
+### Added
+
+- `tools/board.mjs`, iteration 2 (team-board, TB-Q32 to TB-Q37): an action's outcome stays shown, the view scrolls to the selected row, times sort by elapsed time; split escape sequences backlogged (TB-Q35). **Act:** none for seats; restart a running board to take it.
+
+### Changed
+
+- `.scratch/backlog.md`, the shared backlog, is now tracked in git, with every entry (AW-Q168 (a)). **Act:** every seat: append to it as before, and commit the line on your branch with the work it comes from.
+
 ## [2.15.0] - 2026-11-21
 
 ### Added

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The team board (.scratch/team-board/perimeter.md, TB-Q1 to TB-Q17): a
 // full-screen table of the seats and one of their tasks, redrawn as they
-// change. Read-only: it writes nothing, anywhere.
+// change. It reads only; its one write is through team.sh refresh or
+// retire, after a typed y (TB-Q14, TB-Q37).
 //
 //   board.mjs          split this tmux pane side by side: seats here, tasks on
 //                      the right (TB-Q6); Ctrl-C closes both
@@ -37,6 +38,13 @@
 // has no operator's shell to inherit from. TEAM_TMUX names a separate tmux
 // server (tmux -L), as for team.sh. Seats are polled every 2 s; the screen is redrawn when anything
 // changed, and each minute for the times.
+//
+// Keys (TB-Q14, TB-Q15), in each table: ↑ ↓ select a row; < > move the sort
+// column, s reverses it; / filters the rows by text (Enter keeps it, Esc
+// clears it); Ctrl-C quits. In the seats table, r refreshes and R retires the
+// selected seat, after a typed y, through team.sh refresh <seat> "board: r
+// <seat>" "board pane hh:mm" and team.sh retire <seat>; R does nothing on the
+// lead, and retire never passes --no-checkout.
 import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -178,6 +186,8 @@ export function buildSeats(raw, now, scrape = (idx) => raw.scraped?.get(idx) ?? 
 			for: waitingFor(f.state, f.for, f.ask, names),
 			created: since(created, now),
 			refreshed: since(refreshed, now),
+			createdAt: created,
+			refreshedAt: refreshed,
 			ask: f.ask,
 		});
 	}
@@ -225,7 +235,7 @@ export function buildTasks(tasks, outsideBacklog, seats, baseUrl) {
 			blockedBy: (t.related_tasks?.blocked ?? []).map((b) => `#${b.index}`).join(","),
 		});
 	}
-	return rows.sort((a, b) => RANK[b.status] - RANK[a.status] || a.index - b.index);
+	return rows;
 }
 
 const tokenFile = () => process.env.VIKUNJA_TOKEN_FILE || join(homedir(), ".config/sandbox/vikunja-agents-jail.token");
@@ -280,31 +290,50 @@ export function fit(s, n) {
 	return out + "…" + " ".repeat(Math.max(0, n - 1 - width(out)));
 }
 
-const COLOUR = { high: "\x1b[38;5;196m", medium: "\x1b[38;5;208m", low: "\x1b[38;5;220m", green: "\x1b[38;5;40m", dim: "\x1b[2m", bold: "\x1b[1m", reset: "\x1b[0m" };
+const COLOUR = { high: "\x1b[38;5;196m", medium: "\x1b[38;5;208m", low: "\x1b[38;5;220m", green: "\x1b[38;5;40m", grey: "\x1b[38;5;244m", fg: "\x1b[39m", bold: "\x1b[1m", reverse: "\x1b[7m", reset: "\x1b[0m" };
 
-// Lay out a table: fixed columns, and one flexible column taking what is left.
-export function table(cols, rows, totalWidth) {
+// Lay out a table: fixed columns, and one flexible column taking what is
+// left; the sort column's title marked ▲ or ▼, the selected row reversed.
+export function table(cols, rows, totalWidth, view = {}) {
 	const fixed = cols.filter((c) => !c.flex).reduce((n, c) => n + c.w + 1, 0);
 	const flexW = Math.max(8, totalWidth - fixed);
 	const w = (c) => (c.flex ? flexW : c.w);
-	const head = COLOUR.bold + cols.map((c) => fit(c.title, w(c))).join(" ") + COLOUR.reset;
-	const body = rows.map((r) => cols.map((c) => {
-		const cell = fit(r[c.key], w(c));
-		const colour = c.colour?.(r);
-		return colour ? colour + cell + COLOUR.reset : cell;
-	}).join(" "));
+	const title = (c, i) => (i === view.sort ? `${c.title}${view.desc ? "▼" : "▲"}` : c.title);
+	const head = COLOUR.bold + cols.map((c, i) => fit(title(c, i), w(c))).join(" ") + COLOUR.reset;
+	const body = rows.map((r, n) => {
+		const line = cols.map((c) => {
+			const cell = fit(r[c.key], w(c));
+			const colour = c.colour?.(r);
+			return colour ? colour + cell + COLOUR.fg : cell;
+		}).join(" ");
+		return n === view.selected ? COLOUR.reverse + line + COLOUR.reset : line;
+	});
 	return [head, ...body];
+}
+
+// The rows as shown (TB-Q15): those holding the filter's text in any column
+// (case ignored), sorted by the sort column, ties by the first column.
+export function arrange(rows, cols, view) {
+	const col = cols[view.sort];
+	const value = (r) => (col.sortValue ? col.sortValue(r) : r[col.key]);
+	const compare = (x, y) => (typeof x === "number" && typeof y === "number" ? x - y : String(x ?? "").localeCompare(String(y ?? ""), undefined, { numeric: true }));
+	const first = cols[0].key;
+	const text = view.filter.toLowerCase();
+	return rows
+		.filter((r) => !text || cols.some((c) => clean(r[c.key]).toLowerCase().includes(text)))
+		.sort((a, b) => (view.desc ? -1 : 1) * compare(value(a), value(b)) || compare(a[first], b[first]));
 }
 
 const SEAT_COLS = [
 	{ key: "seat", title: "SEAT", w: 17 },
 	{ key: "icon", title: "", w: 2 },
-	{ key: "ctx", title: "CTX", w: 4 },
+	{ key: "ctx", title: "CTX", w: 4, sortValue: (r) => parseFloat(r.ctx) || -1 },
 	{ key: "state", title: "STATE", w: 16 },
-	{ key: "open", title: "OPEN", w: 4, colour: (r) => (r.open === "0" ? COLOUR.green : COLOUR[r.worst || "low"]) },
+	{ key: "open", title: "OPEN", w: 4, sortValue: (r) => Number(r.open) || 0, colour: (r) => (r.open === "0" ? COLOUR.green : COLOUR[r.worst || "low"]) },
 	{ key: "for", title: "WAITING FOR", w: 16, flex: true },
-	{ key: "created", title: "CREATED", w: 11 },
-	{ key: "refreshed", title: "REFRESHED", w: 11 },
+	// By the elapsed time shown, shortest first ascending; unknown last (TB-Q34).
+	{ key: "created", title: "CREATED", w: 11, sortValue: (r) => (r.createdAt === undefined ? Infinity : -r.createdAt) },
+	{ key: "refreshed", title: "REFRESHED", w: 11, sortValue: (r) => (r.refreshedAt === undefined ? Infinity : -r.refreshedAt) },
 ];
 const TASK_COLS = [
 	{ key: "index", title: "#", w: 3 },
@@ -313,7 +342,7 @@ const TASK_COLS = [
 	{ key: "tier", title: "TIER", w: 9 },
 	{ key: "link", title: "LINK", w: 34 },
 	{ key: "seats", title: "SEATS", w: 16 },
-	{ key: "status", title: "STATUS", w: 16, colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.medium, "waiting for seat": COLOUR.low, "pending seat": COLOUR.dim })[r.status] },
+	{ key: "status", title: "STATUS", w: 16, sortValue: (r) => RANK[r.status], colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.medium, "waiting for seat": COLOUR.low, "pending seat": COLOUR.grey })[r.status] },
 	{ key: "open", title: "OPEN", w: 4 },
 	{ key: "blockedBy", title: "BLOCKED BY", w: 10 },
 ];
@@ -331,7 +360,10 @@ function draw(lines) {
 function screen(onExit) {
 	// Alternate screen, cursor hidden, autowrap off: a row wider than the pane is clipped (TB-Q22).
 	process.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?7l");
-	const restore = () => process.stdout.write("\x1b[?7h\x1b[?25h\x1b[?1049l");
+	const restore = () => {
+		if (process.stdin.isTTY) process.stdin.setRawMode(false);
+		process.stdout.write("\x1b[?7h\x1b[?25h\x1b[?1049l");
+	};
 	const quit = () => {
 		restore();
 		onExit?.();
@@ -343,20 +375,142 @@ function screen(onExit) {
 	process.on("SIGQUIT", quit);
 }
 
+// --- keys (TB-Q14, TB-Q15) ---------------------------------------------------
+
+const HELP = "↑↓ select  < > sort  s reverse  / filter";
+
+// A table's interactive state; the keys change it, then redraw.
+function makeView(sort, desc) {
+	return { sort, desc, filter: "", editing: false, selectedKey: undefined, prompt: undefined, message: "" };
+}
+
+// The selected row's index in the shown rows, keeping the selection on the same row's key.
+function selectedIndex(view, shown, keyOf) {
+	const i = shown.findIndex((r) => keyOf(r) === view.selectedKey);
+	if (i >= 0) return i;
+	view.selectedKey = shown.length ? keyOf(shown[0]) : undefined;
+	return shown.length ? 0 : undefined;
+}
+
+// The line under the title: the filter being typed, a confirmation, the last action's outcome, or the keys.
+function statusLine(view, help) {
+	if (view.editing) return `filter: ${clean(view.filter)}_  (Enter keeps it, Esc clears it)`;
+	if (view.prompt) return `${COLOUR.reverse}${clean(view.prompt.text)}${COLOUR.reset}`;
+	const filter = view.filter ? `filter "${clean(view.filter)}" · ` : "";
+	return `${filter}${view.message ? clean(view.message) : `${COLOUR.grey}${help}${COLOUR.fg}`}`;
+}
+
+// Read the keyboard in raw mode: Ctrl-C and Ctrl-\ quit, as the signals would.
+function onKeys(view, cols, shownRows, keyOf, actions, redraw) {
+	if (!process.stdin.isTTY) return;
+	process.stdin.setRawMode(true);
+	process.stdin.setEncoding("utf8");
+	// One read may hold several keys (fast typing, a paste): an arrow's escape sequence, or one character each.
+	process.stdin.on("data", (chunk) => {
+		for (const [k] of chunk.matchAll(/\x1b\[[0-9;]*[A-Za-z~]|[\s\S]/gu)) key(k);
+		redraw();
+	});
+	const key = (k) => {
+		if (k === "\x03") return process.emit("SIGINT");
+		if (k === "\x1c") return process.emit("SIGQUIT");
+		if (view.editing) {
+			if (k === "\r") view.editing = false;
+			else if (k === "\x1b") Object.assign(view, { editing: false, filter: "" });
+			else if (k === "\x7f" || k === "\b") view.filter = view.filter.slice(0, -1);
+			else if (!/[\x00-\x1f]/.test(k)) view.filter += k;
+		} else if (view.prompt) {
+			const p = view.prompt;
+			view.prompt = undefined;
+			view.message = k === "y" ? p.run() : `${p.what}: not done`;
+		} else {
+			const shown = shownRows();
+			const i = selectedIndex(view, shown, keyOf);
+			// The last outcome stays until a key does something (TB-Q32).
+			const kept = view.message;
+			view.message = "";
+			if (k === "\x1b[A" && i > 0) view.selectedKey = keyOf(shown[i - 1]);
+			else if (k === "\x1b[B" && i !== undefined && i < shown.length - 1) view.selectedKey = keyOf(shown[i + 1]);
+			else if (k === "<") view.sort = (view.sort + cols.length - 1) % cols.length;
+			else if (k === ">") view.sort = (view.sort + 1) % cols.length;
+			else if (k === "s") view.desc = !view.desc;
+			else if (k === "/") view.editing = true;
+			else if (actions[k] && i !== undefined) actions[k](shown[i]);
+			else view.message = kept;
+		}
+	};
+}
+
+// The rows that fit below `above` lines and the table's header, scrolled so
+// the selected row stays on screen (TB-Q33).
+function visible(view, rows, selected, above) {
+	const room = Math.max(1, (process.stdout.rows || 24) - above - 1);
+	view.offset = Math.min(view.offset ?? 0, Math.max(0, rows.length - room));
+	if (selected !== undefined && selected < view.offset) view.offset = selected;
+	if (selected !== undefined && selected >= view.offset + room) view.offset = selected - room + 1;
+	return { rows: rows.slice(view.offset, view.offset + room), selected: selected === undefined ? undefined : selected - view.offset };
+}
+
+// Run team.sh (the one the tmux option @team-sh names, so its tools/ is the
+// team's) and say how it went, in one line.
+function runTeam(args) {
+	const teamSh = tmux(["show", "-gv", "@team-sh"])?.trim();
+	if (!teamSh) return `${args[0]}: not run: the tmux option @team-sh is not set`;
+	const r = spawnSync("sh", [teamSh, ...args], { encoding: "utf8", timeout: 60000 });
+	const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.split("\n").map((l) => l.trim()).filter(Boolean).at(-1) ?? "";
+	return `${args[0]} ${args[1]}: ${r.status === 0 ? "done" : `failed (${r.error?.message ?? `exit ${r.status}`})`}${out ? `: ${out}` : ""}`;
+}
+
+// The seats table's actions (TB-Q14, TB-Q16): r refreshes, R retires the
+// selected seat after a typed y; the key is the operator's go, given in the
+// board's pane; retire never passes --no-checkout, and not for the lead.
+function seatActions(view) {
+	return {
+		r: (row) => {
+			view.prompt = {
+				what: `refresh ${row.seat}`,
+				text: `refresh ${row.seat}? type y to confirm, any other key to cancel`,
+				run: () => runTeam(["refresh", row.seat, `board: r ${row.seat}`, `board pane ${hhmm(new Date())}`]),
+			};
+		},
+		R: (row) => {
+			if (row.seat === "lead") {
+				view.message = "retire: not for the lead";
+				return;
+			}
+			view.prompt = {
+				what: `retire ${row.seat}`,
+				text: `retire ${row.seat}? type y to confirm, any other key to cancel`,
+				run: () => runTeam(["retire", row.seat]),
+			};
+		},
+	};
+}
+
 // --- the loops -------------------------------------------------------------
 
 function runSeats() {
+	const view = makeView(0, false);
+	const keyOf = (r) => r.seat;
+	let rows = [];
+	let head = "";
 	let last = "";
+	const shown = () => arrange(rows, SEAT_COLS, view);
+	const paint = () => {
+		const s = shown();
+		const v = visible(view, s, selectedIndex(view, s, keyOf), 2);
+		draw([head, statusLine(view, `${HELP}  r refresh  R retire`), ...table(SEAT_COLS, v.rows, (process.stdout.columns || 80) - 1, { ...view, selected: v.selected })]);
+	};
 	const tick = (force) => {
 		const now = new Date();
 		const raw = readSeatsRaw();
 		const sig = `${raw.sig}|${hhmm(now)}|${process.stdout.columns}x${process.stdout.rows}`;
 		if (!force && sig === last) return;
 		last = sig;
-		const rows = buildSeats(raw, now.getTime()).sort((a, b) => a.seat.localeCompare(b.seat));
-		const head = `${COLOUR.bold}Seats${COLOUR.reset} ${rows.length} · ${hhmm(now)}${raw.windows === undefined ? ` · ${COLOUR.high}tmux unreadable${COLOUR.reset}` : ""}`;
-		draw([head, "", ...table(SEAT_COLS, rows, (process.stdout.columns || 80) - 1)]);
+		rows = buildSeats(raw, now.getTime());
+		head = `${COLOUR.bold}Seats${COLOUR.reset} ${rows.length} · ${hhmm(now)}${raw.windows === undefined ? ` · ${COLOUR.high}tmux unreadable${COLOUR.fg}` : ""}`;
+		paint();
 	};
+	onKeys(view, SEAT_COLS, shown, keyOf, seatActions(view), paint);
 	process.stdout.on("resize", () => tick(true));
 	tick(true);
 	setInterval(tick, 2000);
@@ -364,27 +518,38 @@ function runSeats() {
 
 function runTasks() {
 	const missing = ["VIKUNJA_URL", "VIKUNJA_PROJECT"].filter((v) => !process.env[v]);
+	// Worst status first, ties by # (TB-Q10).
+	const view = makeView(TASK_COLS.findIndex((c) => c.key === "status"), true);
+	const keyOf = (r) => r.id;
 	let fetched;
 	let error = "";
 	let last = "";
+	let rows = [];
+	let head = "";
+	const shown = () => arrange(rows, TASK_COLS, view);
+	const paint = () => {
+		if (missing.length) return draw([head]);
+		const s = shown();
+		const failed = error ? [`${COLOUR.high}${clean(error)}${COLOUR.fg}`] : [];
+		const v = visible(view, s, selectedIndex(view, s, keyOf), 2 + failed.length);
+		draw([head, ...failed, statusLine(view, HELP), ...table(TASK_COLS, v.rows, (process.stdout.columns || 80) - 1, { ...view, selected: v.selected })]);
+	};
 	const tick = (force) => {
 		const now = new Date();
 		const raw = readSeatsRaw();
 		const sig = `${raw.sig}|${hhmm(now)}|${fetched?.at}|${error}|${process.stdout.columns}x${process.stdout.rows}`;
 		if (!force && sig === last) return;
 		last = sig;
-		const lines = [`${COLOUR.bold}Tasks${COLOUR.reset}`];
+		head = `${COLOUR.bold}Tasks${COLOUR.reset}`;
 		if (missing.length) {
-			lines[0] += ` · ${missing.join(", ")} not set`;
+			head += ` · ${missing.join(", ")} not set`;
 		} else {
-			const seats = buildSeats(raw, now.getTime());
-			const rows = fetched ? buildTasks(fetched.tasks, fetched.outside, seats, process.env.VIKUNJA_URL) : [];
-			lines[0] += fetched ? ` ${rows.length} · read ${hhmm(new Date(fetched.at))}` : " · reading…";
-			if (error) lines.push(`${COLOUR.high}${clean(error)}${COLOUR.reset}`);
-			lines.push("", ...table(TASK_COLS, rows, (process.stdout.columns || 80) - 1));
+			rows = fetched ? buildTasks(fetched.tasks, fetched.outside, buildSeats(raw, now.getTime()), process.env.VIKUNJA_URL) : [];
+			head += fetched ? ` ${rows.length} · read ${hhmm(new Date(fetched.at))}` : " · reading…";
 		}
-		draw(lines);
+		paint();
 	};
+	onKeys(view, TASK_COLS, shown, keyOf, {}, paint);
 	const read = async () => {
 		try {
 			fetched = { ...(await fetchTasks()), at: Date.now() };
