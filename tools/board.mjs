@@ -18,7 +18,9 @@
 // publishes at each turn's end (@state, @for, @open, @worst, @ask, @ctx,
 // @working, @todo, @wait); a window without @state is read from its pane's
 // last STATUS line instead. Waiting-for is @for, else derived from the state
-// (PM, lead, or the first seat named in ask=). "Created" is the seat's spawn
+// (PM, lead, or the first seat named in ask=). A seat with @working set shows
+// state working and no waiting-for, as its tab shows only ⚡: its @state and
+// @for are the previous turn's (the user, 21 Nov 2026 16:51). "Created" is the seat's spawn
 // line in the ledger, else its earliest line; "refreshed" the first start
 // line of its current session.
 // Tasks (TB-Q7 to TB-Q11): the undone tasks of a Vikunja project that have a
@@ -175,6 +177,7 @@ export function buildSeats(raw, now, scrape = (idx) => raw.scraped?.get(idx) ?? 
 			if (!state) f = scrapeStatus(text) ?? { state: "", for: "", open: "", worst: "", ask: "" };
 			if (!ctx) percent = [...text.matchAll(/(\d+(?:\.\d+)?)%\/\d/g)].at(-1)?.[1] ?? "";
 		}
+		if (working) f = { ...f, state: "working", for: "" };
 		const { created, refreshed } = seatTimes(ledger, seat, isLead ? leadPane[2] : rec[3]);
 		rows.push({
 			seat,

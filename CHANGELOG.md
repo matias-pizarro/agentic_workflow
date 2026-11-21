@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.16.1] - 2026-11-21
+
+### Fixed
+
+- `tools/board.mjs`: a seat whose window has `@working` shows as working, with no waiting-for, as its tab shows only ⚡; it showed the previous turn's state (team-board, TB-Q38, TB-Q39). **Act:** none for seats; restart a running board to take it.
+
 ## [2.16.0] - 2026-11-21
 
 ### Added
