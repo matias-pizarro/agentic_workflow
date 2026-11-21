@@ -4,12 +4,13 @@
 // - `/beep-from all|<seat>` and `/mute all|<seat>`, typed in any pane, switch
 //   the signal for the whole team or one seat (a tmux window's name). The
 //   state is in tmux options, so a tmux server restart mutes everything again:
-//   the server option @beep-all (on, or unset for muted) and a seat's window
+//   the global option @beep-all (on, or unset for muted) and a seat's window
 //   option @beep (on or off), which overrides @beep-all. `all` also clears
 //   every seat's own setting. No turn starts; the pane says what was set.
 // - At the end of a turn (not aborted), a seat that is not muted plays the
-//   signal once, `beep` three times, when its reply asks a new ❓ question (an
-//   ID no earlier reply of the session holds) or its STATUS line newly says
+//   signal once, `beep` three times, when its turn (every assistant text since
+//   the last user message, AW-Q159) asks a new ❓ question (an ID no earlier
+//   reply of the session holds) or its STATUS line newly says
 //   waiting-for-PM (the previous STATUS line said another state, or there was
 //   none). Agents play no signal themselves (rules.md, Team mechanics).
 // Only typed input counts: a message from an extension or over RPC passes.
@@ -42,7 +43,7 @@ export function calls(earlier: string[], last: string): boolean {
 
 function tmux(args: string[]): { ok: boolean; out: string } {
 	if (!process.env.TMUX) return { ok: false, out: "" };
-	const r = spawnSync("tmux", args, { encoding: "utf8" });
+	const r = spawnSync("tmux", args, { encoding: "utf8", timeout: 5000 });
 	return { ok: r.status === 0, out: (r.stdout ?? "").trim() };
 }
 
@@ -80,15 +81,26 @@ function switchedOn(): boolean {
 	return tmux(["show", "-gv", "@beep-all"]).out === "on";
 }
 
-function replies(ctx: ExtensionContext): string[] {
-	return ctx.sessionManager.getBranch().flatMap((entry) => {
-		if (entry.type !== "message" || entry.message.role !== "assistant") return [];
+// The session's assistant texts before the last user message, and the last
+// turn's (every assistant text after it) joined into one.
+function replies(ctx: ExtensionContext): { earlier: string[]; turn: string } {
+	const earlier: string[] = [];
+	let turn: string[] = [];
+	for (const entry of ctx.sessionManager.getBranch()) {
+		if (entry.type !== "message") continue;
+		if (entry.message.role === "user") {
+			earlier.push(...turn);
+			turn = [];
+			continue;
+		}
+		if (entry.message.role !== "assistant") continue;
 		const text = entry.message.content
 			.filter((c): c is { type: "text"; text: string } => c.type === "text")
 			.map((c) => c.text)
 			.join("\n");
-		return text ? [text] : [];
-	});
+		if (text) turn.push(text);
+	}
+	return { earlier, turn: turn.join("\n") };
 }
 
 export default function beep(pi: ExtensionAPI) {
@@ -106,9 +118,8 @@ export default function beep(pi: ExtensionAPI) {
 
 	pi.on("agent_settled", async (event, ctx) => {
 		if (event.aborted) return;
-		const all = replies(ctx);
-		const last = all.at(-1);
-		if (last === undefined || !calls(all.slice(0, -1), last) || !switchedOn()) return;
+		const { earlier, turn } = replies(ctx);
+		if (!turn || !calls(earlier, turn) || !switchedOn()) return;
 		spawn("sh", ["-c", SIGNAL], { stdio: "ignore", detached: true }).unref();
 	});
 }
