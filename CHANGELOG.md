@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.15.0] - 2026-11-21
+
+### Added
+
+- `tools/board.mjs`, the team board (team-board, TB-Q1 to TB-Q31): a read-only, full-screen table of the seats (name, context %, state, open, waiting-for, since creation, since refresh) and one of their Vikunja tasks, redrawn as they change; `board.mjs open` starts it in window 0 of the lead's session unless a window named `board` exists, and `team.sh revive --all` runs that as its last step (TB-Q29). **Act:** none for seats; the operator gets the board back at the next `team.sh revive --all`, or runs `node <root>/agentic_workflow/tools/board.mjs open`.
+
 ## [2.14.0] - 2026-11-21
 
 ### Added
