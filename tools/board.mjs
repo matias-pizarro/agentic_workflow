@@ -7,7 +7,7 @@
 //                      the right (TB-Q6); Ctrl-C closes both
 //   board.mjs seats    the seats table only
 //   board.mjs tasks    the tasks table only
-//   board.mjs open     start the board in window 0 of this tmux session, the
+//   board.mjs open     start the board in window 0 of the lead's tmux session, the
 //                      other windows moving up one, unless a window named
 //                      board exists; team.sh revive --all runs it (TB-Q20, TB-Q29)
 //
@@ -411,7 +411,7 @@ function loadConf() {
 	if (!agents) return;
 	for (const line of readOr(join(dirname(agents), "board.conf"), "").split("\n")) {
 		const m = line.match(/^\s*([A-Z_]+)=(.*)$/);
-		if (m && CONF_KEYS.includes(m[1]) && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+		if (m && CONF_KEYS.includes(m[1]) && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
 	}
 }
 
@@ -420,17 +420,24 @@ if (process.argv[1] === self) {
 	const mode = process.argv[2] ?? "both";
 	loadConf();
 	if (mode === "open") {
-		const names = tmux(["list-windows", "-F", "#{window_name}"]);
+		// The team's session: the one holding the lead's pane (TB-Q30).
+		const roles = tmux(["list-panes", "-a", "-F", `#{@role}${SEP}#{session_id}`]);
+		const session = (roles ?? "").split("\n").map((l) => l.split(SEP)).find((p) => p[0] === "lead")?.[1];
+		if (!session) {
+			console.error(roles === undefined ? "board.mjs open: cannot read tmux's panes" : "board.mjs open: no pane has @role=lead, so the team's session is unknown");
+			process.exit(1);
+		}
+		const names = tmux(["list-windows", "-t", session, "-F", "#{window_name}"]);
 		if (names === undefined) {
-			console.error("board.mjs open: cannot list this tmux session's windows");
+			console.error("board.mjs open: cannot list the team session's windows");
 			process.exit(1);
 		}
 		if (names.split("\n").includes("board")) {
 			console.log("board: already open");
 			process.exit(0);
 		}
-		const env = CONF_KEYS.concat("TEAM_TMUX").filter((v) => process.env[v]).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
-		if (tmux(["new-window", "-b", "-d", "-t", ":0", "-n", "board", ...env, process.execPath, self]) === undefined) {
+		const env = CONF_KEYS.concat("TEAM_TMUX").filter((v) => process.env[v] !== undefined).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
+		if (tmux(["new-window", "-b", "-d", "-t", `${session}:0`, "-n", "board", ...env, process.execPath, self]) === undefined) {
 			console.error("board.mjs open: tmux new-window failed");
 			process.exit(1);
 		}
@@ -448,7 +455,7 @@ if (process.argv[1] === self) {
 			process.exit(2);
 		}
 		const env = CONF_KEYS.concat("TEAM_TMUX")
-			.filter((v) => process.env[v]).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
+			.filter((v) => process.env[v] !== undefined).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
 		const right = tmux(["split-window", "-h", "-d", "-P", "-F", "#{pane_id}", "-t", pane, ...env, process.execPath, self, "tasks"])?.trim();
 		screen(() => right && tmux(["kill-pane", "-t", right]));
 		runSeats();
