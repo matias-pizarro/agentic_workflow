@@ -12,7 +12,7 @@ A way to run software work with a team of [Pi](https://github.com/earendil-works
 Clone it beside the project, at a release tag, and point your agents at it by path ([docs/kickoff.md](docs/kickoff.md) has every step):
 
 ```sh
-git clone --branch v2.12.2 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
+git clone --branch v2.13.0 https://github.com/matias-pizarro/agentic_workflow.git <root>/agentic_workflow
 ```
 
 Install a skill globally with the [skills CLI](https://github.com/vercel-labs/skills), which asks which agents to install it for:
@@ -36,6 +36,7 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 | `/start-unattended-window` | starts the window |
 | `/end-unattended-window` | ends the window |
 | `/refresh <seat>…`, `all`, `lead` | hands seats to new sessions in their panes through a handoff, in the lead's pane |
+| `/beep-from all\|<seat>`, `/mute all\|<seat>` | turns the audible signal on or off, for the whole team or one seat; muted by default |
 | `/reload-runtime` | the same as pi's `/reload`; there for the `reload_runtime` tool |
 
 ## Guards
@@ -63,6 +64,8 @@ The same step installs `tools/extensions/draft.ts`, the `/draft <description>` c
 set-window-option -g window-status-format '#I:#W#{?@open, [#{@open}],}#{?@working, ⚡,#{?@todo, ✋,}#{?@wait, ⏳,}}#{?window_flags,#{window_flags}, }'
 set-window-option -g window-status-current-format '#I:#W#{?@open, [#{@open}],}#{?@working, ⚡,#{?@todo, ✋,}#{?@wait, ⏳,}}#{?window_flags,#{window_flags}, }'
 ```
+
+It also installs, for the main session only, `tools/extensions/beep.ts`: an audible signal (`beep` three times, from `/usr/bin/beep`) at the end of a seat's turn that asks you a new `❓` question or newly enters `waiting-for-PM`. `/beep-from all|<seat>` turns it on for the whole team or one seat (a tmux window's name) and `/mute all|<seat>` turns it off, typed in any pane; no turn starts. Everything starts muted; the switch lives in tmux options (the global option `@beep-all`, and `@beep` on a seat's window, which overrides it), so a tmux server restart mutes everything again, and `all` clears every seat's own setting.
 
 It also installs, for the main session only, `tools/extensions/ledger.ts` and `tools/extensions/refresh.ts`. `ledger.ts` appends a line to the session ledger, `tools/ledger` beside `team.sh` (git-ignored), each time a pi session starts or stops in a pane of the team's tmux server (not on `/reload`): `<YYYY-MM-DD hh:mm:ss TZ> <event> <seat> <session id> <session name> <detail>`, tab-separated, the seat being the tmux window's name. `/refresh <seat> [<seat>…]`, `/refresh all` or `/refresh lead`, typed in the lead's pane, hands each seat to a new session in its own pane through a handoff (`team.sh refresh`): it waits while the seat is busy, its input box holds text or a message is queued for it; asks the seat for a handoff following `tools/handoff.md`, or for `REFRESH-UNADVISABLE: <reason>`; then stops its pi and starts a new one in the same pane, named `<seat> <YYYY-MM-DD hh:mm>`, on a task file pointing at the handoff. The lead's pane is free at once; each seat's refresh reports to the lead when it ends, and logs its steps in the ledger. The handoff and task files go to the wiki's `sources/cos-archive/`, uncommitted. Typed in any other pane, `/refresh` is refused there. The prompt template `tools/prompts/refresh.md` makes pi's autocomplete list it; refresh.ts handles the line before the template expands. Its tests: `node tests/refresh/run.mjs` and `team.sh selftest`.
 
