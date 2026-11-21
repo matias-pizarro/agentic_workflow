@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.14.0] - 2026-11-21
+
+### Added
+
+- Rules (Team mechanics): the STATUS field `for=<PM|lead|seat-name>`, after `state=`: who the seat waits for: `for=PM` with `waiting-for-PM`, `for=lead` with `ready-for-lead`, the first seat waited for with `waiting-for-seat`; left out in the other states (AW-Q156; TB-Q2, TB-Q3). `team.sh spawn`'s prompt carries it (TB-Q19).
+- `open-questions.ts` reads `for=` and publishes each seat's STATUS fields and context % to tmux, for team-board's table; `team.sh spawn` writes a spawn line to the ledger (team-board, TB-Q1 to TB-Q5, TB-Q18). A 2.13.0 extension stops reading a STATUS line carrying `for=`. **Act:** every seat: reload in the turn that receives this, with `reload_runtime`; from the next STATUS line after that, add `for=PM`, `for=lead` or `for=<seat>` after `state=` when waiting.
+
 ## [2.13.0] - 2026-11-21
 
 ### Added
