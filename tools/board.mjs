@@ -1,0 +1,423 @@
+#!/usr/bin/env node
+// The team board (.scratch/team-board/perimeter.md, TB-Q1 to TB-Q17): a
+// full-screen table of the seats and one of their tasks, redrawn as they
+// change. Read-only: it writes nothing, anywhere.
+//
+//   board.mjs          split this tmux pane side by side: seats here, tasks on
+//                      the right (TB-Q6); Ctrl-C closes both
+//   board.mjs seats    the seats table only
+//   board.mjs tasks    the tasks table only
+//
+// Seats (TB-Q1 to TB-Q5, TB-Q16): every seat recorded in team.sh's registry
+// (tools/agents) that has a tmux window, and the lead (the pane with
+// @role=lead). Each seat's fields are the window options open-questions.ts
+// publishes at each turn's end (@state, @for, @open, @worst, @ask, @ctx,
+// @working, @todo, @wait); a window without @state is read from its pane's
+// last STATUS line instead. Waiting-for is @for, else derived from the state
+// (PM, lead, or the first seat named in ask=). "Created" is the seat's spawn
+// line in the ledger, else its earliest line; "refreshed" the first start
+// line of its current session.
+// Tasks (TB-Q7 to TB-Q11): the undone tasks of a Vikunja project that have a
+// live seat (a seat:<name> label, else a title ending in "(<name>)"), plus
+// those outside the Backlog bucket; worst status first, then by #. Read by
+// GET on Vikunja's REST API every 60 s; a failed read keeps the last table.
+//
+// Environment: TEAM_AGENTS and TEAM_LEDGER override the registry and the
+// ledger (default: beside the team.sh named by the tmux option @team-sh, and
+// the option @team-ledger). VIKUNJA_URL and VIKUNJA_PROJECT (its id) enable
+// the tasks table; VIKUNJA_TOKEN_FILE names the token file, read at each
+// fetch (default: the sandbox bot's, ~/.config/sandbox/vikunja-agents-jail.token,
+// TB-Q11, TB-Q28). External text (titles, ask=) is drawn with its control
+// characters removed (TB-Q21), and long rows are clipped at the pane's edge
+// (TB-Q22). Seats are polled every 2 s; the screen is redrawn when anything
+// changed, and each minute for the times.
+import { spawnSync } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SEP = "\x1f";
+
+function tmux(args) {
+	const r = spawnSync("tmux", args, { encoding: "utf8" });
+	return r.status === 0 ? r.stdout : undefined;
+}
+
+// --- data: the seats -------------------------------------------------------
+
+const STATUS_LINE = /^[ \t]*`?STATUS seat=\S+ state=(\S+)(?: for=(\S+))? open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
+
+// The last STATUS line in a pane's text, as the fields the options carry.
+export function scrapeStatus(text) {
+	const last = [...text.matchAll(STATUS_LINE)].at(-1);
+	if (!last) return undefined;
+	const line = text.slice(last.index).split("\n")[0];
+	return { state: last[1], for: last[2] ?? "", open: last[3], worst: last[4] ?? "", ask: line.match(/ ask="([^"]*)"?/u)?.[1] ?? "" };
+}
+
+// Who a seat waits for: its for= field, else derived from its state (TB-Q2 (a), TB-Q3).
+export function waitingFor(state, forField, ask, seatNames) {
+	if (forField) return forField;
+	if (state === "waiting-for-PM") return "PM";
+	if (state === "ready-for-lead") return "lead";
+	if (state === "waiting-for-seat") {
+		const words = (ask ?? "").split(/[^A-Za-z0-9._-]+/).map((w) => w.replace(/\.+$/, ""));
+		return words.find((w) => seatNames.includes(w)) ?? "seat?";
+	}
+	return "";
+}
+
+// The ledger's lines as [time ms, event, seat, session id].
+export function parseLedger(text) {
+	return text.split("\n").filter(Boolean).map((line) => {
+		const [stamp, event, seat, id] = line.split("\t");
+		const m = stamp?.match(/^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)/);
+		const at = m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : NaN;
+		return { at, event, seat, id };
+	}).filter((l) => !Number.isNaN(l.at));
+}
+
+// When a seat was created and when its current session started (TB-Q5).
+export function seatTimes(ledger, seat, sessionId) {
+	const mine = ledger.filter((l) => l.seat === seat);
+	const created = (mine.find((l) => l.event === "spawn") ?? mine[0])?.at;
+	const refreshed = sessionId ? mine.find((l) => l.event === "start" && l.id === sessionId)?.at : undefined;
+	return { created, refreshed };
+}
+
+// "2d 3h 15m", the days only when above 0 (TB-Q5); "?" when unknown.
+export function since(at, now) {
+	if (at === undefined || Number.isNaN(at)) return "?";
+	const m = Math.max(0, Math.floor((now - at) / 60000));
+	const d = Math.floor(m / 1440);
+	const h = Math.floor((m % 1440) / 60);
+	return `${d > 0 ? `${d}d ` : ""}${h}h ${m % 60}m`;
+}
+
+function teamPaths() {
+	const teamSh = tmux(["show", "-gv", "@team-sh"])?.trim();
+	const agents = process.env.TEAM_AGENTS ?? (teamSh ? join(dirname(teamSh), "agents") : undefined);
+	const ledger = process.env.TEAM_LEDGER ?? tmux(["show", "-gv", "@team-ledger"])?.trim();
+	return { agents, ledger };
+}
+
+function readOr(path, fallback) {
+	try {
+		return readFileSync(path, "utf8");
+	} catch {
+		return fallback;
+	}
+}
+function stamp(path) {
+	try {
+		const s = statSync(path);
+		return `${s.mtimeMs}:${s.size}`;
+	} catch {
+		return "absent";
+	}
+}
+
+const WINDOW_FORMAT = ["window_index", "window_name", "@state", "@for", "@open", "@worst", "@ask", "@ctx", "@working", "@todo", "@wait"]
+	.map((f) => `#{${f}}`).join(SEP);
+
+const capture = (target) => tmux(["capture-pane", "-p", "-J", "-S", "-2000", "-t", target]) ?? "";
+
+// The raw reads one poll makes; their text is also the poll's change
+// signature, with the panes scraped because they publish nothing yet (TB-Q26).
+function readSeatsRaw() {
+	const { agents, ledger } = teamPaths();
+	const windows = tmux(["list-windows", "-F", WINDOW_FORMAT]);
+	const panes = tmux(["list-panes", "-s", "-F", ["#{window_index}", "#{@role}", "#{@session-id}", "#{pane_id}"].join(SEP)]);
+	const scraped = new Map();
+	const lead = (panes ?? "").split("\n").map((l) => l.split(SEP)).find((p) => p[1] === "lead");
+	for (const line of (windows ?? "").split("\n").filter(Boolean)) {
+		const [idx, , state, , , , , ctx] = line.split(SEP);
+		if (state && ctx) continue;
+		scraped.set(idx, capture(lead && lead[0] === idx ? lead[3] : idx));
+	}
+	const scrapedSig = [...scraped].map(([i, t]) => `${i}:${[...t.matchAll(STATUS_LINE)].at(-1)?.[0] ?? ""}`).join(",");
+	return { agents, ledger, windows, panes, scraped, sig: `${windows}|${panes}|${stamp(agents)}|${stamp(ledger)}|${scrapedSig}` };
+}
+
+export function buildSeats(raw, now, scrape = (idx) => raw.scraped?.get(idx) ?? "") {
+	const registry = readOr(raw.agents, "").split("\n").filter(Boolean).map((l) => l.split("\t"));
+	const ledger = parseLedger(readOr(raw.ledger, ""));
+	const leadPane = (raw.panes ?? "").split("\n").map((l) => l.split(SEP)).find((p) => p[1] === "lead");
+	const names = [...registry.map((r) => r[0]), "lead"];
+	const rows = [];
+	for (const line of (raw.windows ?? "").split("\n").filter(Boolean)) {
+		const [idx, name, state, forField, open, worst, ask, ctx, working, todo, wait] = line.split(SEP);
+		const isLead = leadPane && leadPane[0] === idx;
+		const rec = registry.find((r) => r[0] === name);
+		if (!isLead && !rec) continue;
+		const seat = isLead ? "lead" : name;
+		let f = { state, for: forField, open: open || (state ? "0" : ""), worst, ask };
+		let percent = ctx;
+		if (!state || !ctx) {
+			// Not published yet (no turn ended since the extension loaded): the pane's last STATUS line and pi's footer.
+			const text = scrape(idx);
+			if (!state) f = scrapeStatus(text) ?? { state: "", for: "", open: "", worst: "", ask: "" };
+			if (!ctx) percent = [...text.matchAll(/(\d+(?:\.\d+)?)%\/\d/g)].at(-1)?.[1] ?? "";
+		}
+		const { created, refreshed } = seatTimes(ledger, seat, isLead ? leadPane[2] : rec[3]);
+		rows.push({
+			seat,
+			icon: working ? "⚡" : todo ? "✋" : wait ? "⏳" : "",
+			ctx: percent ? `${Math.round(Number(percent))}%` : "?",
+			state: f.state || "?",
+			open: f.open === "" ? "?" : f.open,
+			worst: f.worst,
+			for: waitingFor(f.state, f.for, f.ask, names),
+			created: since(created, now),
+			refreshed: since(refreshed, now),
+			ask: f.ask,
+		});
+	}
+	return rows;
+}
+
+// --- data: the tasks -------------------------------------------------------
+
+// A seat state's task status and its rank, worst highest (TB-Q8, TB-Q9).
+const TASK_STATUS = {
+	idle: "idle", done: "idle", working: "working",
+	"waiting-for-seat": "waiting for seat", "ready-for-lead": "waiting for seat",
+	blocked: "blocked", "waiting-for-PM": "waiting for PM",
+};
+// "?": a seat whose state cannot be read yet, ranked with idle.
+const RANK = { "pending seat": 0, "?": 1, idle: 1, working: 2, "waiting for seat": 3, blocked: 4, "waiting for PM": 5 };
+
+// The seats a task involves: its seat:<name> labels, else the name its title ends with in brackets (TB-Q7).
+export function taskSeats(task) {
+	const labelled = (task.labels ?? []).map((l) => l.title).filter((t) => t.startsWith("seat:")).map((t) => t.slice(5));
+	if (labelled.length) return labelled;
+	const m = task.title.match(/\(([A-Za-z0-9._-]+)\)\s*$/);
+	return m ? [m[1]] : [];
+}
+
+export function buildTasks(tasks, outsideBacklog, seats, baseUrl) {
+	const live = new Map(seats.map((s) => [s.seat, s]));
+	const rows = [];
+	for (const t of tasks) {
+		const names = taskSeats(t);
+		const mine = names.filter((n) => live.has(n)).map((n) => live.get(n));
+		if (!mine.length && !outsideBacklog.has(t.id)) continue;
+		const status = mine.length
+			? mine.map((s) => TASK_STATUS[s.state] ?? "?").reduce((a, b) => (RANK[b] > RANK[a] ? b : a))
+			: "pending seat";
+		rows.push({
+			index: t.index,
+			id: t.id,
+			name: t.title,
+			tier: (t.labels ?? []).map((l) => l.title).find((x) => x.startsWith("tier:"))?.slice(5) ?? "",
+			link: `${baseUrl}/tasks/${t.id}`,
+			seats: names.join(","),
+			status,
+			open: mine.reduce((n, s) => n + (Number(s.open) || 0), 0),
+			blockedBy: (t.related_tasks?.blocked ?? []).map((b) => `#${b.index}`).join(","),
+		});
+	}
+	return rows.sort((a, b) => RANK[b.status] - RANK[a.status] || a.index - b.index);
+}
+
+const tokenFile = () => process.env.VIKUNJA_TOKEN_FILE || join(homedir(), ".config/sandbox/vikunja-agents-jail.token");
+
+async function vikunja(path) {
+	const token = readFileSync(tokenFile(), "utf8").trim();
+	const r = await fetch(`${process.env.VIKUNJA_URL}/api/v1${path}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20000) });
+	if (!r.ok) throw new Error(`GET ${path}: HTTP ${r.status}`);
+	return { body: await r.json(), pages: Number(r.headers.get("x-pagination-total-pages") ?? 1) };
+}
+
+// The project's undone tasks and the ids of those outside Backlog.
+async function fetchTasks() {
+	const p = process.env.VIKUNJA_PROJECT;
+	const { body: views } = await vikunja(`/projects/${p}/views`);
+	const list = views.find((v) => v.view_kind === "list");
+	const kanban = views.find((v) => v.view_kind === "kanban");
+	if (!list || !kanban) throw new Error("the project has no list or no kanban view");
+	const tasks = [];
+	for (let page = 1, pages = 1; page <= pages; page++) {
+		const r = await vikunja(`/projects/${p}/views/${list.id}/tasks?filter=done%3Dfalse&per_page=50&page=${page}`);
+		tasks.push(...r.body);
+		pages = r.pages;
+	}
+	const { body: buckets } = await vikunja(`/projects/${p}/views/${kanban.id}/tasks?filter=done%3Dfalse`);
+	const outside = new Set(buckets.filter((b) => b.title !== "Backlog").flatMap((b) => (b.tasks ?? []).map((t) => t.id)));
+	return { tasks, outside };
+}
+
+// --- drawing ---------------------------------------------------------------
+
+// Terminal columns of a string: emoji presentation counts 2, combining marks 0.
+export function width(s) {
+	let w = 0;
+	for (const ch of s) {
+		if (/\p{Mn}|️|‍/u.test(ch)) continue;
+		w += /\p{Emoji_Presentation}/u.test(ch) ? 2 : 1;
+	}
+	return w;
+}
+// External text without control characters (C0, DEL, C1): no escape sequence
+// or line break of a title or an ask= reaches the terminal (TB-Q21).
+export const clean = (s) => String(s ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
+export function fit(s, n) {
+	s = clean(s);
+	if (width(s) <= n) return s + " ".repeat(n - width(s));
+	let out = "";
+	for (const ch of s) {
+		if (width(out + ch) > n - 1) break;
+		out += ch;
+	}
+	return out + "…" + " ".repeat(Math.max(0, n - 1 - width(out)));
+}
+
+const COLOUR = { high: "\x1b[38;5;196m", medium: "\x1b[38;5;208m", low: "\x1b[38;5;220m", green: "\x1b[38;5;40m", dim: "\x1b[2m", bold: "\x1b[1m", reset: "\x1b[0m" };
+
+// Lay out a table: fixed columns, and one flexible column taking what is left.
+export function table(cols, rows, totalWidth) {
+	const fixed = cols.filter((c) => !c.flex).reduce((n, c) => n + c.w + 1, 0);
+	const flexW = Math.max(8, totalWidth - fixed);
+	const w = (c) => (c.flex ? flexW : c.w);
+	const head = COLOUR.bold + cols.map((c) => fit(c.title, w(c))).join(" ") + COLOUR.reset;
+	const body = rows.map((r) => cols.map((c) => {
+		const cell = fit(r[c.key], w(c));
+		const colour = c.colour?.(r);
+		return colour ? colour + cell + COLOUR.reset : cell;
+	}).join(" "));
+	return [head, ...body];
+}
+
+const SEAT_COLS = [
+	{ key: "seat", title: "SEAT", w: 17 },
+	{ key: "icon", title: "", w: 2 },
+	{ key: "ctx", title: "CTX", w: 4 },
+	{ key: "state", title: "STATE", w: 16 },
+	{ key: "open", title: "OPEN", w: 4, colour: (r) => (r.open === "0" ? COLOUR.green : COLOUR[r.worst || "low"]) },
+	{ key: "for", title: "WAITING FOR", w: 16, flex: true },
+	{ key: "created", title: "CREATED", w: 11 },
+	{ key: "refreshed", title: "REFRESHED", w: 11 },
+];
+const TASK_COLS = [
+	{ key: "index", title: "#", w: 3 },
+	{ key: "id", title: "ID", w: 4 },
+	{ key: "name", title: "NAME", w: 20, flex: true },
+	{ key: "tier", title: "TIER", w: 9 },
+	{ key: "link", title: "LINK", w: 34 },
+	{ key: "seats", title: "SEATS", w: 16 },
+	{ key: "status", title: "STATUS", w: 16, colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.medium, "waiting for seat": COLOUR.low, "pending seat": COLOUR.dim })[r.status] },
+	{ key: "open", title: "OPEN", w: 4 },
+	{ key: "blockedBy", title: "BLOCKED BY", w: 10 },
+];
+
+function hhmm(d) {
+	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function draw(lines) {
+	const rows = process.stdout.rows || 24;
+	const out = lines.slice(0, rows).map((l) => `${l}\x1b[K`).join("\r\n");
+	process.stdout.write(`\x1b[H${out}\x1b[J`);
+}
+
+function screen(onExit) {
+	// Alternate screen, cursor hidden, autowrap off: a row wider than the pane is clipped (TB-Q22).
+	process.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?7l");
+	const restore = () => process.stdout.write("\x1b[?7h\x1b[?25h\x1b[?1049l");
+	const quit = () => {
+		restore();
+		onExit?.();
+		process.exit(0);
+	};
+	process.on("SIGINT", quit);
+	process.on("SIGTERM", quit);
+	process.on("SIGHUP", quit);
+	process.on("SIGQUIT", quit);
+}
+
+// --- the loops -------------------------------------------------------------
+
+function runSeats() {
+	let last = "";
+	const tick = (force) => {
+		const now = new Date();
+		const raw = readSeatsRaw();
+		const sig = `${raw.sig}|${hhmm(now)}|${process.stdout.columns}x${process.stdout.rows}`;
+		if (!force && sig === last) return;
+		last = sig;
+		const rows = buildSeats(raw, now.getTime()).sort((a, b) => a.seat.localeCompare(b.seat));
+		const head = `${COLOUR.bold}Seats${COLOUR.reset} ${rows.length} · ${hhmm(now)}${raw.windows === undefined ? ` · ${COLOUR.high}tmux unreadable${COLOUR.reset}` : ""}`;
+		draw([head, "", ...table(SEAT_COLS, rows, (process.stdout.columns || 80) - 1)]);
+	};
+	process.stdout.on("resize", () => tick(true));
+	tick(true);
+	setInterval(tick, 2000);
+}
+
+function runTasks() {
+	const missing = ["VIKUNJA_URL", "VIKUNJA_PROJECT"].filter((v) => !process.env[v]);
+	let fetched;
+	let error = "";
+	let last = "";
+	const tick = (force) => {
+		const now = new Date();
+		const raw = readSeatsRaw();
+		const sig = `${raw.sig}|${hhmm(now)}|${fetched?.at}|${error}|${process.stdout.columns}x${process.stdout.rows}`;
+		if (!force && sig === last) return;
+		last = sig;
+		const lines = [`${COLOUR.bold}Tasks${COLOUR.reset}`];
+		if (missing.length) {
+			lines[0] += ` · ${missing.join(", ")} not set`;
+		} else {
+			const seats = buildSeats(raw, now.getTime());
+			const rows = fetched ? buildTasks(fetched.tasks, fetched.outside, seats, process.env.VIKUNJA_URL) : [];
+			lines[0] += fetched ? ` ${rows.length} · read ${hhmm(new Date(fetched.at))}` : " · reading…";
+			if (error) lines.push(`${COLOUR.high}${clean(error)}${COLOUR.reset}`);
+			lines.push("", ...table(TASK_COLS, rows, (process.stdout.columns || 80) - 1));
+		}
+		draw(lines);
+	};
+	const read = async () => {
+		try {
+			fetched = { ...(await fetchTasks()), at: Date.now() };
+			error = "";
+		} catch (e) {
+			error = `tasks: read failed ${hhmm(new Date())} ${e.message}`;
+		}
+		tick(true);
+	};
+	process.stdout.on("resize", () => tick(true));
+	tick(true);
+	if (!missing.length) {
+		read();
+		setInterval(read, 60000);
+	}
+	setInterval(tick, 2000);
+}
+
+const self = fileURLToPath(import.meta.url);
+if (process.argv[1] === self) {
+	const mode = process.argv[2] ?? "both";
+	if (mode === "seats") {
+		screen();
+		runSeats();
+	} else if (mode === "tasks") {
+		screen();
+		runTasks();
+	} else if (mode === "both") {
+		const pane = process.env.TMUX_PANE;
+		if (!pane) {
+			console.error("board.mjs: not in tmux; run 'board.mjs seats' or 'board.mjs tasks'");
+			process.exit(2);
+		}
+		const env = ["VIKUNJA_URL", "VIKUNJA_PROJECT", "VIKUNJA_TOKEN_FILE", "TEAM_AGENTS", "TEAM_LEDGER"]
+			.filter((v) => process.env[v]).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
+		const right = tmux(["split-window", "-h", "-d", "-P", "-F", "#{pane_id}", "-t", pane, ...env, process.execPath, self, "tasks"])?.trim();
+		screen(() => right && tmux(["kill-pane", "-t", right]));
+		runSeats();
+	} else {
+		console.error("usage: board.mjs [seats|tasks]");
+		process.exit(2);
+	}
+}
