@@ -13,6 +13,7 @@ What `node tools/extensions/install.mjs` puts in pi, and the commands you type i
 | `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
 | `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
 | `/refresh <seat>…`, `all`, `lead` | the lead's pane; refused elsewhere | `refresh.ts` (listed by `refresh.md`) | hands each seat to a new session in its pane through a handoff (`team.sh refresh`); reports to the lead per seat |
+| `/beep-from all\|<seat>`, `/mute all\|<seat>` | any pane | `beep.ts` (listed by `beep-from.md`, `mute.md`) | turns the audible signal on or off for the whole team or one seat (a tmux window's name); muted by default and after a tmux restart; no turn starts |
 | `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
 | `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |
 
@@ -28,6 +29,7 @@ From `tools/extensions/`, installed into `~/.pi/agent/extensions/`.
 | `unattended.ts` | the main session | the four unattended-window commands |
 | `ledger.ts` | the main session | appends each session's start and stop to the ledger, `tools/ledger`; sets the pane's `@session-id` and `@session-name`, which `team.sh refresh` reads |
 | `refresh.ts` | the main session | `/refresh` |
+| `beep.ts` | the main session | `/beep-from`, `/mute`; plays `beep` three times at the end of a turn that asks a new question or newly enters `waiting-for-PM`, unless the seat is muted |
 
 ## Prompt templates
 
@@ -39,6 +41,7 @@ From `tools/prompts/`, installed into `~/.pi/agent/prompts/`.
 | `draft.md` | lists `/draft` in autocomplete; its text runs only when `draft.ts` is not loaded, and asks for `/reload` |
 | `unattended-window.md`, `abort-unattended-window.md`, `start-unattended-window.md`, `end-unattended-window.md` | list the four unattended-window commands in autocomplete; same fallback, with `unattended.ts` |
 | `refresh.md` | lists `/refresh` in autocomplete; same fallback, with `refresh.ts` |
+| `beep-from.md`, `mute.md` | list `/beep-from` and `/mute` in autocomplete; same fallback, with `beep.ts` |
 
 Not installed: `tools/handoff.md`, the template a seat follows when `team.sh refresh` asks it for its handoff.
 

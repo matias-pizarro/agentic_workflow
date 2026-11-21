@@ -7,8 +7,8 @@
 // main session only (the pane side of /open-questions; subagents have no
 // pane), and removes criticality-colours.ts, now part of it; and draft.ts, the
 // /draft command, unattended.ts, the unattended-window commands, ledger.ts
-// (the session ledger's start and stop lines) and refresh.ts (the /refresh
-// command), for the main session only too. It also copies
+// (the session ledger's start and stop lines), refresh.ts (the /refresh
+// command) and beep.ts (/beep-from and /mute), for the main session only too. It also copies
 // the prompt templates in
 // tools/prompts/ (e.g. /open-questions) into ~/.pi/agent/prompts/. Safe to
 // rerun: the copies overwrite, the path is added only once, and what is gone
@@ -36,7 +36,7 @@ const draft = join(agent, "extensions", "draft.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "draft.ts"), draft);
 const unattended = join(agent, "extensions", "unattended.ts");
 copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "unattended.ts"), unattended);
-const mainOnly = ["ledger.ts", "refresh.ts"].map((name) => {
+const mainOnly = ["ledger.ts", "refresh.ts", "beep.ts"].map((name) => {
 	const path = join(agent, "extensions", name);
 	copyFileSync(join(dirname(fileURLToPath(import.meta.url)), name), path);
 	return path;
