@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The team board (.scratch/team-board/perimeter.md, TB-Q1 to TB-Q17): a
 // full-screen table of the seats and one of their tasks, redrawn as they
-// change. Read-only: it writes nothing, anywhere.
+// change. It reads only; its one write is through team.sh refresh or
+// retire, after a typed y (TB-Q14, TB-Q37).
 //
 //   board.mjs          split this tmux pane side by side: seats here, tasks on
 //                      the right (TB-Q6); Ctrl-C closes both
@@ -330,18 +331,19 @@ const SEAT_COLS = [
 	{ key: "state", title: "STATE", w: 16 },
 	{ key: "open", title: "OPEN", w: 4, sortValue: (r) => Number(r.open) || 0, colour: (r) => (r.open === "0" ? COLOUR.green : COLOUR[r.worst || "low"]) },
 	{ key: "for", title: "WAITING FOR", w: 16, flex: true },
-	{ key: "created", title: "CREATED", w: 11, sortValue: (r) => r.createdAt ?? Infinity },
-	{ key: "refreshed", title: "REFRESHED", w: 11, sortValue: (r) => r.refreshedAt ?? Infinity },
+	// By the elapsed time shown, shortest first ascending; unknown last (TB-Q34).
+	{ key: "created", title: "CREATED", w: 11, sortValue: (r) => (r.createdAt === undefined ? Infinity : -r.createdAt) },
+	{ key: "refreshed", title: "REFRESHED", w: 11, sortValue: (r) => (r.refreshedAt === undefined ? Infinity : -r.refreshedAt) },
 ];
 const TASK_COLS = [
-	{ key: "index", title: "#", w: 3, sortValue: (r) => r.index },
-	{ key: "id", title: "ID", w: 4, sortValue: (r) => r.id },
+	{ key: "index", title: "#", w: 3 },
+	{ key: "id", title: "ID", w: 4 },
 	{ key: "name", title: "NAME", w: 20, flex: true },
 	{ key: "tier", title: "TIER", w: 9 },
 	{ key: "link", title: "LINK", w: 34 },
 	{ key: "seats", title: "SEATS", w: 16 },
 	{ key: "status", title: "STATUS", w: 16, sortValue: (r) => RANK[r.status], colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.medium, "waiting for seat": COLOUR.low, "pending seat": COLOUR.grey })[r.status] },
-	{ key: "open", title: "OPEN", w: 4, sortValue: (r) => r.open },
+	{ key: "open", title: "OPEN", w: 4 },
 	{ key: "blockedBy", title: "BLOCKED BY", w: 10 },
 ];
 
@@ -423,6 +425,8 @@ function onKeys(view, cols, shownRows, keyOf, actions, redraw) {
 		} else {
 			const shown = shownRows();
 			const i = selectedIndex(view, shown, keyOf);
+			// The last outcome stays until a key does something (TB-Q32).
+			const kept = view.message;
 			view.message = "";
 			if (k === "\x1b[A" && i > 0) view.selectedKey = keyOf(shown[i - 1]);
 			else if (k === "\x1b[B" && i !== undefined && i < shown.length - 1) view.selectedKey = keyOf(shown[i + 1]);
@@ -431,8 +435,19 @@ function onKeys(view, cols, shownRows, keyOf, actions, redraw) {
 			else if (k === "s") view.desc = !view.desc;
 			else if (k === "/") view.editing = true;
 			else if (actions[k] && i !== undefined) actions[k](shown[i]);
+			else view.message = kept;
 		}
 	};
+}
+
+// The rows that fit below `above` lines and the table's header, scrolled so
+// the selected row stays on screen (TB-Q33).
+function visible(view, rows, selected, above) {
+	const room = Math.max(1, (process.stdout.rows || 24) - above - 1);
+	view.offset = Math.min(view.offset ?? 0, Math.max(0, rows.length - room));
+	if (selected !== undefined && selected < view.offset) view.offset = selected;
+	if (selected !== undefined && selected >= view.offset + room) view.offset = selected - room + 1;
+	return { rows: rows.slice(view.offset, view.offset + room), selected: selected === undefined ? undefined : selected - view.offset };
 }
 
 // Run team.sh (the one the tmux option @team-sh names, so its tools/ is the
@@ -482,8 +497,8 @@ function runSeats() {
 	const shown = () => arrange(rows, SEAT_COLS, view);
 	const paint = () => {
 		const s = shown();
-		const selected = selectedIndex(view, s, keyOf);
-		draw([head, statusLine(view, `${HELP}  r refresh  R retire`), ...table(SEAT_COLS, s, (process.stdout.columns || 80) - 1, { ...view, selected })]);
+		const v = visible(view, s, selectedIndex(view, s, keyOf), 2);
+		draw([head, statusLine(view, `${HELP}  r refresh  R retire`), ...table(SEAT_COLS, v.rows, (process.stdout.columns || 80) - 1, { ...view, selected: v.selected })]);
 	};
 	const tick = (force) => {
 		const now = new Date();
@@ -515,9 +530,9 @@ function runTasks() {
 	const paint = () => {
 		if (missing.length) return draw([head]);
 		const s = shown();
-		const selected = selectedIndex(view, s, keyOf);
 		const failed = error ? [`${COLOUR.high}${clean(error)}${COLOUR.fg}`] : [];
-		draw([head, ...failed, statusLine(view, HELP), ...table(TASK_COLS, s, (process.stdout.columns || 80) - 1, { ...view, selected })]);
+		const v = visible(view, s, selectedIndex(view, s, keyOf), 2 + failed.length);
+		draw([head, ...failed, statusLine(view, HELP), ...table(TASK_COLS, v.rows, (process.stdout.columns || 80) - 1, { ...view, selected: v.selected })]);
 	};
 	const tick = (force) => {
 		const now = new Date();
