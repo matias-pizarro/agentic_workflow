@@ -86,7 +86,9 @@ const TABS: Record<string, string> = {
 // A whole STATUS line, its fields in their fixed order from the line's start
 // (SOCR-Q1): a quoted example or an ask="... open=1 ..." text does not count.
 // for= sits between state= and open= (TB-Q3).
-const STATUS_LINE = /^\s*`?STATUS seat=\S+ state=(\S+)(?: for=(\S+))? open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
+// [ \t]*, not \s*: the match must start on the STATUS line itself, so statusOf
+// reads its ask= (TB-Q18).
+const STATUS_LINE = /^[ \t]*`?STATUS seat=\S+ state=(\S+)(?: for=(\S+))? open=(\d+)(?: worst=(high|medium|low))?(?=[\s`]|$)/gmu;
 
 // The fields of a reply's last STATUS line, or undefined without one.
 export function statusOf(reply: string): { state: string; for?: string; open: number; worst?: string; ask?: string } | undefined {

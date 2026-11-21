@@ -299,7 +299,7 @@ compose_prompt() { # name task-file
 You are the agent \`$1\` on a team led by a chief of staff (the lead). Protocol:
 - End EVERY turn with exactly one line:
   STATUS seat=$1 state=<working|waiting-for-PM|waiting-for-seat|ready-for-lead|blocked|idle|done> [for=<PM|lead|seat-name>] open=<n> [worst=<high|medium|low>] [ask="<one sentence>"] [pointer=<path or commit>]
-  (for: who you wait for, PM with waiting-for-PM, lead with ready-for-lead, the seat with waiting-for-seat, left out otherwise;
+  (for: who you wait for, PM with waiting-for-PM, lead with ready-for-lead, the first seat waited for with waiting-for-seat, left out otherwise;
   open: your questions to the operator still unanswered; worst: the highest criticality among them, whenever open > 0)
 - When you finish, or need the lead, also run:
   $here/team.sh report "$1: <one or two sentences, with a pointer (path or commit)>"
