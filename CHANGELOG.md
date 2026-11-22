@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.17.0] - 2026-11-22
+
+### Added
+
+- Rule 16, the team's shape (the operator, 22 Nov 20:47, 20:58, 21:00; AW-Q171, AW-Q172): one seat designs, builds and maintains its component. Coordinators (the Lead, Architecture, Methodology, Docs, Security) each keep one dimension consistent and hold its single source of truth; a change touching a coordinator's dimension goes through that coordinator. Builders each design, build and maintain one area of components, named by the project. Coordinators and the builders the project names are always on; other builders roll off with their check-out and their components' READMEs current, and roll on from a task file naming both; while one is off, the Lead triages incidents on its components. index.md's roles and reason, GLOSSARY.md (Coordinator, Builder, Roll on, roll off) and kickoff.md (step 12, name the seats) follow. **Act:** every seat, from its next turn: send a change touching a coordinator's dimension through that coordinator; the lead: reshape the team on the operator's word (CS-Q79), each rename a retire with check-out and a spawn on the handoff.
+
 ## [2.16.1] - 2026-11-21
 
 ### Fixed
