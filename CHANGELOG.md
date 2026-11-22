@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.17.1] - 2026-11-22
+
+### Changed
+
+- The seats' names (the operator, AW-Q173, AW-Q174, 22 Nov 21:52, 21:53): one lowercase, expressive word per seat, used for its tmux window, the registry, `bot-<name>`, `seat:<name>` and `for=<name>` (GLOSSARY.md, "Seat name"). The coordinators are `lead`, `architect`, `coach`, `librarian` and `heimdall` (rule 16); this project's builders are `postmaster` (always on), `ops`, `warden`, `beekeeper`, `forgemaster`, `tinguely` and `engineer` (GLOSSARY.md, "Builder"); kickoff step 12 asks for a name per builder area. **Act:** the lead: rename seats to these names on the operator's word (CS-Q79); every seat: refer to seats by these names once they are in use.
+
 ## [2.17.0] - 2026-11-22
 
 ### Added
