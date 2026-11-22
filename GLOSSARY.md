@@ -1,6 +1,6 @@
 # Glossary
 
-**Seat**: a named, long-lived role on the team (e.g. `prod-net`), held by one agent session at a time in one tmux window of that name.
+**Seat**: a named, long-lived role on the team (e.g. `architecture`), held by one agent session at a time in one tmux window of that name.
 
 **Coordinator**: a seat that keeps one dimension consistent across the team and holds its single source of truth: the Lead, Architecture, Methodology, Docs or Security. Always deployed.
 
