@@ -64,7 +64,8 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 
 16. **One seat, one component.** The seat that designs a component also builds and maintains it: no component passes from a designer to a builder to a maintainer. Seats are of two kinds:
     - **Coordinators** each keep one dimension consistent across the team and hold its single source of truth: the Lead (what is being done, by whom, its state and cost: the board, the wiki), Architecture (how components fit: interfaces, names, addresses, labels: the constants, ADRs, architecture diagrams), Methodology (how we work, quality and verification included: this playbook), Docs (that what is written is findable, current and in one voice: the docs site and glossaries) and Security (what may reach what, with which secrets: the threat model, the exposure rules, the secrets inventory). A change in another seat's work that touches a coordinator's dimension goes through that coordinator.
-    - **Builders** each design, build and maintain one area of components, which the project names. An area becomes a seat only while it has work being built.
+      Their seats are `lead`, `architect`, `coach`, `librarian` and `heimdall`.
+    - **Builders** each design, build and maintain one area of components, which the project names, each seat by one lowercase, expressive word (GLOSSARY.md, "Seat name"). An area becomes a seat only while it has work being built.
 
     The coordinators, and the builders the project names as always on, are always deployed; the other builders roll on and off on demand. A builder rolls off with its check-out written and each of its components' README current, and rolls on from a task file naming both. While it is off, the Lead triages incidents on its components and rolls it on to handle them.
 
