@@ -62,9 +62,11 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
 
 11. **Answer the first sizing question.** It quotes your words, says what each tier would build and recommends the lowest. An option labelled `widens:` adds something you did not ask for. Pick consciously.
 
-12. **Watch the first seat spawn.** Its task file's first line is `Ceremony: <tier> (the operator, "<your words>", <date> hh:mm)`. `team.sh status` shows its `STATUS` line.
+12. **Name the seats.** Tell the lead the project's builder areas and which of them stay always on (rules.md rule 16). The lead spawns the coordinators (Architecture, Methodology, Docs, Security) and the always-on builders first; the other builders roll on when their area gets work.
 
-13. **Answer in the format.** `yes`, `no`, your own words, `ok` (trust without full understanding) or `why?`, by ID. A go typed in a seat's pane counts.
+13. **Watch the first seat spawn.** Its task file's first line is `Ceremony: <tier> (the operator, "<your words>", <date> hh:mm)`. `team.sh status` shows its `STATUS` line.
+
+14. **Answer in the format.** `yes`, `no`, your own words, `ok` (trust without full understanding) or `why?`, by ID. A go typed in a seat's pane counts.
 
 ## Signs it is working
 
