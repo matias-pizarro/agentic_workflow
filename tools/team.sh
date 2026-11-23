@@ -16,7 +16,9 @@
 #                                            TEAM_QIDS_SKIP=1 relays the text as is, registering nothing
 #   team.sh status                           last STATUS line of every agent, [busy], [input box holds text] and
 #                                            [input box unreadable] flags; queued messages (saying which) and failed ones;
-#                                            a CRON line when the last run in tools/spool/cron.log exited non-zero
+#                                            a CRON line when the last run in tools/spool/cron.log exited non-zero;
+#                                            a WIKI line when the wiki's last commit outside sources/ is a day old
+#                                            or more, or unreadable (rules.md rule 11; TEAM_WIKI overrides the wiki)
 #   team.sh refresh <name>…|all|lead "<the user's words>" "<pane> <time>"
 #                                            hand each seat (all: every recorded one; lead: the lead) to a
 #                                            new session in its pane, through a handoff; returns at once,
@@ -168,6 +170,21 @@ cron_flag() {
       m = substr("JanFebMarAprMayJunJulAugSepOctNovDec", (w[2] - 1) * 3 + 1, 3)
       printf "CRON %s exit %s, %d %s %s: see %s\n", name, rc, w[3], m, w[4], path
     }' "$spool/cron.log"
+}
+
+# The wiki's last commit outside sources/, when a day old or more, or unreadable (AW-Q182):
+# "WIKI last entry outside sources/ <n>h ago (<hash>): ...". The wiki is the
+# directory above tools/ when it holds index.md (team.sh called as <root>/wiki/tools/team.sh).
+wiki_flag() {
+  w=${TEAM_WIKI:-$here/..}
+  [ -f "$w/index.md" ] || return 0
+  if ! last=$(git -C "$w" log -1 --format='%ct %h' -- . ':(exclude)sources' 2> /dev/null) || [ -z "$last" ]; then
+    echo "WIKI last entry outside sources/: unreadable (git log failed in $w)"
+    return 0
+  fi
+  age=$((($(date +%s) - ${last% *}) / 3600))
+  [ "$age" -lt 24 ] ||
+    echo "WIKI last entry outside sources/ ${age}h ago (${last#* }): write the decisions since then as dated entries (rules.md rule 11)"
 }
 
 # Append text to the target's queue, then make sure a deliverer runs.
@@ -798,6 +815,8 @@ reports_as_text() { TEAM_QIDS_SKIP=1 TEAM_WAIT=3 sh "$self" report "$1" > /dev/n
 unregistered() { ! grep -q "^$1$tab" "$TEAM_QIDS"; }
 status_has() { sh "$self" status | grep -qxF -- "$1"; }
 status_lacks() { ! sh "$self" status | grep -q -- "$1"; }
+wiki_flagged() { TEAM_WIKI=$1 sh "$self" status | grep -q '^WIKI last entry outside sources/ [0-9]*h ago'; }
+wiki_silent() { ! TEAM_WIKI=$1 sh "$self" status | grep -q '^WIKI'; }
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
@@ -1072,6 +1091,14 @@ selftest() {
   check "status flags a last cron run that exited non-zero" status_has "CRON lint-1 exit 1, 16 Nov 09:00: see $spool/cron.log"
   printf '2026-11-23 09:00:00 CET run: /w/tools/team.sh spawn lint-2 /w /w/t.md\n2026-11-23 09:00:01 CET exit 0\n' >> "$spool/cron.log"
   check "... and is silent once a later run succeeds" status_lacks CRON
+  wk=$(mktemp -d "${TMPDIR:-/tmp}/team-wiki.XXXXXX")
+  git -C "$wk" init -q && echo i > "$wk/index.md" && git -C "$wk" add index.md &&
+    GIT_AUTHOR_DATE='2026-11-01T09:00:00' GIT_COMMITTER_DATE='2026-11-01T09:00:00' git -C "$wk" -c user.name=t -c user.email=t@t commit -q -m old
+  mkdir -p "$wk/sources" && echo s > "$wk/sources/s.md" && git -C "$wk" add sources && git -C "$wk" -c user.name=t -c user.email=t@t commit -q -m src
+  check "status flags a wiki whose last entry outside sources/ is a day old or more, a newer sources/ commit aside" wiki_flagged "$wk"
+  echo j >> "$wk/index.md" && git -C "$wk" -c user.name=t -c user.email=t@t commit -qam new
+  check "... and is silent after a fresh entry" wiki_silent "$wk"
+  rm -rf "$wk"
   check "send publishes the question-ID registry to pi panes" [ "$(tmux show -gv @team-qids)" = "$TEAM_QIDS" ]
   check "... and its own path, for /draft's relay" [ "$(tmux show -gv @team-sh)" = "$self" ]
   printf 'XX-Q1\tother\t14 Nov 2026\n' > "$TEAM_QIDS"
@@ -1264,6 +1291,7 @@ status)
     printf 'QUEUED %s %s: %s%s\n' "${target%%/*}" "$age" "$(head -1 "$f" | cut -c1-80)" "$held"
   done
   cron_flag
+  wiki_flag
   true
   ;;
 refresh)
