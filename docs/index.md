@@ -2,6 +2,8 @@
 
 This is how to run software work with a team of [Pi](https://github.com/earendil-works/pi) agents, one lead and several workers, with you deciding everything that matters. It keeps what worked on a multi-day project and guards against what went wrong there. Reading it takes about 20 minutes.
 
+This playbook is a blueprint: one methodology for many projects. Every project gets the same tools: a wiki, docs tooling, the team script and the pi extensions; each project fills them with its own content. In the project this playbook comes from, the project *is* the methodology and the environment it needs, a special case: its seats build the tools the playbook ships (the operator, CS-Q82, 22 Nov 2026 22:14).
+
 **`<root>`** in all paths here is the directory holding the project's three repositories side by side: `<root>/src` (the project), `<root>/wiki` (the lead's memory) and `<root>/agentic_workflow` (a clone of this repo, at a release tag), plus `<root>/worktrees` for the project's branch worktrees.
 
 The repo holds:
