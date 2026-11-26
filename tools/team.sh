@@ -19,7 +19,9 @@
 #                                            a CRON line when the last run in tools/spool/cron.log exited non-zero;
 #                                            a WIKI line when the wiki's last commit outside sources/ is a day old
 #                                            or more, or unreadable (rules.md rule 11; TEAM_WIKI overrides the wiki)
-#   team.sh refresh <name>…|all|lead "<the user's words>" "<pane> <time>"
+#   team.sh refresh <name>…|all|lead [<percent>] "<the user's words>" "<pane> <time>"
+#                                            with <percent>, a seat whose context window (@ctx) is below it,
+#                                            or unknown, is skipped and listed with its percentage (CS-Q90)
 #                                            hand each seat (all: every recorded one; lead: the lead) to a
 #                                            new session in its pane, through a handoff; returns at once,
 #                                            one background run per seat reporting to the lead when it ends
@@ -997,6 +999,20 @@ BOX
   answer b1 'REFRESH-UNADVISABLE: selftest'
   check "(setup: b1's lock released)" waitfor 20 unlocked b1
   check "(setup: b2's lock released)" waitfor 20 unlocked b2
+  tmux set -w -t "$(seat_pane b1)" @ctx 36.0
+  tmux set -w -t "$(seat_pane b2)" @ctx 33.0
+  c1=$(asks b1)
+  out=$(sh "$self" refresh b1 b2 35 "/refresh b1 b2 35" "$src" 2>&1)
+  check "refresh with a threshold skips a seat below it, naming its percentage" eval 'printf "%s\n" "$out" | grep -qxF "refresh of b2 skipped: context 33.0% is below 35%"'
+  check "... and refreshes a seat above it" waitfor 10 ledgered refresh-requested b1 "/refresh b1 b2 35"
+  check "... and logs no request for the skipped one" eval '! ledgered refresh-requested b2 "/refresh b1 b2 35"'
+  check "(setup: b1 asked)" waitfor 20 asked_more b1 "$c1"
+  answer b1 'REFRESH-UNADVISABLE: selftest'
+  check "(setup: b1's lock released)" waitfor 20 unlocked b1
+  tmux set -wu -t "$(seat_pane b2)" @ctx
+  out=$(sh "$self" refresh b2 35 "/refresh b2 35" "$src" 2>&1)
+  check "a seat whose context is unknown is skipped, saying so" eval 'printf "%s\n" "$out" | grep -qF "refresh of b2 skipped: context unknown"'
+  check "... and nothing is requested" eval '! ledgered refresh-requested b2 "/refresh b2 35"'
   tmux respawn-pane -k -t "$lp" "$t/box-pi --session-id lead0"
   sh "$self" refresh lead "/refresh lead" "$src" > /dev/null
   check "the lead is asked for its handoff" waitfor 30 grep -qs "write your handoff to $t/handoffs/handoff-.*-lead.md" "$t/got-lead0"
@@ -1307,15 +1323,26 @@ status)
   true
   ;;
 refresh)
-  [ $# -ge 4 ] || { echo "usage: $0 refresh <name>…|all|lead \"<the user's words>\" \"<pane> <time>\"" >&2; exit 2; }
+  [ $# -ge 4 ] || { echo "usage: $0 refresh <name>…|all|lead [<percent>] \"<the user's words>\" \"<pane> <time>\"" >&2; exit 2; }
   shift
-  n=$# i=0 names='' words='' src=''
+  n=$# i=0 names='' words='' src='' threshold=''
   for a; do
     i=$((i + 1))
     if [ $i -le $((n - 2)) ]; then names="$names $a"
     elif [ $i -eq $((n - 1)) ]; then words=$a
     else src=$a; fi
   done
+  # A last name that is a number is the context threshold (CS-Q90): a seat whose
+  # window's @ctx (open-questions.ts publishes it) is below it, or unknown, is skipped.
+  last=${names##* }
+  case $last in
+  '' | *[!0-9]*) ;;
+  *)
+    [ "$last" -le 100 ] || die "refresh: the threshold $last is not a percentage (0 to 100)"
+    threshold=$last names=${names% *}
+    [ -n "${names# }" ] || die "refresh: no seat named before the threshold $threshold"
+    ;;
+  esac
   [ -n "$(printf '%s' "$words" | sed 's/…//g' | tr -d ' \t\n.')" ] ||
     die "refresh: the user's words are empty or '...'; quote them exactly"
   printf '%s' "$src" | grep -Eq '[^ ].* [0-2]?[0-9]:[0-5][0-9]$' ||
@@ -1343,6 +1370,22 @@ refresh)
       [ -n "$p" ] || die "refresh: $s has no window; nothing started"
     fi
   done
+  if [ -n "$threshold" ]; then
+    kept=''
+    for s in $seats; do
+      c=$(tmux show -wv -t "$(seat_pane "$s")" @ctx 2> /dev/null) || c=''
+      case $c in
+      '' | *[!0-9.]* | *.*.*) say "refresh of $s skipped: context unknown (no @ctx on its window), threshold $threshold%" ;;
+      *)
+        if awk -v c="$c" -v t="$threshold" 'BEGIN { exit !(c + 0 < t + 0) }'; then
+          say "refresh of $s skipped: context $c% is below $threshold%"
+        else kept="$kept $s"; fi
+        ;;
+      esac
+    done
+    seats=$kept
+    [ -n "$seats" ] || exit 0
+  fi
   taken=''
   for s in $seats; do
     if msg=$(refresh_lock "$s"); then taken="$taken $s"; else

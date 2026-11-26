@@ -12,7 +12,7 @@ What `node tools/extensions/install.mjs` puts in pi, and the commands you type i
 | `/abort-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | drops the grill before the start |
 | `/start-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | starts the window |
 | `/end-unattended-window` | the lead's pane | `unattended.ts` (listed by its template) | ends the window |
-| `/refresh <seat>…`, `all`, `lead` | the lead's pane; refused elsewhere | `refresh.ts` (listed by `refresh.md`) | hands each seat to a new session in its pane through a handoff (`team.sh refresh`); reports to the lead per seat |
+| `/refresh <seat>…`, `all`, `lead`, then optionally a percent | the lead's pane; refused elsewhere | `refresh.ts` (listed by `refresh.md`) | hands each seat to a new session in its pane through a handoff (`team.sh refresh`); reports to the lead per seat |
 | `/beep-from all\|<seat>`, `/mute all\|<seat>` | any pane | `beep.ts` (listed by `beep-from.md`, `mute.md`) | turns the audible signal on or off for the whole team or one seat (a tmux window's name); muted by default and after a tmux restart; no turn starts |
 | `/reload-runtime` | any pane | `open-questions.ts` | the same as pi's `/reload`, which you use; it exists because the `reload_runtime` tool can send only a command an extension registers |
 | `reload_runtime` (a tool, not typed) | any seat | `open-questions.ts` | the seat reloads itself, on the lead's or your word |

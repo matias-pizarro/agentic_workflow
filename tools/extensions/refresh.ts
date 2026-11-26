@@ -1,5 +1,6 @@
-// /refresh <seat>…|all|lead: hand seats to new sessions in their panes (the
-// operator, 18 Nov 2026, RF-Q1, RF-Q11, RF-Q12; .scratch/refresh/). Installed
+// /refresh <seat>…|all|lead [<percent>]: hand seats to new sessions in their panes (the
+// operator, 18 Nov 2026, RF-Q1, RF-Q11, RF-Q12; .scratch/refresh/). With a percent,
+// a seat whose context window is below it is skipped (CS-Q90; team.sh does it). Installed
 // by install.mjs, for the main session only.
 // - In the lead's pane (tmux pane option @role=lead) it runs `team.sh refresh
 //   <names> "<the typed line>" "lead pane hh:mm"` (the path team.sh puts in
@@ -14,7 +15,7 @@ import { spawnSync } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const REFRESH = /^\s*\/refresh(?=\s|$)\s*([\s\S]*)$/;
-const USAGE = "usage, in the lead's pane: /refresh <seat> [<seat>…] | all | lead";
+const USAGE = "usage, in the lead's pane: /refresh <seat> [<seat>…] | all | lead [<percent>] (with a percent, seats whose context is below it are skipped)";
 
 // The names of a /refresh line, [] for a bare /refresh, or undefined for another line.
 export function refreshOf(text: string): string[] | undefined {

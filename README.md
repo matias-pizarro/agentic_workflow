@@ -35,7 +35,7 @@ npx skills@latest add matias-pizarro/agentic_workflow -g --skill <name>
 | `/abort-unattended-window` | drops that grill before the start |
 | `/start-unattended-window` | starts the window |
 | `/end-unattended-window` | ends the window |
-| `/refresh <seat>…`, `all`, `lead` | hands seats to new sessions in their panes through a handoff, in the lead's pane |
+| `/refresh <seat>…`, `all`, `lead`, then optionally a percent | hands seats to new sessions in their panes through a handoff, in the lead's pane; with a percent (`/refresh all 35`), only seats whose context window is at or above it, the others listed as skipped |
 | `/beep-from all\|<seat>`, `/mute all\|<seat>` | turns the audible signal on or off, for the whole team or one seat; muted by default |
 | `/reload-runtime` | the same as pi's `/reload`; there for the `reload_runtime` tool |
 
