@@ -1017,6 +1017,13 @@ BOX
   out=$(sh "$self" refresh b2 --min 35.5 "/refresh b2 --min 35.5" "$src" 2>&1)
   check "a decimal threshold is accepted" eval 'printf "%s\n" "$out" | grep -qxF "refresh of b2 skipped: context 35.2% is below 35.5%"'
   check "a trailing number without --min is a seat name, refused when unrecorded" refused_with "35 is not recorded" refresh b2 35 "/refresh b2 35" "$src"
+  tmux set -w -t "$(seat_pane b2)" @ctx 35.0
+  c2=$(asks b2)
+  out=$(sh "$self" refresh b2 --min 35 "/refresh b2 --min 35 equal" "$src" 2>&1)
+  check "a seat equal to the threshold is refreshed (the operator, 26 Nov 23:35)" waitfor 10 ledgered refresh-requested b2 "/refresh b2 --min 35 equal"
+  check "(setup: b2 asked)" waitfor 20 asked_more b2 "$c2"
+  answer b2 'REFRESH-UNADVISABLE: selftest'
+  check "(setup: b2's lock released)" waitfor 20 unlocked b2
   tmux respawn-pane -k -t "$lp" "$t/box-pi --session-id lead0"
   sh "$self" refresh lead "/refresh lead" "$src" > /dev/null
   check "the lead is asked for its handoff" waitfor 30 grep -qs "write your handoff to $t/handoffs/handoff-.*-lead.md" "$t/got-lead0"
