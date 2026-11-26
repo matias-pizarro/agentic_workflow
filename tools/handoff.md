@@ -20,4 +20,4 @@ Then these sections, each kept, with "None." where it is empty:
 - **Background work**: subagents, jobs or live runs started by this session that may still finish, and where their output lands. A run that would report to this session is a reason to answer `REFRESH-UNADVISABLE` instead.
 - **Cleanup owed**: worktrees, branches, sandboxes, keys or temporary files to remove, and on whose word.
 - **How to work here**: commands, timings and pitfalls met that are not written elsewhere.
-- **The lead only, when the seat is the lead**: each seat's last known state and what it waits on; messages and gos in flight; tasks drafted and not yet spawned; the wiki pages changed and not yet committed.
+- **The lead only, when the seat is the lead**: each seat's last known state and what it waits on; messages and gos in flight; tasks drafted and not yet spawned; the wiki pages changed and not yet committed; the operator's decisions not yet written as dated wiki entries (rules.md rule 11).

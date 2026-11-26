@@ -13,7 +13,7 @@ The repo holds:
 - **[rules.md](rules.md)**: the rules, worded for agents. Point every agent at it.
 - **[unattended-windows.md](unattended-windows.md)**: how the lead runs work while you are away (rule 15).
 - **[commands.md](commands.md)**: the commands you type in a pane, and the extensions and prompt templates behind them.
-- **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard; **`tools/wiki-pre-commit`**: the wiki's, refusing a file emptied by accident; **`tools/merge-ready`**: the check before a branch merges (rule 9).
+- **`tools/team.sh`**: the team script; **`tools/src-pre-commit`**: the lead's commit guard; **`tools/wiki-pre-commit`**: the wiki's, refusing a file emptied by accident; **`tools/merge-ready`**: the check before a branch merges (rule 9); **`tools/cron-pickup`**: installs the wiki's `crontab` into a marked block of a crontab, each command wrapped to run inside a sandbox when the host's cron runs it.
 - **`skills/`**: the skills this process adds to the ones it installs from elsewhere, such as `review-loop`.
 - **`CHANGELOG.md`**: what each release changed, and what a project must do to take it.
 
@@ -114,7 +114,7 @@ You may type into any agent's pane. A go given there counts; the agent quotes yo
 8. **Over-build is a finding; "delete it" is always offered.** *Why: reviews that hunt only for gaps only ever add code; on install-pi, 22 rounds produced one deletion, and the next round added the check back.*
 9. **Live checks pass before any merge.** *Why: a converged review loop says nothing about whether code runs; install-pi's converged loop failed its first real run at the package step. Merging integration in before each review pass keeps reviewers off findings already settled there (3 of 13 in one review); a shared file merged on its own, first, stops it being copied between feature branches with a review and a relay each time.*
 10. **The lead delegates every edit and never inflates scope (the `widens:` label).** *Why: you will answer most questions with `yes`, so the lead's recommendation is in practice the decision; the lead must recommend small and label the rest. A go relayed with the lead's own conditions added had to be repeated by you.*
-11. **The wiki is dated history.** *Why: the lead's context is lost at compaction, at a restart, or when a new lead takes over; the wiki is what survives, and undated claims rot without anyone noticing.*
+11. **The wiki is dated history.** *Why: the lead's context is lost at compaction, at a restart, or when a new lead takes over; the wiki is what survives, and undated claims rot without anyone noticing. From 19 to 23 Nov 2026 the lead carried state in handoffs and check-outs while the wiki gained almost nothing; only the weekly lint found the four-day gap, so decisions are now written in the turn they are made, and the status shows the wiki's age (AW-Q182).*
 12. **Retros on about one session in five.** *Why: most of these rules came out of retros; without them the same failure recurs with a new name.*
 13. **Outward-facing steps wait for your go.** *Why: a push, a publication or money spent cannot be taken back.*
 14. **A change to a check, not the code, is flagged loudly and asked; a new check must first fail on the broken code.** *Why: changing a check to make it pass is the easiest way to hide a real failure, and a weakened check silently weakens everything resting on it.*
