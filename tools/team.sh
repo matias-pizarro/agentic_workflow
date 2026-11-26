@@ -173,11 +173,19 @@ cron_flag() {
 }
 
 # The wiki's last commit outside sources/, when a day old or more, or unreadable (AW-Q182):
-# "WIKI last entry outside sources/ <n>h ago (<hash>): ...". The wiki is the
-# directory above tools/ when it holds index.md (team.sh called as <root>/wiki/tools/team.sh).
+# "WIKI last entry outside sources/ <n>h ago (<hash>): ...". The wiki is TEAM_WIKI, else the
+# directory above tools/ when it holds index.md (team.sh called as <root>/wiki/tools/team.sh),
+# else <root>/wiki beside agentic_workflow (called as <root>/agentic_workflow/tools/team.sh,
+# AW-Q183). It must be its own git repository, not a folder of another (AW-Q184).
 wiki_flag() {
   w=${TEAM_WIKI:-$here/..}
+  [ -n "${TEAM_WIKI:-}" ] || [ -f "$w/index.md" ] || w=$here/../../wiki
   [ -f "$w/index.md" ] || return 0
+  top=$(git -C "$w" rev-parse --show-toplevel 2> /dev/null) || top=''
+  if [ -z "$top" ] || [ "$(cd "$top" && pwd -P)" != "$(cd "$w" && pwd -P)" ]; then
+    echo "WIKI last entry outside sources/: unreadable ($w is not a git repository of its own)"
+    return 0
+  fi
   if ! last=$(git -C "$w" log -1 --format='%ct %h' -- . ':(exclude)sources' 2> /dev/null) || [ -z "$last" ]; then
     echo "WIKI last entry outside sources/: unreadable (git log failed in $w)"
     return 0
@@ -817,6 +825,7 @@ status_has() { sh "$self" status | grep -qxF -- "$1"; }
 status_lacks() { ! sh "$self" status | grep -q -- "$1"; }
 wiki_flagged() { TEAM_WIKI=$1 sh "$self" status | grep -q '^WIKI last entry outside sources/ [0-9]*h ago'; }
 wiki_silent() { ! TEAM_WIKI=$1 sh "$self" status | grep -q '^WIKI'; }
+wiki_unreadable() { TEAM_WIKI=$1 sh "$self" status | grep -q '^WIKI last entry outside sources/: unreadable'; }
 status_flags_unreadable() { sh "$self" status | grep -q "^$1 .*\[input box unreadable\]"; }
 revive_leaves_alone() { sh "$self" revive a1 | grep -q 'left alone'; }
 is_lead() { [ "$(lead_pane)" = "$1" ]; }
@@ -1098,6 +1107,9 @@ selftest() {
   check "status flags a wiki whose last entry outside sources/ is a day old or more, a newer sources/ commit aside" wiki_flagged "$wk"
   echo j >> "$wk/index.md" && git -C "$wk" -c user.name=t -c user.email=t@t commit -qam new
   check "... and is silent after a fresh entry" wiki_silent "$wk"
+  mkdir -p "$wk/sub" && echo i > "$wk/sub/index.md" && git -C "$wk" add sub &&
+    GIT_AUTHOR_DATE='2026-11-01T09:00:00' GIT_COMMITTER_DATE='2026-11-01T09:00:00' git -C "$wk" -c user.name=t -c user.email=t@t commit -q -m sub
+  check "... and calls a wiki folder inside another repository unreadable" wiki_unreadable "$wk/sub"
   rm -rf "$wk"
   check "send publishes the question-ID registry to pi panes" [ "$(tmux show -gv @team-qids)" = "$TEAM_QIDS" ]
   check "... and its own path, for /draft's relay" [ "$(tmux show -gv @team-sh)" = "$self" ]
