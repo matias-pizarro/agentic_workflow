@@ -2,6 +2,17 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.18.0] - 2026-11-26
+
+### Added
+
+- `tools/cron-pickup <crontab file> [<wrapper>…]`: installs a team's wiki crontab (`<root>/wiki/crontab`, the lead's content) into a marked block of the invoking user's crontab, replacing that block on each run and leaving other lines; with a wrapper (e.g. `jexec -U <user> <jail>`, for the host's cron of a jail sandbox) each command runs as `<wrapper> sh -c '<command>'`, inside the sandbox. It refuses variable lines, bad schedules, unescaped `%`, marker-like lines, a path with a backslash or newline, and wrapper words with spaces (the operator, CS-Q83; AW-Q176, AW-Q178 to AW-Q181). **Act:** the lead: write `<root>/wiki/crontab`, run `cron-pickup` on it, and remove the direct `cron-wiki-lint` line from the crontab so the lint runs once.
+- Rule 11: the lead writes each of the operator's decisions as a dated wiki entry in the turn that records or relays it, and a lead's handoff lists every entry still owed (`tools/handoff.md`); `team.sh status` prints a `WIKI` line when the wiki's last commit outside `sources/` is a day old or more, or unreadable (AW-Q182 to AW-Q184). **Act:** the lead, from its next turn.
+
+### Changed
+
+- index.md and kickoff.md: the playbook is a blueprint, one methodology for many projects, each with its own wiki and docs tooling; the project it comes from is the special case where the project is the methodology and its environment (the operator, CS-Q82; AW-Q177, AW-Q185). **Act:** none.
+
 ## [2.17.1] - 2026-11-22
 
 ### Changed
