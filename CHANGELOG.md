@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.19.0] - 2026-11-26
+
+### Added
+
+- `/refresh <seat>…|all|lead --min <percent>` and `team.sh refresh … --min <percent>`: a seat whose context window (the window option `@ctx`, published by open-questions.ts) is below the percent, or unknown, is not refreshed and is listed as skipped, with its percentage when known; a seat at the threshold is refreshed; decimals accepted; without `--min`, as before (the operator, CS-Q90, 26 Nov 23:12; AW-Q187 to AW-Q190, CHK-AW-Q3). **Act:** the lead: reload in the turn that receives this (refresh.ts and its template changed); seats: nothing.
+
 ## [2.18.0] - 2026-11-26
 
 ### Added
