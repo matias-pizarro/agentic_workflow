@@ -25,7 +25,7 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
      agentic_workflow/  a clone of this repo, at a release tag
      worktrees/         linked worktrees of src
    ```
-   In `<root>`: `git clone --branch v2.20.1 https://github.com/matias-pizarro/agentic_workflow.git`; take a later release with `git -C agentic_workflow checkout <tag>` once its `CHANGELOG.md` section says what it asks. In `<root>/wiki`: `git init`, then give it the commit guard that refuses a file emptied by accident: `ln -s ../../../agentic_workflow/tools/wiki-pre-commit .git/hooks/pre-commit`. The team script runs from `<root>/agentic_workflow/tools/team.sh` and keeps its queue and agent list beside it, git-ignored.
+   In `<root>`: `git clone --branch v2.21.0 https://github.com/matias-pizarro/agentic_workflow.git`; take a later release with `git -C agentic_workflow checkout <tag>` once its `CHANGELOG.md` section says what it asks. In `<root>/wiki`: `git init`, then give it the commit guard that refuses a file emptied by accident: `ln -s ../../../agentic_workflow/tools/wiki-pre-commit .git/hooks/pre-commit`. The team script runs from `<root>/agentic_workflow/tools/team.sh` and keeps its queue and agent list beside it, git-ignored.
 
 5. **Give `<root>/src` its agent docs**, each short:
    - `AGENTS.md`, with this line, `<root>` written out as the real path: `Process rules: <root>/agentic_workflow/docs/rules.md, beside this repo's main checkout. Read them before any ticket, review or question.`;
