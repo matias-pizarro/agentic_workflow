@@ -82,6 +82,8 @@ export function waitingFor(state, forField, ask, seatNames) {
 		const words = (ask ?? "").split(/[^A-Za-z0-9._-]+/).map((w) => w.replace(/\.+$/, ""));
 		return words.find((w) => seatNames.includes(w)) ?? "seat?";
 	}
+	// A blocked seat waits on the operator; its ask says why, e.g. "turn failed: ..." (CO-Q3).
+	if (state === "blocked") return ask ? `PM: ${ask}` : "PM";
 	return "";
 }
 
@@ -331,7 +333,7 @@ const SEAT_COLS = [
 	{ key: "seat", title: "SEAT", w: 17 },
 	{ key: "icon", title: "", w: 2 },
 	{ key: "ctx", title: "CTX", w: 4, sortValue: (r) => parseFloat(r.ctx) || -1 },
-	{ key: "state", title: "STATE", w: 16 },
+	{ key: "state", title: "STATE", w: 16, colour: (r) => (r.state === "blocked" ? COLOUR.high : undefined) },
 	{ key: "open", title: "OPEN", w: 4, sortValue: (r) => Number(r.open) || 0, colour: (r) => (r.open === "0" ? COLOUR.green : COLOUR[r.worst || "low"]) },
 	{ key: "for", title: "WAITING FOR", w: 16, flex: true },
 	// By the elapsed time shown, shortest first ascending; unknown last (TB-Q34).
@@ -345,7 +347,7 @@ const TASK_COLS = [
 	{ key: "tier", title: "TIER", w: 9 },
 	{ key: "link", title: "LINK", w: 34 },
 	{ key: "seats", title: "SEATS", w: 16 },
-	{ key: "status", title: "STATUS", w: 16, sortValue: (r) => RANK[r.status], colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.medium, "waiting for seat": COLOUR.low, "pending seat": COLOUR.grey })[r.status] },
+	{ key: "status", title: "STATUS", w: 16, sortValue: (r) => RANK[r.status], colour: (r) => ({ "waiting for PM": COLOUR.high, blocked: COLOUR.high, "waiting for seat": COLOUR.low, "pending seat": COLOUR.grey })[r.status] },
 	{ key: "open", title: "OPEN", w: 4 },
 	{ key: "blockedBy", title: "BLOCKED BY", w: 10 },
 ];
