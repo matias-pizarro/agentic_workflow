@@ -2,6 +2,13 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.21.0] - 2026-11-28
+
+### Added
+
+- Doc freshness (CS-Q108; the research on branch research/doc-freshness, CO-Q10; review CO-Q18 to CO-Q23): `tools/merge-ready` lists, without changing its exit status, the docs (`*.md` outside `.scratch/`, plus the directories of `MERGE_READY_DOCS`) that still state a name or IPv4 address the branch removed and no other file holds; rule 9: the authorisation then waits on Docs' check and names it; rule 16: Docs keeps docs current without writing them, Architecture sends Docs the facts it changes, Docs reads the docs weekly and sends stale lines to their owners. `tests/merge-ready`: a missing `MERGE_READY_DOCS` directory is named and skipped, no longer a refusal (CO-Q20, the check changed on the operator's answer). **Act:** the lead: run merge-ready for src branches with `MERGE_READY_DOCS=<root>/prod-playbook/docs`, and hold an authorisation on librarian's check when docs are listed; add to `wiki/crontab`, then `cron-pickup`: `0 9 * * 1 /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin sh <root>/wiki/tools/team.sh send librarian "Lead (cron, weekly): the drift read (rules.md rule 16): ..." >> <root>/wiki/tools/spool/cron.log 2>&1`. librarian: check the docs merge-ready lists; the weekly drift read; stale lines to their owners through the lead. architect: after each merged change to CONSTANTS, an ADR or COMPONENTS.md, send librarian the names, addresses and interfaces it changed.
+- Team mechanics: the lead runs `npx skills check -g` once a day, prompted by the wiki's crontab, updates the global skills only on the operator's go, then asks every seat to reload (CS-Q112, CO-Q24, CO-Q25). **Act:** the lead: the daily line in `wiki/crontab` (`30 8 * * * ... team.sh send lead "Cron (daily): check the global skills: npx skills check -g; ..."`), then `cron-pickup`.
+
 ## [2.20.1] - 2026-11-28
 
 ### Fixed
