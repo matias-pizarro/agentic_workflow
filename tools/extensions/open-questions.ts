@@ -101,7 +101,8 @@ export function statusOf(reply: string): { state: string; for?: string; open: nu
 
 // The board's window options (TB-Q1): set each field, unset an absent one.
 function publish(s: NonNullable<ReturnType<typeof statusOf>>) {
-	const fields: [string, string | undefined][] = [["@state", s.state], ["@for", s.for], ["@worst", s.worst], ["@ask", s.ask]];
+	// @status-open: the line's open=, changed only by a STATUS line (team.sh waiting, CO-Q4).
+	const fields: [string, string | undefined][] = [["@state", s.state], ["@for", s.for], ["@worst", s.worst], ["@ask", s.ask], ["@status-open", String(s.open)]];
 	for (const [option, value] of fields) {
 		if (value === undefined) setWindowOption(["-u"], option);
 		else setWindowOption([], option, value);
@@ -276,6 +277,16 @@ function registerIds(reply: string): string | undefined {
 	return undefined;
 }
 
+// Whether the session's last message is an assistant message that ended in
+// error or aborted, beep.ts's test (CO-Q2).
+function turnFailed(ctx: ExtensionContext): boolean {
+	const last = ctx.sessionManager
+		.getBranch()
+		.filter((e) => e.type === "message" && (e.message.role === "user" || e.message.role === "assistant"))
+		.at(-1);
+	return last?.type === "message" && last.message.role === "assistant" && ["error", "aborted"].includes((last.message as { stopReason?: string }).stopReason ?? "");
+}
+
 function lastAssistantText(ctx: ExtensionContext): string | undefined {
 	const branch = ctx.sessionManager.getBranch();
 	for (let i = branch.length - 1; i >= 0; i--) {
@@ -421,7 +432,9 @@ export default function openQuestions(pi: ExtensionAPI) {
 
 	pi.on("agent_settled", async (event, ctx) => {
 		markWorking(false);
-		if (!event.aborted) {
+		// A failed turn (error or aborted) has no reply of its own: the last assistant text is an
+		// earlier turn's, and its STATUS line would cover beep.ts's mark (RT4-Q3).
+		if (!event.aborted && !turnFailed(ctx)) {
 			const reply = lastAssistantText(ctx) ?? "";
 			const fields = statusOf(reply);
 			if (fields) publish(fields);

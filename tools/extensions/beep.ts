@@ -13,6 +13,13 @@
 //   reply of the session holds) or its STATUS line newly says
 //   waiting-for-PM (the previous STATUS line said another state, or there was
 //   none). Agents play no signal themselves (rules.md, Team mechanics).
+// - A turn that ends aborted or in error (its last assistant message's
+//   stopReason) marks the seat blocked, so the board and the red tab show it
+//   (RT4-Q3 (a), the operator, "ok", 27 Nov 2026 13:12): the window options
+//   @state=blocked, @worst=high and @ask="turn failed: <error>; re-send your
+//   message", and @for unset; the signal plays unless the seat is muted. The
+//   seat's next STATUS line sets them again (open-questions.ts). An abort the
+//   operator made with Esc is marked too.
 // Only typed input counts: a message from an extension or over RPC passes.
 import { spawn, spawnSync } from "node:child_process";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -21,6 +28,22 @@ const COMMAND = /^\s*\/(beep-from|mute)(?=\s|$)\s*([\s\S]*)$/;
 const QUESTION = /❓\s*\**\s*([A-Z][A-Za-z0-9-]*-[QA][0-9]+[a-z]?)/gu;
 const STATUS = /^\s*`?STATUS seat=\S+ state=(\S+)/gmu;
 const SIGNAL = "for i in 1 2 3; do timeout 5 beep; sleep 0.3; done";
+const FAILED_TAB = "bg=colour88,fg=colour254"; // open-questions.ts's high
+
+// Why the turn failed, from its last assistant message (stopReason aborted or
+// error), or undefined when it did not; an aborted run with no assistant
+// message after the last user message counts as aborted.
+export function failureOf(
+	messages: { role: string; stopReason?: string; errorMessage?: string }[],
+	aborted: boolean,
+): string | undefined {
+	const last = messages.filter((m) => m.role === "user" || m.role === "assistant").at(-1);
+	if (last?.role === "assistant" && (last.stopReason === "aborted" || last.stopReason === "error")) {
+		const why = (last.errorMessage ?? "").replace(/\s+/gu, " ").replace(/"/gu, "'").trim();
+		return (why || last.stopReason).slice(0, 120);
+	}
+	return aborted ? "aborted" : undefined;
+}
 
 // A /beep-from or /mute line: its verb and target ("" when none), or undefined.
 export function commandOf(text: string): { on: boolean; target: string } | undefined {
@@ -72,6 +95,19 @@ function setSwitch(on: boolean, target: string): { ok: boolean; say: string } {
 	return ok ? { ok: true, say: on ? `beep on for ${target}` : `${target} muted` } : { ok: false, say: `tmux refused to set @beep on ${target}` };
 }
 
+// Mark this pane's window blocked, for the board and the tab (RT4-Q3).
+function markFailed(why: string) {
+	const pane = process.env.TMUX_PANE;
+	if (!pane || !process.env.TMUX) return;
+	const set = (option: string, value?: string) =>
+		tmux(value === undefined ? ["set", "-wu", "-t", pane, option] : ["set", "-w", "-t", pane, option, value]);
+	set("@state", "blocked");
+	set("@for");
+	set("@worst", "high");
+	set("@ask", `turn failed: ${why}; re-send your message`);
+	set("window-status-style", FAILED_TAB);
+}
+
 // Whether this pane's seat is switched on.
 function switchedOn(): boolean {
 	const pane = process.env.TMUX_PANE;
@@ -117,7 +153,15 @@ export default function beep(pi: ExtensionAPI) {
 	});
 
 	pi.on("agent_settled", async (event, ctx) => {
-		if (event.aborted) return;
+		const messages = ctx.sessionManager
+			.getBranch()
+			.flatMap((e) => (e.type === "message" ? [e.message as { role: string; stopReason?: string; errorMessage?: string }] : []));
+		const failed = failureOf(messages, event.aborted);
+		if (failed) {
+			markFailed(failed);
+			if (switchedOn()) spawn("sh", ["-c", SIGNAL], { stdio: "ignore", detached: true }).unref();
+			return;
+		}
 		const { earlier, turn } = replies(ctx);
 		if (!turn || !calls(earlier, turn) || !switchedOn()) return;
 		spawn("sh", ["-c", SIGNAL], { stdio: "ignore", detached: true }).unref();

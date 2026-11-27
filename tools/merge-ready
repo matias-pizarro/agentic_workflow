@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
 # Is a seat's branch ready to merge into integration? (rules.md rule 9; RT2-Q5)
 #
-# Usage: merge-ready <worktree> <live-run commit> <code path>...
+# Usage: merge-ready <worktree> <head> <live-run commit> <code path>...
 #
-# Exits 1, naming every reason, when the integration branch is not an
-# ancestor of the worktree's HEAD (merge integration in first), or when the
+# <head> is the branch's head commit the ready report names, read by git in
+# the worktree's repository whatever its checkout (RT4-Q6 (b)); every HEAD
+# below means it. Exits 1, naming every reason, when the integration branch
+# is not an ancestor of HEAD (merge integration in first), or when the
 # branch's own change to a code path follows the commit the live checks last
 # ran on (rerun them live). The branch's own changes are HEAD compared with
 # integration merged into the live run's commit (git merge-tree, git 2.38),
@@ -14,7 +16,8 @@
 # (MRCR-Q1). A failed read is a refusal, never a pass. Exit 2 on a
 # usage error. The lead runs it before authorising a merge.
 #
-# It also warns, without changing the exit status, of each ticket the branch
+# It also lists, without changing the exit status, the docs that still state
+# a name or address the branch removed (below; CS-Q108), and warns of each ticket the branch
 # changed (.scratch/<topic>/issues/*.md, against integration) whose
 # **Status:** line at HEAD is not done; the ready report answers each
 # (RT3-Q10).
@@ -23,18 +26,21 @@ set -o pipefail
 nl='
 '
 
-[ $# -ge 3 ] || { echo "usage: merge-ready <worktree> <live-run commit> <code path>..." >&2; exit 2; }
-wt=$1 live=$2
-shift 2
+[ $# -ge 4 ] || { echo "usage: merge-ready <worktree> <head> <live-run commit> <code path>..." >&2; exit 2; }
+wt=$1 head=$2 live=$3
+shift 3
+named=$head
+head=$(git -C "$wt" rev-parse --verify --quiet "$named^{commit}") ||
+  { echo "merge-ready: cannot read the commit $named in $wt" >&2; exit 1; }
 
 why=''
 rc=0
-git -C "$wt" merge-base --is-ancestor integration HEAD || rc=$?
+git -C "$wt" merge-base --is-ancestor integration "$head" || rc=$?
 case $rc in
 0) ;;
 1) why="$why
-- integration is not in HEAD: merge integration into the branch first" ;;
-*) echo "merge-ready: cannot compare integration with HEAD in $wt" >&2; exit 1 ;;
+- integration is not in $head: merge integration into the branch first" ;;
+*) echo "merge-ready: cannot compare integration with $head in $wt" >&2; exit 1 ;;
 esac
 
 rc=0
@@ -43,24 +49,96 @@ merged=$(git -C "$wt" merge-tree --write-tree --no-messages "$live" integration)
 # also exits 1, printing no tree.
 case ${merged%%"$nl"*} in '' | *[!0-9a-f]*) rc=2 ;; esac
 case $rc in
-0 | 1) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" HEAD -- "$@") ||
-    { echo "merge-ready: cannot diff the live run with integration against HEAD in $wt" >&2; exit 1; } ;;
+0 | 1) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" "$head" -- "$@") ||
+    { echo "merge-ready: cannot diff the live run with integration against $head in $wt" >&2; exit 1; } ;;
 *) echo "merge-ready: cannot merge integration into $live in $wt" >&2; exit 1 ;;
 esac
 [ -z "$changed" ] || why="$why
 - changed since the live run at $live: $(printf '%s' "$changed" | tr '\n' ' ')
   run them live again"
 
-tickets=$(git -C "$wt" diff --name-only --diff-filter=d integration...HEAD -- '.scratch/*/issues/*.md') ||
+tickets=$(git -C "$wt" diff --name-only --diff-filter=d "integration...$head" -- '.scratch/*/issues/*.md') ||
   { echo "merge-ready: cannot list the tickets the branch changed in $wt" >&2; exit 1; }
 for t in $tickets; do
-  status=$(git -C "$wt" show "HEAD:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
-    { echo "merge-ready: cannot read $t at HEAD in $wt" >&2; exit 1; }
+  status=$(git -C "$wt" show "$head:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
+    { echo "merge-ready: cannot read $t at $head in $wt" >&2; exit 1; }
   case $status in done) ;; *) echo "merge-ready: warning: $t says Status: ${status:-(none)}, not done" ;; esac
 done
 
+# The docs still stating a fact the branch removed (rule 9; CS-Q108): a name
+# (hyphenated or dotted, each part two characters or more, not an option such
+# as --no-ff, not a question ID such as PA-Q99, which is a citation) or an
+# IPv4 address (octets 0 to 255), on a removed line of the branch's diff,
+# which no file at the head holds but the docs, while a doc still does: a
+# Markdown file of the repo outside .scratch/, or under a directory of
+# MERGE_READY_DOCS (colon-separated, e.g. the playbook's docs/). A token is
+# matched whole: a longer name holding it does not count (CO-Q18). Ports and
+# short interface names are left to Architecture's push and Docs' weekly read
+# (rule 16; CO-Q21). A warning: the exit status is unchanged, and the lead's
+# authorisation waits on Docs' check of the docs listed; a directory of
+# MERGE_READY_DOCS that does not exist is named and skipped (CO-Q20).
+diff=$(git -C "$wt" diff -U0 "integration...$head" -- . ':!.scratch') ||
+  { echo "merge-ready: cannot diff integration...$head in $wt" >&2; exit 1; }
+# Removed lines: inside a hunk only, so a file header is never one (CO-Q21).
+removed=$(printf '%s\n' "$diff" | awk '/^diff --git / { h = 0; next } /^@@ / { h = 1; next } h && /^-/ { print substr($0, 2) }') ||
+  { echo "merge-ready: cannot read the removed lines of integration...$head" >&2; exit 1; }
+rc=0
+found=$(printf '%s\n' "$removed" |
+  grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}|-*[A-Za-z][A-Za-z0-9_]+([.-][A-Za-z0-9_]{2,})+') || rc=$?
+[ "$rc" -le 1 ] || { echo "merge-ready: cannot extract the removed names of integration...$head" >&2; exit 1; }
+tokens=$(printf '%s\n' "$found" | awk -F. '
+  /^-/ { next }                                   # an option, e.g. --no-ff
+  /^([A-Z0-9]+-)+[QA][0-9]+$/ { next }            # a question ID
+  /^[0-9.]+$/ { if ($1 > 255 || $2 > 255 || $3 > 255 || $4 > 255) next }
+  NF { print }' | sort -u)
+# Whole-token match: a name character on either side means another name; a
+# dot after it counts as a boundary only when the sentence ends there.
+whole() { # token -> an extended regex matching it whole
+  e=$(printf '%s' "$1" | sed 's/[.]/\\./g')
+  printf '(^|[^A-Za-z0-9_.-])%s($|[^A-Za-z0-9_.-]|\\.($|[^A-Za-z0-9_-]))' "$e"
+}
+dirs=''
+oldifs=$IFS IFS=:
+for d in ${MERGE_READY_DOCS:-}; do
+  if [ -d "$d" ]; then dirs="$dirs$d$nl"
+  else echo "merge-ready: MERGE_READY_DOCS: no directory $d, not searched"; fi
+done
+IFS=$oldifs
+tab=$(printf '\t')
+stale=''
+for tok in $tokens; do
+  re=$(whole "$tok")
+  rc=0
+  git -C "$wt" grep -q -E -e "$re" "$head" -- . ':!*.md' ':!.scratch' || rc=$?
+  case $rc in
+  0) continue ;; # still stated outside the docs: not removed
+  1) ;;
+  *) echo "merge-ready: cannot search $head for $tok in $wt" >&2; exit 1 ;;
+  esac
+  rc=0
+  docs=$(git -C "$wt" grep -l -E -e "$re" "$head" -- '*.md' ':!.scratch') || rc=$?
+  [ "$rc" -le 1 ] || { echo "merge-ready: cannot search the docs for $tok in $wt" >&2; exit 1; }
+  docs=$(printf '%s' "$docs" | sed "s|^$head:||")
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    rc=0
+    more=$(grep -rlE --include='*.md' -e "$re" "$d") || rc=$?
+    [ "$rc" -le 1 ] || { echo "merge-ready: cannot search $d for $tok" >&2; exit 1; }
+    docs="$docs${more:+$nl$more}"
+  done << EOF
+$dirs
+EOF
+  # One "path<TAB>token" line per doc: a path may hold spaces (CO-Q19).
+  stale="$stale$(printf '%s\n' "$docs" | awk -v t="$tok" 'NF { print $0 "\t" t }')$nl"
+done
+stale=$(printf '%s' "$stale" | grep -v '^$') || true
+if [ -n "$stale" ]; then
+  echo "merge-ready: docs to check (rule 9: the authorisation waits on Docs' check): they state what $head removed:"
+  printf '%s\n' "$stale" | sort | awk -F "$tab" '$1 != f { if (f != "") print "  " f ":" t; f = $1; t = "" } { t = t " " $2 } END { if (f != "") print "  " f ":" t }'
+fi
+
 if [ -n "$why" ]; then
-  echo "merge-ready: not ready ($wt):$why"
+  echo "merge-ready: not ready ($wt at $head):$why"
   exit 1
 fi
-echo "merge-ready: ready: integration is in $wt's HEAD, and $* unchanged since the live run at $live"
+echo "merge-ready: ready: integration is in $head ($wt), and $* unchanged since the live run at $live"

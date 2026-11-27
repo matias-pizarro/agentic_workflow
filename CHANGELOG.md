@@ -2,6 +2,35 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.21.0] - 2026-11-28
+
+### Added
+
+- Doc freshness (CS-Q108; the research on branch research/doc-freshness, CO-Q10; review CO-Q18 to CO-Q23): `tools/merge-ready` lists, without changing its exit status, the docs (`*.md` outside `.scratch/`, plus the directories of `MERGE_READY_DOCS`) that still state a name or IPv4 address the branch removed and no other file holds; rule 9: the authorisation then waits on Docs' check and names it; rule 16: Docs keeps docs current without writing them, Architecture sends Docs the facts it changes, Docs reads the docs weekly and sends stale lines to their owners. `tests/merge-ready`: a missing `MERGE_READY_DOCS` directory is named and skipped, no longer a refusal (CO-Q20, the check changed on the operator's answer). **Act:** the lead: run merge-ready for src branches with `MERGE_READY_DOCS=<root>/prod-playbook/docs`, and hold an authorisation on librarian's check when docs are listed; add to `wiki/crontab`, then `cron-pickup`: `0 9 * * 1 /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin sh <root>/wiki/tools/team.sh send librarian "Lead (cron, weekly): the drift read (rules.md rule 16): ..." >> <root>/wiki/tools/spool/cron.log 2>&1`. librarian: check the docs merge-ready lists; the weekly drift read; stale lines to their owners through the lead. architect: after each merged change to CONSTANTS, an ADR or COMPONENTS.md, send librarian the names, addresses and interfaces it changed.
+- Team mechanics: the lead runs `npx skills check -g` once a day, prompted by the wiki's crontab, updates the global skills only on the operator's go, then asks every seat to reload (CS-Q112, CO-Q24, CO-Q25). **Act:** the lead: the daily line in `wiki/crontab` (`30 8 * * * ... team.sh send lead "Cron (daily): check the global skills: npx skills check -g; ..."`), then `cron-pickup`.
+
+## [2.20.1] - 2026-11-28
+
+### Fixed
+
+- `team.sh waiting`: a seat whose extension has not published `@status-open` (not reloaded since 2.20.0, or no STATUS line since) was shown as "no ID"; it now takes the tab's `@open`, else says "open unknown"; "no ID" only when a STATUS line said `open=0` (the lead, 27 Nov 22:59; the operator, CO-Q15, CO-Q16, CO-Q17, 28 Nov 00:07). **Act:** the lead: nothing; every seat that has not reloaded since 2.20.0: reload.
+
+## [2.20.0] - 2026-11-27
+
+The 27 Nov retro's accepted changes (`wiki/sources/2026-11-27-retro.md`; the operator, CS-Q99, 21:22, and CS-Q103, 21:38; review findings CO-Q1 to CO-Q8, CHK-CO-Q1, 22:28 and 22:47).
+
+### Added
+
+- `team.sh doctor`: the kind `refused <ip> <port>`, held only when nc tried the connect and it failed within 5 s; a port nc rejects, a host name or no nc is a failure (RT4-Q1 (c), CO-Q1). **Act:** the lead: add the two production lines to `wiki/tools/expect` (`refused 10.130.1.11 443 | ...`, `refused 10.130.0.2 22 | ...`, the retro's RT4-Q1 (c)), then run `team.sh doctor`.
+- `team.sh waiting`: the rows of the lead's "Waiting for you" table, from each seat's last STATUS line (the window option `@status-open`, new, with `@worst`, `@state`, `@ask`); a failed read of tmux exits 1 (RT4-Q5 (b), CO-Q4, CO-Q7). **Act:** the lead: build the table from it (the `/open-questions` template now says so).
+- beep.ts: a turn that ends aborted or in error marks the seat `blocked`, red on its tab and on the board, its ask "turn failed: <error>; re-send your message", and plays the signal unless muted, until its next STATUS line; open-questions.ts leaves the mark (RT4-Q3 (a), CO-Q2, CO-Q3). **Act:** every seat and the lead: reload in the turn that receives this (beep.ts, open-questions.ts and the `/open-questions` template changed); the board: `team.sh revive --all` or restart it in window 0.
+
+### Changed
+
+- Rule 3: before advising the operator to start or open anything on the host, name what the agents' jail reaches through it; advice that widens that reach is a 🔴 question put through Security (RT4-Q1 (a)). Rule 4: a question contradicted by a newer one is withdrawn or re-asked in that turn (RT4-Q1 (b)). Rule 16: the operator's words about a builder's component, given in a coordinator's pane, go to the builder as given; the builder asks (RT4-Q4 (a)). **Act:** every seat, from its next turn.
+- `tools/merge-ready <worktree> <head> <live-run commit> <code path>...`: it reads the head commit the ready report names, whatever the checkout; rule 9: the ready report names the head, and the lead reads the result before authorising and names both commits (RT4-Q6 (b), CHK-CO-Q1). **Act:** seats: name the head commit in each ready report; the lead: the new form.
+- `team.sh send` refuses only a text claiming the operator's go ("the user's go (", "," or ":"), not one mentioning it (RT4-Q8 (a)). **Act:** none.
+
 ## [2.19.0] - 2026-11-26
 
 ### Added

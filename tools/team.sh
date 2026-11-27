@@ -19,6 +19,9 @@
 #                                            a CRON line when the last run in tools/spool/cron.log exited non-zero;
 #                                            a WIKI line when the wiki's last commit outside sources/ is a day old
 #                                            or more, or unreadable (rules.md rule 11; TEAM_WIKI overrides the wiki)
+#   team.sh waiting                          the rows of the lead's "Waiting for you" table: one per seat whose last
+#                                            STATUS line has open above 0 or says waiting-for-PM, from its window's
+#                                            options (open-questions.ts sets them), never from memory (RT4-Q5 (b))
 #   team.sh refresh <name>…|all|lead [--min <percent>] "<the user's words>" "<pane> <time>"
 #                                            with --min, a seat whose context window (@ctx) is below the percent,
 #                                            or unknown, is skipped and listed, with its percentage when known (CS-Q90)
@@ -704,7 +707,8 @@ refresh_run() { # seat words source
 # comments. Kinds: sysctl <name> <value>; nonempty <file>; sshcontrolpath
 # <alias> %n (ssh -G <alias> prints a ControlPath holding the alias, so two
 # aliases of one host never share a socket); http <url> <status>, the URL
-# answers with that HTTP status within 5 s (LD-Q2); jail <name>, the jail's
+# answers with that HTTP status within 5 s (LD-Q2); refused <host> <port>, a
+# TCP connect from here fails within 5 s (RT4-Q1 (c)); jail <name>, the jail's
 # name for the fix block, checking nothing. Prints each failure, then one block for the
 # host: one jail -m line with every sysctl fix, then the other fixes. A read
 # that fails is a failure. Exit 1 on any failure.
@@ -745,6 +749,24 @@ doctor() {
       if [ "$rc" = 0 ] && [ "$got" = "$want" ]; then ok=1
       elif [ "$rc" != 0 ]; then got="no answer (curl exit $rc)"
       fi ;;
+    refused)
+      # Held only when nc tried the connect and says it failed; a port or an
+      # address nc rejects, or no nc, is a failure (CO-Q1). -n: an IP address
+      # only, no DNS; timeout 6 bounds the whole probe.
+      case $want in '' | *[!0-9]*) got="port '$want' is not a number" ;; esac
+      if [ -z "$got" ] && { [ "$want" -lt 1 ] || [ "$want" -gt 65535 ]; }; then got="port $want out of range"; fi
+      if [ -n "$got" ]; then :
+      elif ! command -v nc > /dev/null 2>&1; then got='no nc to try the connect'
+      else
+        rc=0
+        out=$(timeout 6 nc -v -n -z -w 5 "$target" "$want" 2>&1) || rc=$?
+        case $rc:$out in
+        0:*) got=connected ;;
+        *"connect to $target port $want "*" failed:"*) ok=1 ;;
+        *) got="no connect tried (exit $rc): $(printf '%s' "$out" | head -1)" ;;
+        esac
+      fi
+      want="port $want refused" ;;
     *) got="unknown kind '$kind'" ;;
     esac
     n=$((n + 1))
@@ -795,6 +817,19 @@ queued() { # target count
 }
 failed_any() { for f in "$spool/$1"/failed/*; do [ -f "$f" ] && return 0; done; return 1; }
 refused() { ! sh "$self" "$@" > /dev/null 2>&1; }
+prints_line() { # line command...: the command prints exactly this line among its output
+  want=$1; shift
+  sh "$self" "$@" 2>&1 | grep -qxF -- "$want"
+}
+not_prints() { # text command...
+  want=$1; shift
+  ! sh "$self" "$@" 2>&1 | grep -qF -- "$want"
+}
+prints_nothing() { [ -z "$(sh "$self" "$@" 2>&1)" ]; }
+waiting_unread() { # waiting against a tmux server that does not run (CO-Q7)
+  out=$(TEAM_TMUX=teamtest-none sh "$self" waiting 2>&1) && return 1
+  printf '%s\n' "$out" | grep -qF "waiting: cannot read the tmux server's windows"
+}
 refused_with() { # text command...
   want=$1; shift
   out=$(sh "$self" "$@" 2>&1) && return 1
@@ -839,6 +874,7 @@ st_cleanup() {
   for p in "$st_dir"/spool/*/deliver.lock/pid; do
     [ -f "$p" ] && kill "$(cat "$p")" 2> /dev/null
   done
+  [ -z "${lpid:-}" ] || kill "$lpid" 2> /dev/null # st_doctor's listener (CO-Q5)
   tmux kill-server 2> /dev/null
   rm -rf "$st_dir"
 }
@@ -1046,6 +1082,37 @@ lead_shell_left() { # new lead id
   waitfor 5 [ "$(tmux display -p -t "$lp" '#{pane_current_command}')" = bash ]
 }
 
+# doctor's refused kind (RT4-Q1 (c)): a real listener on 127.0.0.1 that
+# answers, and a port nothing listens on.
+st_doctor() {
+  dport=47431 cport=47432
+  for p in "$dport" "$cport"; do
+    if nc -z -w 1 127.0.0.1 "$p" 2> /dev/null; then
+      st_bad "doctor: 127.0.0.1:$p already answers before the test listens; free it and rerun"
+      return
+    fi
+  done
+  nc -k -l 127.0.0.1 "$dport" > /dev/null 2>&1 &
+  lpid=$!
+  waitfor 5 nc -z -w 1 127.0.0.1 "$dport" || st_bad "doctor: the listener on 127.0.0.1:$dport never answered"
+  printf 'refused 127.0.0.1 65536 | x\n' > "$t/expect-badport"
+  printf 'refused nosuch.invalid %s | x\n' "$cport" > "$t/expect-name"
+  export TEAM_EXPECT="$t/expect-badport"
+  check "doctor's refused fails on a port nc rejects, never taking it as refused" refused_with "FAIL refused 127.0.0.1: expected port 65536 refused, got port 65536 out of range" doctor
+  export TEAM_EXPECT="$t/expect-name"
+  check "doctor's refused fails on a host name, which it does not resolve" refused_with "FAIL refused nosuch.invalid: expected port $cport refused, got no connect tried" doctor
+  printf 'refused 127.0.0.1 %s | nothing to do\n' "$cport" > "$t/expect-closed"
+  printf 'jail j\nrefused 127.0.0.1 %s | take down what answers there\n' "$dport" > "$t/expect-open"
+  export TEAM_EXPECT="$t/expect-closed"
+  check "doctor's refused holds on a port nothing answers" sh "$self" doctor
+  export TEAM_EXPECT="$t/expect-open"
+  check "doctor's refused fails on a port that answers" refused_with "FAIL refused 127.0.0.1: expected port $dport refused, got connected" doctor
+  check "... and prints its fix" refused_with "  take down what answers there" doctor
+  unset TEAM_EXPECT
+  kill "$lpid" 2> /dev/null
+  lpid=''
+}
+
 selftest() {
   [ -z "${TEAM_TMUX:-}" ] || die "selftest: TEAM_TMUX is set"
   TEAM_TMUX=teamtest
@@ -1074,7 +1141,30 @@ selftest() {
     screen "$lp" | tail -8
     return 1
   fi
+  # waiting: the rows from the windows' options (RT4-Q5 (b)).
+  # @status-open is the STATUS line's open=; @open, the tab's, is unset as the
+  # operator types (CO-Q4).
+  tmux set -w -t "$ap" @status-open 2 && tmux set -w -t "$ap" @worst high && tmux set -w -t "$ap" @ask 'CO-Q1 | CO-Q2'
+  tmux set -w -t "$lp" @status-open 1
+  check "waiting prints a seat with open questions, its count, worst and ask, @open unset" prints_line '| agent | 2 open, worst high: CO-Q1 \| CO-Q2 |' waiting
+  check "... and leaves the lead's own window out" not_prints 'lead' waiting
+  tmux set -w -t "$ap" @status-open 0 && tmux set -w -t "$ap" @state waiting-for-PM && tmux set -w -t "$ap" @ask 'a read of the diff'
+  check "waiting names a seat waiting on the operator with open=0 as 'no ID'" prints_line '| agent | no ID: a read of the diff |' waiting
+  # A seat not reloaded since @status-open came (the lead, 27 Nov 22:59): no
+  # "no ID" row on its missing count.
+  tmux set -wu -t "$ap" @status-open && tmux set -w -t "$ap" @open 1
+  check "waiting takes @open when @status-open is unset" prints_line '| agent | 1 open, worst high: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @open
+  check "waiting says the count is unknown when both are unset, not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -w -t "$ap" @open 0
+  check "... and an @open of 0 alone is not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @open
+  tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$ap" @status-open && tmux set -wu -t "$lp" @status-open
+  check "waiting prints nothing when no seat waits" prints_nothing waiting
+  check "waiting exits 1 when it cannot read tmux, naming it" waiting_unread
   check "send refuses a text claiming a user's go, showing go's usage" refused_with '"<pane> <time>" "<instruction>"' send agent "Lead: the user's go, lead pane, now ('yes'): x"
+  check "... and one claiming it in go's own form" refused send agent "Lead: the user's go ('yes', lead pane 12:00), relayed 12:01: x"
+  check "... and one claiming it with a colon" refused send agent "Lead: the user's go: yes"
   check "go refuses empty words" refused go agent "" "lead pane 12:00" "x"
   check "go refuses '...'" refused go agent "..." "lead pane 12:00" "x"
   check "go refuses '…'" refused go agent " … " "lead pane 12:00" "x"
@@ -1087,6 +1177,8 @@ selftest() {
   sh "$self" go agent "go ahead" "lead pane 12:00" "selftest go: reply with only OK" > /dev/null
   check "go is delivered into an empty box, quoting the user's words, source and time" waitfor 30 has "$ap" "the user's go ('go ahead', lead pane 12:00), relayed "
   check "go quotes the instruction" has "$ap" ": selftest go: reply with only OK"
+  check "send passes a text that mentions the user's go without claiming it" sh "$self" send agent "selftest send: ask the user's go for the write in your pane; reply with only OK"
+  check "... and delivers it" waitfor 90 has "$ap" "selftest send: ask the user's go for the write in your pane"
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
   check "status lists them as QUEUED, with their age" status_shows_queued
@@ -1213,6 +1305,7 @@ STUB
   check "... and logs the reason" grep -q 'retired a5 without a check-out: selftest: never started' "$spool/log"
 
   st_refresh
+  st_doctor
 
   if [ "$st_fails" -eq 0 ]; then echo "selftest passed"; else echo "selftest: $st_fails failed"; return 1; fi
 }
@@ -1244,7 +1337,8 @@ spawn)
   ;;
 send)
   [ $# -eq 3 ] || { echo "usage: $0 send <name> <text>" >&2; exit 2; }
-  if printf '%s' "$3" | grep -qiE "user('|’)s go"; then
+  # The claim forms only ("the user's go (", ", " or ":"); a mention passes (RT4-Q8 (a)).
+  if printf '%s' "$3" | grep -qiE "user('|’)s go( \(|,|:)"; then
     die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<pane> <time>\" \"<instruction>\""
   fi
   enqueue "to-$2" "$3"
@@ -1273,6 +1367,38 @@ _box) # pane: show what the delivery check sees
   else
     echo 'no input box'
   fi
+  ;;
+waiting)
+  # From the windows' options, which only each seat's last STATUS line sets
+  # (open-questions.ts): @status-open, @worst, @state and @ask; not @open,
+  # which the operator's typing clears (CO-Q4). The lead's window is left out.
+  # A failed read of tmux exits 1, never an empty table (CO-Q7).
+  lead=$(lead_pane)
+  leadwin=''
+  [ -z "$lead" ] || leadwin=$(tmux display -p -t "$lead" '#{window_id}')
+  # A unit separator, not a tab: read joins runs of a whitespace IFS, so an
+  # empty field would shift the rest.
+  us=$(printf '\037')
+  # A seat whose extension predates @status-open (not reloaded since 2.20.0),
+  # or with no STATUS line since, has none: its count is @open if set, else
+  # unknown; only an explicit @status-open of 0 makes a "no ID" row.
+  rows=$(tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@status-open}$us#{@open}$us#{@worst}$us#{@state}$us#{@ask}") ||
+    die "waiting: cannot read the tmux server's windows"
+  printf '%s\n' "$rows" |
+    while IFS="$us" read -r wid name open tabopen worst state ask; do
+      [ "$wid" = "$leadwin" ] && continue
+      ask=$(printf '%s' "$ask" | sed 's/|/\\|/g')
+      count=${open:-$tabopen} # the STATUS line's count, else the tab's (CO-Q16)
+      if [ -n "$count" ] && [ "$count" -gt 0 ] 2> /dev/null; then
+        echo "| $name | $count open${worst:+, worst $worst}${ask:+: $ask} |"
+      elif [ "$state" != waiting-for-PM ]; then
+        :
+      elif [ "$open" = 0 ]; then
+        echo "| $name | no ID: ${ask:-(no ask)} |"
+      else
+        echo "| $name | open unknown: ${ask:-(no ask)} |"
+      fi
+    done
   ;;
 queue)
   for f in "$spool"/*/q/* "$spool"/*/failed/*; do

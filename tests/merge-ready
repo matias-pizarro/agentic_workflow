@@ -3,7 +3,8 @@
 # whose live run is at L, then integration merged in, is ready when only
 # integration's changes reach the code paths (the guards seat's AGENTS.md case,
 # 15 Nov), and not ready when the branch's own change follows L, or when
-# integration is not in HEAD. No network.
+# integration is not in HEAD; the head commit named is judged, whatever the
+# worktree has checked out. No network.
 # Run: tests/merge-ready
 set -eu
 set -o pipefail
@@ -44,12 +45,12 @@ expect() { # <0|1> <case> <args>...
   [ "$rc" = "$want" ] || { echo "FAIL: $name: expected exit $want, got $rc: $(cat out)" >&2; fails=$((fails + 1)); }
 }
 
-expect 1 "integration not merged in" . "$live" AGENTS.md tool.sh
+expect 1 "integration not merged in" . "$(git rev-parse HEAD)" "$live" AGENTS.md tool.sh
 g merge -q --no-ff integration -m 'merge integration in'
-expect 0 "integration's AGENTS.md change merged in is not the branch's own, though the branch changed AGENTS.md before the live run" . "$live" AGENTS.md tool.sh
+expect 0 "integration's AGENTS.md change merged in is not the branch's own, though the branch changed AGENTS.md before the live run" . "$(git rev-parse HEAD)" "$live" AGENTS.md tool.sh
 echo 'after the live run' >> tool.sh
 g commit -q -am 'feat: change after the live run'
-expect 1 "the branch's own change after the live run" . "$live" AGENTS.md tool.sh
+expect 1 "the branch's own change after the live run" . "$(git rev-parse HEAD)" "$live" AGENTS.md tool.sh
 grep -q 'tool.sh' out || { echo "FAIL: the refusal does not name tool.sh: $(cat out)" >&2; fails=$((fails + 1)); }
 if grep -q 'AGENTS.md' out; then echo "FAIL: the refusal names AGENTS.md: $(cat out)" >&2; fails=$((fails + 1)); fi
 
@@ -64,9 +65,9 @@ live=$(git rev-parse HEAD)
 g merge -q --no-ff integration -m 'merge integration in' > /dev/null 2>&1 || true
 echo 'resolved' > tool.sh
 g add tool.sh && g commit -q -m 'resolve the conflict'
-expect 1 "a conflict resolved after the live run" . "$live" AGENTS.md tool.sh
+expect 1 "a conflict resolved after the live run" . "$(git rev-parse HEAD)" "$live" AGENTS.md tool.sh
 grep -q 'tool.sh' out || { echo "FAIL: the refusal does not name tool.sh: $(cat out)" >&2; fails=$((fails + 1)); }
-expect 0 "a conflict outside the code paths" . "$live" AGENTS.md
+expect 0 "a conflict outside the code paths" . "$(git rev-parse HEAD)" "$live" AGENTS.md
 
 # Tickets the branch changed: a warning for each not done, the exit unchanged (RT3-Q10).
 mkdir -p .scratch/topic/issues
@@ -74,12 +75,72 @@ printf '# 01: a\n\n**Status:** in-progress\n' > .scratch/topic/issues/01-a.md
 printf '# 02: b\n\n**Status:** done\n' > .scratch/topic/issues/02-b.md
 printf '# 03: c\n\n**Status:** done pending review\n' > .scratch/topic/issues/03-c.md
 g add .scratch && g commit -q -m 'tickets'
-expect 0 "tickets changed by the branch keep a ready branch ready" . "$live" AGENTS.md
+expect 0 "tickets changed by the branch keep a ready branch ready" . "$(git rev-parse HEAD)" "$live" AGENTS.md
 grep -q 'warning: .scratch/topic/issues/01-a.md says Status: in-progress, not done' out ||
   { echo "FAIL: no warning for the ticket not done: $(cat out)" >&2; fails=$((fails + 1)); }
 grep -q 'warning: .scratch/topic/issues/03-c.md says Status: done pending review, not done' out ||
   { echo "FAIL: no warning for 'done pending review': $(cat out)" >&2; fails=$((fails + 1)); }
 if grep -q '02-b.md' out; then echo "FAIL: a warning for the ticket done: $(cat out)" >&2; fails=$((fails + 1)); fi
+
+# The head commit is judged, not the checkout (RT4-Q6 (b), 23 Nov 23:44): a
+# ready head while another branch, not ready, is checked out, and the reverse.
+ready=$(git rev-parse HEAD)
+g switch -q -c other integration
+echo 'other branch' >> tool.sh
+g commit -q -am 'other: tool.sh, no integration merge needed, but after the live run'
+expect 0 "a ready head, while a branch that is not ready is checked out" . "$ready" "$live" AGENTS.md
+grep -q "ready: integration is in $ready" out || { echo "FAIL: the result does not name the head read: $(cat out)" >&2; fails=$((fails + 1)); }
+expect 1 "the checked-out branch's own head, not ready" . "$(git rev-parse HEAD)" "$live" tool.sh
+g switch -q feat
+expect 1 "a head that is not a commit" . 0000000 "$live" AGENTS.md
+grep -q 'cannot read the commit 0000000' out || { echo "FAIL: no 'cannot read' for a bad head: $(cat out)" >&2; fails=$((fails + 1)); }
+expect 2 "the old three-argument form is a usage error" . "$live" AGENTS.md
+
+# Docs that still state a fact the branch removed (CS-Q108), the 21 Nov case:
+# the proxy left the conf, the overview kept naming it. A repo of its own.
+mkdir "$tmp/docs-case" "$tmp/playbook" && cd "$tmp/docs-case"
+git init -q -b integration
+git config user.email test@example.invalid
+git config user.name test
+git config commit.gpgsign false
+mkdir -p infra docs .scratch/t
+printf 'proxy=caddy-proxy\naddr=10.130.1.11\nkeep=vikunja.dkl.cat\n# PA-Q99\nhost=api.example.com\nopt=--no-ff\nbad=999.999.1.2\n-- old-host.example\n' > infra/prod.conf
+printf 'Requests go through caddy-proxy at 10.130.1.11 to vikunja.dkl.cat (PA-Q99).\n' > docs/overview.md
+printf 'Call api.example.com, then old-host.example; merge with no-ff; never 999.999.1.2.\n' > 'docs/Run Book.md'
+printf 'echo api.example.com.backup\n' > infra/backup.sh
+printf 'caddy-proxy\n' > .scratch/t/notes.md
+printf 'echo caddy-proxy is gone\n' > infra/other.sh
+g add -A && g commit -q -m base
+g switch -q -c feat
+printf 'proxy=sylve-proxy\naddr=10.130.1.12\nkeep=vikunja.dkl.cat\n' > infra/prod.conf
+g commit -q -am 'feat: the proxy moves'
+printf 'The proxy is at 10.130.1.11.\n' > "$tmp/playbook/page.md"
+printf 'Old hosts: old-host.example.\n' > "$tmp/playbook/Play Book.md"
+head_c=$(git rev-parse HEAD)
+expect 0 "a removed fact still in a doc warns, the exit unchanged" . "$head_c" "$head_c" infra
+grep -q '^merge-ready: docs to check' out || { echo "FAIL: no docs-to-check line: $(cat out)" >&2; fails=$((fails + 1)); }
+grep -q '^  docs/overview.md: 10.130.1.11$' out || { echo "FAIL: docs/overview.md not listed for 10.130.1.11 alone: $(cat out)" >&2; fails=$((fails + 1)); }
+if grep -q 'caddy-proxy' out; then echo "FAIL: caddy-proxy listed, though infra/other.sh still states it: $(cat out)" >&2; fails=$((fails + 1)); fi
+if grep -q '.scratch' out; then echo "FAIL: a .scratch record listed: $(cat out)" >&2; fails=$((fails + 1)); fi
+if grep -q 'vikunja.dkl.cat' out; then echo "FAIL: an unchanged name listed: $(cat out)" >&2; fails=$((fails + 1)); fi
+if grep -q 'PA-Q99' out; then echo "FAIL: a question ID, a citation, listed: $(cat out)" >&2; fails=$((fails + 1)); fi
+# CO-Q18, CO-Q19, CO-Q21: a longer name holding a removed one does not hide
+# it; a path with a space stays whole; a removed line starting with "--" is
+# read; an option and an impossible address are not names.
+grep -qF '  docs/Run Book.md: api.example.com old-host.example' out || { echo "FAIL: docs/Run Book.md not listed whole, with api.example.com and old-host.example: $(cat out)" >&2; fails=$((fails + 1)); }
+if grep -qE 'no-ff|999\.999' out; then echo "FAIL: an option or an impossible address listed: $(cat out)" >&2; fails=$((fails + 1)); fi
+export MERGE_READY_DOCS=$tmp/playbook; expect 0 "MERGE_READY_DOCS adds another repo's pages" . "$head_c" "$head_c" infra
+grep -q "^  $tmp/playbook/page.md: 10.130.1.11\$" out || { echo "FAIL: the playbook page not listed: $(cat out)" >&2; fails=$((fails + 1)); }
+grep -qF "  $tmp/playbook/Play Book.md: old-host.example" out || { echo "FAIL: a name ending a sentence, in a path with a space, not listed: $(cat out)" >&2; fails=$((fails + 1)); }
+# CO-Q20 (the operator, 28 Nov 00:07, replacing the refusal this test asserted): a
+# MERGE_READY_DOCS directory that does not exist is named, skipped, the exit unchanged.
+export MERGE_READY_DOCS=$tmp/nosuch; expect 0 "a MERGE_READY_DOCS directory that does not exist is named and skipped" . "$head_c" "$head_c" infra; unset MERGE_READY_DOCS
+grep -qF "MERGE_READY_DOCS: no directory $tmp/nosuch, not searched" out || { echo "FAIL: the missing directory not named: $(cat out)" >&2; fails=$((fails + 1)); }
+printf 'Requests go through the proxy at 10.130.1.12.\n' > docs/overview.md
+printf 'Call the new host.\n' > 'docs/Run Book.md'
+g commit -q -am 'docs: the overview follows'
+expect 0 "no doc states a removed fact: no docs line" . "$(git rev-parse HEAD)" "$head_c" infra
+if grep -q 'docs to check' out; then echo "FAIL: a docs line with no stale doc: $(cat out)" >&2; fails=$((fails + 1)); fi
 
 [ "$fails" = 0 ] || { echo "merge-ready test: $fails failed" >&2; exit 1; }
 echo "merge-ready test: ok"
