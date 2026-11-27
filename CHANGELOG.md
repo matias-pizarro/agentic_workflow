@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.20.1] - 2026-11-28
+
+### Fixed
+
+- `team.sh waiting`: a seat whose extension has not published `@status-open` (not reloaded since 2.20.0, or no STATUS line since) was shown as "no ID"; it now takes the tab's `@open`, else says "open unknown"; "no ID" only when a STATUS line said `open=0` (the lead, 27 Nov 22:59; the operator, CO-Q15, CO-Q16, CO-Q17, 28 Nov 00:07). **Act:** the lead: nothing; every seat that has not reloaded since 2.20.0: reload.
+
 ## [2.20.0] - 2026-11-27
 
 The 27 Nov retro's accepted changes (`wiki/sources/2026-11-27-retro.md`; the operator, CS-Q99, 21:22, and CS-Q103, 21:38; review findings CO-Q1 to CO-Q8, CHK-CO-Q1, 22:28 and 22:47).
