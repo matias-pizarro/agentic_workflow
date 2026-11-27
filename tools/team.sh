@@ -704,7 +704,8 @@ refresh_run() { # seat words source
 # comments. Kinds: sysctl <name> <value>; nonempty <file>; sshcontrolpath
 # <alias> %n (ssh -G <alias> prints a ControlPath holding the alias, so two
 # aliases of one host never share a socket); http <url> <status>, the URL
-# answers with that HTTP status within 5 s (LD-Q2); jail <name>, the jail's
+# answers with that HTTP status within 5 s (LD-Q2); refused <host> <port>, a
+# TCP connect from here fails within 5 s (RT4-Q1 (c)); jail <name>, the jail's
 # name for the fix block, checking nothing. Prints each failure, then one block for the
 # host: one jail -m line with every sysctl fix, then the other fixes. A read
 # that fails is a failure. Exit 1 on any failure.
@@ -745,6 +746,12 @@ doctor() {
       if [ "$rc" = 0 ] && [ "$got" = "$want" ]; then ok=1
       elif [ "$rc" != 0 ]; then got="no answer (curl exit $rc)"
       fi ;;
+    refused)
+      if [ -z "$target" ] || [ -z "$want" ]; then got='no host or port'
+      elif ! command -v nc > /dev/null 2>&1; then got='no nc to try the connect'
+      elif nc -z -w 5 "$target" "$want" > /dev/null 2>&1; then got=connected
+      else ok=1; fi
+      want="port $want refused" ;;
     *) got="unknown kind '$kind'" ;;
     esac
     n=$((n + 1))
@@ -1046,6 +1053,24 @@ lead_shell_left() { # new lead id
   waitfor 5 [ "$(tmux display -p -t "$lp" '#{pane_current_command}')" = bash ]
 }
 
+# doctor's refused kind (RT4-Q1 (c)): a real listener on 127.0.0.1 that
+# answers, and a port nothing listens on.
+st_doctor() {
+  dport=47431 cport=47432
+  nc -k -l 127.0.0.1 "$dport" > /dev/null 2>&1 &
+  lpid=$!
+  waitfor 5 nc -z -w 1 127.0.0.1 "$dport" || st_bad "doctor: the listener on 127.0.0.1:$dport never answered"
+  printf 'refused 127.0.0.1 %s | nothing to do\n' "$cport" > "$t/expect-closed"
+  printf 'jail j\nrefused 127.0.0.1 %s | take down what answers there\n' "$dport" > "$t/expect-open"
+  export TEAM_EXPECT="$t/expect-closed"
+  check "doctor's refused holds on a port nothing answers" sh "$self" doctor
+  export TEAM_EXPECT="$t/expect-open"
+  check "doctor's refused fails on a port that answers" refused_with "FAIL refused 127.0.0.1: expected port $dport refused, got connected" doctor
+  check "... and prints its fix" refused_with "  take down what answers there" doctor
+  unset TEAM_EXPECT
+  kill "$lpid" 2> /dev/null
+}
+
 selftest() {
   [ -z "${TEAM_TMUX:-}" ] || die "selftest: TEAM_TMUX is set"
   TEAM_TMUX=teamtest
@@ -1213,6 +1238,7 @@ STUB
   check "... and logs the reason" grep -q 'retired a5 without a check-out: selftest: never started' "$spool/log"
 
   st_refresh
+  st_doctor
 
   if [ "$st_fails" -eq 0 ]; then echo "selftest passed"; else echo "selftest: $st_fails failed"; return 1; fi
 }
