@@ -276,6 +276,15 @@ function registerIds(reply: string): string | undefined {
 	return undefined;
 }
 
+// Whether the session's last message is an assistant message that ended in error.
+function endedInError(ctx: ExtensionContext): boolean {
+	const last = ctx.sessionManager
+		.getBranch()
+		.filter((e) => e.type === "message" && (e.message.role === "user" || e.message.role === "assistant"))
+		.at(-1);
+	return last?.type === "message" && last.message.role === "assistant" && (last.message as { stopReason?: string }).stopReason === "error";
+}
+
 function lastAssistantText(ctx: ExtensionContext): string | undefined {
 	const branch = ctx.sessionManager.getBranch();
 	for (let i = branch.length - 1; i >= 0; i--) {
@@ -421,7 +430,9 @@ export default function openQuestions(pi: ExtensionAPI) {
 
 	pi.on("agent_settled", async (event, ctx) => {
 		markWorking(false);
-		if (!event.aborted) {
+		// A turn in error has no reply of its own: the last assistant text is an
+		// earlier turn's, and its STATUS line would cover beep.ts's mark (RT4-Q3).
+		if (!event.aborted && !endedInError(ctx)) {
 			const reply = lastAssistantText(ctx) ?? "";
 			const fields = statusOf(reply);
 			if (fields) publish(fields);
