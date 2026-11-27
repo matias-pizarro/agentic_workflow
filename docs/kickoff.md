@@ -38,6 +38,8 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
 
    **Install the agents' guards and prompt templates,** a Pi extension refusing tool calls known to go wrong (the README's "Guards" lists them), and `/open-questions`, which makes a seat reprint in its pane every question of yours it still awaits: `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards`, then `node <root>/agentic_workflow/tools/extensions/install.mjs`. Rerun the second after taking a new release.
 
+   In a sandbox session, where the project's sandbox tooling provides it, `sandbox start` runs `install.mjs` itself at every start, from the sandbox host's read-only copy of agentic_workflow at the release the tooling names (in the sandbox project, `lib/agentic_workflow.sh` and `/sandbox/agent-defaults/agentic_workflow`): skip this step there. A new release reaches the sandboxes once the tooling's release moves and the host's setup reruns, so Methodology names each release for that move, and the session's `<root>/agentic_workflow` takes the same tag.
+
 7. **Be ready to spawn an expendable environment**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
 
 ## Start the lead
