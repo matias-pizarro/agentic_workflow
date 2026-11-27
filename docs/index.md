@@ -4,7 +4,7 @@ This is how to run software work with a team of [Pi](https://github.com/earendil
 
 This playbook is a blueprint: one methodology for many projects. Every project gets the same tools: a wiki, docs tooling, the team script and the pi extensions; each project fills them with its own content. In the project this playbook comes from, the project *is* the methodology and the environment it needs, a special case: its seats build the tools the playbook ships (the operator, CS-Q82, 22 Nov 2026 22:14).
 
-**`<root>`** in all paths here is the directory holding the project's three repositories side by side: `<root>/src` (the project), `<root>/wiki` (the lead's memory) and `<root>/agentic_workflow` (a clone of this repo, at a release tag), plus `<root>/worktrees` for the project's branch worktrees.
+**`<root>`** in all paths here is the directory holding the project's three repositories side by side: `<root>/src` (the project), `<root>/wiki` (the lead's memory) and `<root>/agentic_workflow` (a clone of this repo, at a release tag), plus `<root>/worktrees` for the project's branch worktrees. In a sandbox session, `<root>` is the session's workspace, mounted inside the jail at the same path as on the host and the tmux session's working directory (in the sandbox project: `/agents/projects/<project>/sessions/<user>/<session>/work`); the jail user's home is apart from it (SH-Q82).
 
 The repo holds:
 
