@@ -14,6 +14,12 @@ Source: `/agents/sessions/freebsd/sandbox/wiki/sources/2026-11-27-retro.md`. The
 4. RT4-Q3 (a): `tools/extensions/beep.ts` marks a turn ending aborted or in error as blocked (red), with its ask, and beeps unless muted; the release's Act line asks every seat to reload.
 5. RT4-Q4 (a): rule 16's Coordinators bullet gains the sentence that the operator's words on a builder's component go to that builder.
 
+Joined by CS-Q103 (the operator, "yes to all", 27 Nov 2026 21:38; RT4-Q5, Q6, Q8 answered "Yes" 21:34): one branch, one code-review pass, one release.
+
+6. RT4-Q5 (a): `tools/prompts/open-questions.md`: the lead takes each seat's row from its STATUS line, after `team.sh status`, never from an earlier table or a report. (b): `team.sh waiting` prints the table's rows from the windows' options, with a selftest case.
+7. RT4-Q6 (b): `tools/merge-ready <worktree> <head> <live-run commit> <code path>...` reads `<head>`, not the checkout's HEAD; rule 9's sentence to match; its test.
+8. RT4-Q8 (a): `team.sh send`'s go guard matches the claim forms only, with a selftest case that a mention is queued.
+
 `docs/index.md` "The rules, and why" gains a line for each changed rule; CHANGELOG.md a section.
 
 ## Checks
