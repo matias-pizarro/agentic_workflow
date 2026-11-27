@@ -17,7 +17,7 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
    `show-me` explains the current topic with diagrams, code-shape sketches and focused HTML pages; it runs only when you type `/skill:show-me`. Where it would `open` an HTML file, the agent names its full path instead (rules.md, Team mechanics).
    `grilling` stays installed: `grill-with-docs` and `review-loop` load it. `review-loop` must be from `v1.0.0` or later: earlier versions lack the impact ratings, backlog, drift question and delete option. Check: `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` prints a number above 0.
 
-4. **Lay out `<root>`.** Every project gets the same layout and tools, filled with its own content: its own wiki and its own docs tooling, never shared with another project. `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
+4. **Lay out `<root>`.** Every project gets the same layout and tools, filled with its own content: its own wiki and its own docs tooling, never shared with another project. For a team in a sandbox session, `<root>` is the session's workspace (index.md, `<root>`), laid out the same way; the sandbox tooling makes the workspace and leaves this layout to you. `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
    ```
    <root>/
      src/               the project repo
@@ -37,6 +37,8 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
 6. **Install the lead's commit guard:** copy `<root>/agentic_workflow/tools/src-pre-commit` to `<root>/src/.git/hooks/pre-commit`, executable. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated` (with none, drop its last line).
 
    **Install the agents' guards and prompt templates,** a Pi extension refusing tool calls known to go wrong (the README's "Guards" lists them), and `/open-questions`, which makes a seat reprint in its pane every question of yours it still awaits: `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards`, then `node <root>/agentic_workflow/tools/extensions/install.mjs`. Rerun the second after taking a new release.
+
+   In a sandbox session, where the project's sandbox tooling provides it, `sandbox start` runs `install.mjs` itself at every start, from the sandbox host's read-only copy of agentic_workflow at the release the tooling names (in the sandbox project, `lib/agentic_workflow.sh` and `/sandbox/agent-defaults/agentic_workflow`): skip this step there. A new release reaches the sandboxes once the tooling's release moves and the host's setup reruns, so Methodology names each release for that move, and the session's `<root>/agentic_workflow` takes the same tag.
 
 7. **Be ready to spawn an expendable environment**: a disposable container or jail, a test VM or a cloud sandbox, plus a spending cap you are comfortable with. The first ticket runs there.
 
