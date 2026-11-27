@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
 # Is a seat's branch ready to merge into integration? (rules.md rule 9; RT2-Q5)
 #
-# Usage: merge-ready <worktree> <live-run commit> <code path>...
+# Usage: merge-ready <worktree> <head> <live-run commit> <code path>...
 #
-# Exits 1, naming every reason, when the integration branch is not an
-# ancestor of the worktree's HEAD (merge integration in first), or when the
+# <head> is the branch's head commit the ready report names, read by git in
+# the worktree's repository whatever its checkout (RT4-Q6 (b)); every HEAD
+# below means it. Exits 1, naming every reason, when the integration branch
+# is not an ancestor of HEAD (merge integration in first), or when the
 # branch's own change to a code path follows the commit the live checks last
 # ran on (rerun them live). The branch's own changes are HEAD compared with
 # integration merged into the live run's commit (git merge-tree, git 2.38),
@@ -23,18 +25,21 @@ set -o pipefail
 nl='
 '
 
-[ $# -ge 3 ] || { echo "usage: merge-ready <worktree> <live-run commit> <code path>..." >&2; exit 2; }
-wt=$1 live=$2
-shift 2
+[ $# -ge 4 ] || { echo "usage: merge-ready <worktree> <head> <live-run commit> <code path>..." >&2; exit 2; }
+wt=$1 head=$2 live=$3
+shift 3
+named=$head
+head=$(git -C "$wt" rev-parse --verify --quiet "$named^{commit}") ||
+  { echo "merge-ready: cannot read the commit $named in $wt" >&2; exit 1; }
 
 why=''
 rc=0
-git -C "$wt" merge-base --is-ancestor integration HEAD || rc=$?
+git -C "$wt" merge-base --is-ancestor integration "$head" || rc=$?
 case $rc in
 0) ;;
 1) why="$why
-- integration is not in HEAD: merge integration into the branch first" ;;
-*) echo "merge-ready: cannot compare integration with HEAD in $wt" >&2; exit 1 ;;
+- integration is not in $head: merge integration into the branch first" ;;
+*) echo "merge-ready: cannot compare integration with $head in $wt" >&2; exit 1 ;;
 esac
 
 rc=0
@@ -43,24 +48,24 @@ merged=$(git -C "$wt" merge-tree --write-tree --no-messages "$live" integration)
 # also exits 1, printing no tree.
 case ${merged%%"$nl"*} in '' | *[!0-9a-f]*) rc=2 ;; esac
 case $rc in
-0 | 1) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" HEAD -- "$@") ||
-    { echo "merge-ready: cannot diff the live run with integration against HEAD in $wt" >&2; exit 1; } ;;
+0 | 1) changed=$(git -C "$wt" diff --name-only "${merged%%"$nl"*}" "$head" -- "$@") ||
+    { echo "merge-ready: cannot diff the live run with integration against $head in $wt" >&2; exit 1; } ;;
 *) echo "merge-ready: cannot merge integration into $live in $wt" >&2; exit 1 ;;
 esac
 [ -z "$changed" ] || why="$why
 - changed since the live run at $live: $(printf '%s' "$changed" | tr '\n' ' ')
   run them live again"
 
-tickets=$(git -C "$wt" diff --name-only --diff-filter=d integration...HEAD -- '.scratch/*/issues/*.md') ||
+tickets=$(git -C "$wt" diff --name-only --diff-filter=d "integration...$head" -- '.scratch/*/issues/*.md') ||
   { echo "merge-ready: cannot list the tickets the branch changed in $wt" >&2; exit 1; }
 for t in $tickets; do
-  status=$(git -C "$wt" show "HEAD:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
-    { echo "merge-ready: cannot read $t at HEAD in $wt" >&2; exit 1; }
+  status=$(git -C "$wt" show "$head:$t" | sed -n 's/^\*\*Status:\*\* *//p' | head -1) ||
+    { echo "merge-ready: cannot read $t at $head in $wt" >&2; exit 1; }
   case $status in done) ;; *) echo "merge-ready: warning: $t says Status: ${status:-(none)}, not done" ;; esac
 done
 
 if [ -n "$why" ]; then
-  echo "merge-ready: not ready ($wt):$why"
+  echo "merge-ready: not ready ($wt at $head):$why"
   exit 1
 fi
-echo "merge-ready: ready: integration is in $wt's HEAD, and $* unchanged since the live run at $live"
+echo "merge-ready: ready: integration is in $head ($wt), and $* unchanged since the live run at $live"
