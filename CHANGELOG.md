@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.22.0] - 2026-11-28
+
+### Changed
+
+- A team in a sandbox session (CS-Q96; task 200's SH-Q81, SH-Q82, SH-Q84; the operator, CO-Q27, 28 Nov 00:55): index.md, `<root>` is the session's workspace, at the same path inside the jail as on the host; kickoff step 4 lays it out there, and step 6 is skipped where `sandbox start` installs the extensions itself, from the host's copy at the release the tooling names; rules.md Team mechanics: a team runs in a sandbox only where the operator can open its pages and hear its signal, or on the operator's answer to the lead's question naming what is missing there, for that session only, recorded like a standing go. **Act:** the lead: ask that question before starting a team in a sandbox; every seat: from its next turn.
+
 ## [2.21.0] - 2026-11-28
 
 ### Added
