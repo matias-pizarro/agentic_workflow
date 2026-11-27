@@ -2,6 +2,22 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.20.0] - 2026-11-27
+
+The 27 Nov retro's accepted changes (`wiki/sources/2026-11-27-retro.md`; the operator, CS-Q99, 21:22, and CS-Q103, 21:38; review findings CO-Q1 to CO-Q8, CHK-CO-Q1, 22:28 and 22:47).
+
+### Added
+
+- `team.sh doctor`: the kind `refused <ip> <port>`, held only when nc tried the connect and it failed within 5 s; a port nc rejects, a host name or no nc is a failure (RT4-Q1 (c), CO-Q1). **Act:** the lead: add the two production lines to `wiki/tools/expect` (`refused 10.130.1.11 443 | ...`, `refused 10.130.0.2 22 | ...`, the retro's RT4-Q1 (c)), then run `team.sh doctor`.
+- `team.sh waiting`: the rows of the lead's "Waiting for you" table, from each seat's last STATUS line (the window option `@status-open`, new, with `@worst`, `@state`, `@ask`); a failed read of tmux exits 1 (RT4-Q5 (b), CO-Q4, CO-Q7). **Act:** the lead: build the table from it (the `/open-questions` template now says so).
+- beep.ts: a turn that ends aborted or in error marks the seat `blocked`, red on its tab and on the board, its ask "turn failed: <error>; re-send your message", and plays the signal unless muted, until its next STATUS line; open-questions.ts leaves the mark (RT4-Q3 (a), CO-Q2, CO-Q3). **Act:** every seat and the lead: reload in the turn that receives this (beep.ts, open-questions.ts and the `/open-questions` template changed); the board: `team.sh revive --all` or restart it in window 0.
+
+### Changed
+
+- Rule 3: before advising the operator to start or open anything on the host, name what the agents' jail reaches through it; advice that widens that reach is a 🔴 question put through Security (RT4-Q1 (a)). Rule 4: a question contradicted by a newer one is withdrawn or re-asked in that turn (RT4-Q1 (b)). Rule 16: the operator's words about a builder's component, given in a coordinator's pane, go to the builder as given; the builder asks (RT4-Q4 (a)). **Act:** every seat, from its next turn.
+- `tools/merge-ready <worktree> <head> <live-run commit> <code path>...`: it reads the head commit the ready report names, whatever the checkout; rule 9: the ready report names the head, and the lead reads the result before authorising and names both commits (RT4-Q6 (b), CHK-CO-Q1). **Act:** seats: name the head commit in each ready report; the lead: the new form.
+- `team.sh send` refuses only a text claiming the operator's go ("the user's go (", "," or ":"), not one mentioning it (RT4-Q8 (a)). **Act:** none.
+
 ## [2.19.0] - 2026-11-26
 
 ### Added
