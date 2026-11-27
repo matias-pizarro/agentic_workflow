@@ -19,6 +19,9 @@
 #                                            a CRON line when the last run in tools/spool/cron.log exited non-zero;
 #                                            a WIKI line when the wiki's last commit outside sources/ is a day old
 #                                            or more, or unreadable (rules.md rule 11; TEAM_WIKI overrides the wiki)
+#   team.sh waiting                          the rows of the lead's "Waiting for you" table: one per seat whose last
+#                                            STATUS line has open above 0 or says waiting-for-PM, from its window's
+#                                            options (open-questions.ts sets them), never from memory (RT4-Q5 (b))
 #   team.sh refresh <name>…|all|lead [--min <percent>] "<the user's words>" "<pane> <time>"
 #                                            with --min, a seat whose context window (@ctx) is below the percent,
 #                                            or unknown, is skipped and listed, with its percentage when known (CS-Q90)
@@ -802,6 +805,15 @@ queued() { # target count
 }
 failed_any() { for f in "$spool/$1"/failed/*; do [ -f "$f" ] && return 0; done; return 1; }
 refused() { ! sh "$self" "$@" > /dev/null 2>&1; }
+prints_line() { # line command...: the command prints exactly this line among its output
+  want=$1; shift
+  sh "$self" "$@" 2>&1 | grep -qxF -- "$want"
+}
+not_prints() { # text command...
+  want=$1; shift
+  ! sh "$self" "$@" 2>&1 | grep -qF -- "$want"
+}
+prints_nothing() { [ -z "$(sh "$self" "$@" 2>&1)" ]; }
 refused_with() { # text command...
   want=$1; shift
   out=$(sh "$self" "$@" 2>&1) && return 1
@@ -1099,7 +1111,18 @@ selftest() {
     screen "$lp" | tail -8
     return 1
   fi
+  # waiting: the rows from the windows' options (RT4-Q5 (b)).
+  tmux set -w -t "$ap" @open 2 && tmux set -w -t "$ap" @worst high && tmux set -w -t "$ap" @ask 'CO-Q1 | CO-Q2'
+  tmux set -w -t "$lp" @open 1
+  check "waiting prints a seat with open questions, its count, worst and ask" prints_line '| agent | 2 open, worst high: CO-Q1 \| CO-Q2 |' waiting
+  check "... and leaves the lead's own window out" not_prints 'lead' waiting
+  tmux set -wu -t "$ap" @open && tmux set -w -t "$ap" @state waiting-for-PM && tmux set -w -t "$ap" @ask 'a read of the diff'
+  check "waiting names a seat waiting on the operator with open=0 as 'no ID'" prints_line '| agent | no ID: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$lp" @open
+  check "waiting prints nothing when no seat waits" prints_nothing waiting
   check "send refuses a text claiming a user's go, showing go's usage" refused_with '"<pane> <time>" "<instruction>"' send agent "Lead: the user's go, lead pane, now ('yes'): x"
+  check "... and one claiming it in go's own form" refused send agent "Lead: the user's go ('yes', lead pane 12:00), relayed 12:01: x"
+  check "... and one claiming it with a colon" refused send agent "Lead: the user's go: yes"
   check "go refuses empty words" refused go agent "" "lead pane 12:00" "x"
   check "go refuses '...'" refused go agent "..." "lead pane 12:00" "x"
   check "go refuses '…'" refused go agent " … " "lead pane 12:00" "x"
@@ -1112,6 +1135,8 @@ selftest() {
   sh "$self" go agent "go ahead" "lead pane 12:00" "selftest go: reply with only OK" > /dev/null
   check "go is delivered into an empty box, quoting the user's words, source and time" waitfor 30 has "$ap" "the user's go ('go ahead', lead pane 12:00), relayed "
   check "go quotes the instruction" has "$ap" ": selftest go: reply with only OK"
+  check "send passes a text that mentions the user's go without claiming it" sh "$self" send agent "selftest send: ask the user's go for the write in your pane; reply with only OK"
+  check "... and delivers it" waitfor 90 has "$ap" "selftest send: ask the user's go for the write in your pane"
   sleep 4
   check "reports wait while the lead's box holds text" queued lead 2
   check "status lists them as QUEUED, with their age" status_shows_queued
@@ -1270,7 +1295,8 @@ spawn)
   ;;
 send)
   [ $# -eq 3 ] || { echo "usage: $0 send <name> <text>" >&2; exit 2; }
-  if printf '%s' "$3" | grep -qiE "user('|’)s go"; then
+  # The claim forms only ("the user's go (", ", " or ":"); a mention passes (RT4-Q8 (a)).
+  if printf '%s' "$3" | grep -qiE "user('|’)s go( \(|,|:)"; then
     die "send: the text claims a user's go; use team.sh go <name> \"<the user's exact words>\" \"<pane> <time>\" \"<instruction>\""
   fi
   enqueue "to-$2" "$3"
@@ -1299,6 +1325,26 @@ _box) # pane: show what the delivery check sees
   else
     echo 'no input box'
   fi
+  ;;
+waiting)
+  # From the windows' options, which each seat's last STATUS line sets: @open
+  # (unset at 0), @worst, @state and @ask. The lead's own window is left out.
+  lead=$(lead_pane)
+  leadwin=''
+  [ -z "$lead" ] || leadwin=$(tmux display -p -t "$lead" '#{window_id}')
+  # A unit separator, not a tab: read joins runs of a whitespace IFS, so an
+  # empty field would shift the rest.
+  us=$(printf '\037')
+  tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@open}$us#{@worst}$us#{@state}$us#{@ask}" |
+    while IFS="$us" read -r wid name open worst state ask; do
+      [ "$wid" = "$leadwin" ] && continue
+      ask=$(printf '%s' "$ask" | sed 's/|/\\|/g')
+      if [ -n "$open" ] && [ "$open" -gt 0 ] 2> /dev/null; then
+        echo "| $name | $open open${worst:+, worst $worst}${ask:+: $ask} |"
+      elif [ "$state" = waiting-for-PM ]; then
+        echo "| $name | no ID: ${ask:-(no ask)} |"
+      fi
+    done
   ;;
 queue)
   for f in "$spool"/*/q/* "$spool"/*/failed/*; do
