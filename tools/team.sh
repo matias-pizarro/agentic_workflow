@@ -1150,6 +1150,15 @@ selftest() {
   check "... and leaves the lead's own window out" not_prints 'lead' waiting
   tmux set -w -t "$ap" @status-open 0 && tmux set -w -t "$ap" @state waiting-for-PM && tmux set -w -t "$ap" @ask 'a read of the diff'
   check "waiting names a seat waiting on the operator with open=0 as 'no ID'" prints_line '| agent | no ID: a read of the diff |' waiting
+  # A seat not reloaded since @status-open came (the lead, 27 Nov 22:59): no
+  # "no ID" row on its missing count.
+  tmux set -wu -t "$ap" @status-open && tmux set -w -t "$ap" @open 1
+  check "waiting takes @open when @status-open is unset" prints_line '| agent | 1 open, worst high: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @open
+  check "waiting says the count is unknown when both are unset, not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -w -t "$ap" @open 0
+  check "... and an @open of 0 alone is not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @open
   tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$ap" @status-open && tmux set -wu -t "$lp" @status-open
   check "waiting prints nothing when no seat waits" prints_nothing waiting
   check "waiting exits 1 when it cannot read tmux, naming it" waiting_unread
@@ -1370,16 +1379,24 @@ waiting)
   # A unit separator, not a tab: read joins runs of a whitespace IFS, so an
   # empty field would shift the rest.
   us=$(printf '\037')
-  rows=$(tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@status-open}$us#{@worst}$us#{@state}$us#{@ask}") ||
+  # A seat whose extension predates @status-open (not reloaded since 2.20.0),
+  # or with no STATUS line since, has none: its count is @open if set, else
+  # unknown; only an explicit @status-open of 0 makes a "no ID" row.
+  rows=$(tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@status-open}$us#{@open}$us#{@worst}$us#{@state}$us#{@ask}") ||
     die "waiting: cannot read the tmux server's windows"
   printf '%s\n' "$rows" |
-    while IFS="$us" read -r wid name open worst state ask; do
+    while IFS="$us" read -r wid name open tabopen worst state ask; do
       [ "$wid" = "$leadwin" ] && continue
       ask=$(printf '%s' "$ask" | sed 's/|/\\|/g')
-      if [ -n "$open" ] && [ "$open" -gt 0 ] 2> /dev/null; then
-        echo "| $name | $open open${worst:+, worst $worst}${ask:+: $ask} |"
-      elif [ "$state" = waiting-for-PM ]; then
+      count=${open:-$tabopen} # the STATUS line's count, else the tab's (CO-Q16)
+      if [ -n "$count" ] && [ "$count" -gt 0 ] 2> /dev/null; then
+        echo "| $name | $count open${worst:+, worst $worst}${ask:+: $ask} |"
+      elif [ "$state" != waiting-for-PM ]; then
+        :
+      elif [ "$open" = 0 ]; then
         echo "| $name | no ID: ${ask:-(no ask)} |"
+      else
+        echo "| $name | open unknown: ${ask:-(no ask)} |"
       fi
     done
   ;;
