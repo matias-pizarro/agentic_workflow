@@ -1,13 +1,13 @@
-**Four findings. The daily prompt is missing from the inspected wiki, and the cached Skills CLI already provides `check -g`.**
+## Review of `integration...5c87ccb`
 
-| Location | Finding and impact | Effort and fix |
-|---|---|---|
-| `docs/rules.md:88` | **High, lead.** The rule says the wiki crontab prompts the lead daily. The inspected wiki `crontab` contains only the weekly lint job. `.scratch/coach/cron-live.sh:17` exercises message delivery with a hardcoded prompt, so it cannot verify the scheduled entry. | Small. Add the daily `team.sh send lead` entry in the wiki and verify the actual command. |
-| `tools/skills-check:5`, `docs/index.md:16` | **Medium, maintainers.** The script duplicates `skills check -g`, implemented in cached versions 1.8.1 and 1.9.1 through the updater’s report-only path. | Small. Delete `tools/skills-check`, remove its index entry, and use `npx skills check -g` in the rule and prompt. Delete the one-off cron harness and task brief after recording the live evidence. |
-| `tools/skills-check:20`, `tools/skills-check:35` | **Medium, lead.** The comparison matches GitHub’s tree-backed hash for a skill at an unchanged nested path on the queried ref. Root `SKILL.md` produces `HEAD:.`, which FreeBSD Git failed to resolve. The script also ignores `ref` and `sourceType`. The CLI honors refs, can rediscover moved skills by name, checks for missing installed copies, and uses different checks for non-GitHub sources. A subpath alone works when the recorded `skillPath` is repo-relative and still valid. | Small via deletion. If retained, scope the helper to supported GitHub entries, handle root trees and refs, and surface unsupported entries separately from updates. |
-| `tools/skills-check:25`, `tools/skills-check:36` | **Low, lead.** Unquoted URL enumeration splits whitespace and expands globs. A valid local source path with spaces can fail before comparison. A failed tree lookup is also counted as “behind,” so the documented read-error status covers clone failures but misses lookup failures. | Small via deletion. If retained, read source records literally and distinguish missing paths from Git read errors. |
+1. **Medium impact for the lead and Docs, low effort** · `tools/merge-ready:83` skips a removed hostname if a different hostname still contains it as a prefix. `git grep -wF` treats a dot as a word boundary, so `api.example.com.backup` can suppress a warning for `api.example.com`. Match complete hostname and address tokens in both source and docs searches.
+2. **Medium impact for Docs, low effort** · `tools/merge-ready:92–107` splits `docs/Run Book.md` into two filenames, and `awk` would still truncate it after fixing the loop. Preserve each path through collection and grouping. Add a test covering a Markdown filename with spaces in both the committed tree and an external docs directory.
+3. **Medium impact for the lead, very low effort** · `tools/merge-ready:96–99` makes the advisory scan refuse a merge when an external directory is missing or unreadable. A missing directory only triggers the refusal when a candidate token survives. Delete the refusal and the test that requires it. Diagnose incomplete coverage while retaining the readiness result.
+4. **Medium impact for the lead and Docs, low effort** · `tools/merge-ready:77–79` emits `no-ff` from a command option and accepts `999.999.1.2`, while missing `node-a` and dropping a deleted source line beginning `--`. Parse deletion lines within hunks and tighten token extraction. The approved research also includes ports and interface names, so a port-only change such as the reported port 80 closure can bypass the merge-time Docs check. Cover those facts or record the narrower gate as a scope decision.
+5. **Low impact for the lead on large diffs, medium effort** · `tools/merge-ready:81–99` runs up to two Git searches and one recursive search per external directory for every token. Batch the patterns and scan each tree once, especially before enabling this across repositories.
+6. **Low impact for adopters, very low effort** · `docs/index.md:115` omits the Docs condition from its Rule 9 summary, and `CHANGELOG.md:7` has no entry for the new lead, Architecture, and Docs duties. Add the condition to the summary and document the duties in the next release entry using the existing `**Act:**` convention.
 
-On FreeBSD, the heredoc loop preserved counters across source iterations. A clone failure sets a sticky status of `2`, even if another source reports updates. The rule preserves operator approval, reloads after changed updates, and keeps reladraw out of scope.
+Rule 16 assigns the push and weekly read to the requested seats. FreeBSD `sh` preserved spaces when splitting the colon-separated directory list, and Git emitted the expected commit prefix. The `|| rc=$?` guards capture search statuses under `set -e`. The extraction pipeline’s `|| true` also suppresses real extraction failures, so an incomplete scan can appear clean.
 
 ```acceptance-report
 {
@@ -15,52 +15,55 @@ On FreeBSD, the heredoc loop preserved counters across source iterations. A clon
     {
       "id": "criterion-1",
       "status": "satisfied",
-      "evidence": "Four findings include file and line, impact, effort, and a fix or deletion. FreeBSD shell behavior, CLI parity, and residual verification gaps are recorded."
+      "evidence": "Reviewed the fixed diff against the brief and approved research, with six line-specific findings and residual verification risks."
     }
   ],
   "changedFiles": [],
   "testsAddedOrUpdated": [],
   "commandsRun": [
     {
-      "command": "git diff integration...9f6db80 && git diff --check integration...9f6db80",
+      "command": "git diff integration...5c87ccb; git show a9100a8:.scratch/coach/doc-freshness.md",
       "result": "passed",
-      "summary": "Reviewed all four changed files. Diff whitespace check passed."
+      "summary": "Inspected the implementation, tests, rule changes, and approved research."
     },
     {
-      "command": "sh -n tools/skills-check && sh -n .scratch/coach/cron-live.sh",
+      "command": "git diff --check integration...5c87ccb; sh -n on each changed shell script",
       "result": "passed",
-      "summary": "Both scripts parsed on FreeBSD."
+      "summary": "Whitespace and syntax checks passed on FreeBSD."
     },
     {
-      "command": "FreeBSD sh heredoc counter probe and git rev-parse tree-selector probe",
+      "command": "Read-only Git pathspec, token extraction, and FreeBSD sh IFS probes",
       "result": "passed",
-      "summary": "Counter reached two across source iterations. HEAD: and HEAD^{tree} resolved; HEAD:. did not."
+      "summary": "Confirmed commit-prefixed Git output, exclusions, token examples, and space preservation during directory splitting."
     },
     {
-      "command": "Inspect cached Skills CLI, wiki crontab, global lock source types, and Git index",
-      "result": "passed",
-      "summary": "CLI implements check mode. Wiki crontab has only weekly lint. All 43 current lock entries are GitHub. Index is empty."
+      "command": "git grep --no-index -wF -e api.example.com -- /dev/stdin",
+      "result": "failed",
+      "summary": "Git rejected stdin outside the repository. The dotted-prefix finding is based on word-boundary semantics."
+    },
+    {
+      "command": "tests/merge-ready; .scratch/coach/cron-live.sh",
+      "result": "not-run",
+      "summary": "Both create state and the review was read-only."
     }
   ],
   "validationOutput": [
-    "FreeBSD heredoc count=2",
-    "HEAD:. unresolved; HEAD: and HEAD^{tree} resolve to the same tree",
-    "43 GitHub lock entries",
-    "Wiki crontab has one active weekly lint entry"
+    "FreeBSD, Git 2.56.0. No staged paths."
   ],
   "residualRisks": [
-    "The supplied live clone and cron harness results were not rerun in read-only mode.",
-    "The loaded host crontab and live delivery were not independently verified.",
-    "The native CLI can print a source failure without counting it as an update failure, so its exit status is not equivalent to the wrapper's status 2."
+    "The lead-owned wiki cron entry and actual delivery were not verified.",
+    "Large-diff runtime was not benchmarked."
   ],
   "noStagedFiles": true,
-  "diffSummary": "Adds a global skill checker, a cron delivery harness and task brief, and updates Team mechanics and the docs index.",
+  "diffSummary": "The reviewed branch adds an advisory freshness scan, a test fixture, a cron probe, and Rules 9 and 16 changes.",
   "reviewFindings": [
-    "high: docs/rules.md:88 - Inspected wiki crontab lacks the daily prompt.",
-    "medium: tools/skills-check:5 - Native CLI check mode makes the wrapper redundant.",
-    "medium: tools/skills-check:20 - Hash and source resolution diverge from CLI behavior for root paths, refs, moves, missing installations, and other source types.",
-    "low: tools/skills-check:25 - URL splitting and tree lookup error handling can misreport results."
+    "medium: tools/merge-ready:83 - punctuation boundaries can suppress a stale hostname",
+    "medium: tools/merge-ready:92 - filenames with spaces are corrupted",
+    "medium: tools/merge-ready:96 - advisory scan failures change readiness",
+    "medium: tools/merge-ready:77 - extraction is noisy and misses approved fact types",
+    "low: tools/merge-ready:81 - repeated scans scale with the token count",
+    "low: docs/index.md:115 and CHANGELOG.md:7 - adoption guidance is incomplete"
   ],
-  "manualNotes": "Read-only review of the pinned diff. Reviewed cached CLI code without executing it. The complete report is returned in the response for runtime persistence to .scratch/coach/review.md."
+  "manualNotes": "Read-only review. The complete artifact is returned here for runtime persistence to the requested .scratch/coach/review.md path."
 }
 ```
