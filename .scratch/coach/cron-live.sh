@@ -12,12 +12,12 @@ $T kill-server 2> /dev/null
 $T new-session -d -s c -n lead -x 160 -y 40 "pi --no-session -nt -ne"
 $T set -p -t c:lead @role lead
 sleep 10
-text='Cron (daily): check the global skills: run <root>/agentic_workflow/tools/skills-check; ask the operator before updating any (rules.md, Team mechanics). Reply with only OK.'
+text='Cron (daily): check the global skills: npx skills check -g; ask the operator before updating any (rules.md, Team mechanics). Reply with only OK.'
 env -i HOME="$HOME" TEAM_TMUX=skillscron TEAM_SPOOL="$d/spool" \
   /usr/bin/env PATH=/usr/local/bin:/usr/bin:/bin sh "$1" send lead "$text" >> "$d/cron.log" 2>&1
 echo "send exit $?"
 sleep 30
 echo "-- cron.log:"; cat "$d/cron.log"
-echo "-- lead pane:"; $T capture-pane -p -J -t c:lead | grep -v '^\s*$' | grep -E 'skills-check|OK' | head -3
+echo "-- lead pane:"; $T capture-pane -p -J -t c:lead | grep -v '^\s*$' | grep -E 'skills check|OK' | head -3
 $T kill-server
 rm -rf "$d"
