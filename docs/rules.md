@@ -85,3 +85,4 @@ Process rules for every agent on a team run by this playbook: the lead, seats, w
 - A Mermaid diagram meant for the operator also goes in a standalone HTML file, made from `<root>/agentic_workflow/tools/mermaid.html`, at a full path reachable outside the sandbox, named in the reply: a terminal pane shows only Mermaid's code.
 - The lead's session stays free for the operator: long work runs in seats and background subagents, and nobody waits in a polling loop.
 - Each turn the lead checks `date`, `team.sh status` and the repos' recent commits.
+- Once a day, prompted by the wiki's crontab, the lead runs `<root>/agentic_workflow/tools/skills-check`, which lists the global skills behind their sources, and asks the operator before updating them (`npx skills update -g`); after an update that changed any, it asks every seat to reload. Tools a skill drives (e.g. reladraw) are not checked.
