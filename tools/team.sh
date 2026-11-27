@@ -1155,7 +1155,10 @@ selftest() {
   tmux set -wu -t "$ap" @status-open && tmux set -w -t "$ap" @open 1
   check "waiting takes @open when @status-open is unset" prints_line '| agent | 1 open, worst high: a read of the diff |' waiting
   tmux set -wu -t "$ap" @open
-  check "waiting says the count is unknown when both are unset, not 'no ID'" prints_line '| agent | open unknown (no STATUS line read since its reload): a read of the diff |' waiting
+  check "waiting says the count is unknown when both are unset, not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -w -t "$ap" @open 0
+  check "... and an @open of 0 alone is not 'no ID'" prints_line '| agent | open unknown: a read of the diff |' waiting
+  tmux set -wu -t "$ap" @open
   tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$ap" @status-open && tmux set -wu -t "$lp" @status-open
   check "waiting prints nothing when no seat waits" prints_nothing waiting
   check "waiting exits 1 when it cannot read tmux, naming it" waiting_unread
@@ -1385,15 +1388,15 @@ waiting)
     while IFS="$us" read -r wid name open tabopen worst state ask; do
       [ "$wid" = "$leadwin" ] && continue
       ask=$(printf '%s' "$ask" | sed 's/|/\\|/g')
-      [ -n "$open" ] || open=$tabopen
-      if [ -n "$open" ] && [ "$open" -gt 0 ] 2> /dev/null; then
-        echo "| $name | $open open${worst:+, worst $worst}${ask:+: $ask} |"
+      count=${open:-$tabopen} # the STATUS line's count, else the tab's (CO-Q16)
+      if [ -n "$count" ] && [ "$count" -gt 0 ] 2> /dev/null; then
+        echo "| $name | $count open${worst:+, worst $worst}${ask:+: $ask} |"
       elif [ "$state" != waiting-for-PM ]; then
         :
       elif [ "$open" = 0 ]; then
         echo "| $name | no ID: ${ask:-(no ask)} |"
       else
-        echo "| $name | open unknown (no STATUS line read since its reload): ${ask:-(no ask)} |"
+        echo "| $name | open unknown: ${ask:-(no ask)} |"
       fi
     done
   ;;
