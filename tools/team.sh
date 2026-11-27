@@ -750,10 +750,22 @@ doctor() {
       elif [ "$rc" != 0 ]; then got="no answer (curl exit $rc)"
       fi ;;
     refused)
-      if [ -z "$target" ] || [ -z "$want" ]; then got='no host or port'
+      # Held only when nc tried the connect and says it failed; a port or an
+      # address nc rejects, or no nc, is a failure (CO-Q1). -n: an IP address
+      # only, no DNS; timeout 6 bounds the whole probe.
+      case $want in '' | *[!0-9]*) got="port '$want' is not a number" ;; esac
+      if [ -z "$got" ] && { [ "$want" -lt 1 ] || [ "$want" -gt 65535 ]; }; then got="port $want out of range"; fi
+      if [ -n "$got" ]; then :
       elif ! command -v nc > /dev/null 2>&1; then got='no nc to try the connect'
-      elif nc -z -w 5 "$target" "$want" > /dev/null 2>&1; then got=connected
-      else ok=1; fi
+      else
+        rc=0
+        out=$(timeout 6 nc -v -n -z -w 5 "$target" "$want" 2>&1) || rc=$?
+        case $rc:$out in
+        0:*) got=connected ;;
+        *"connect to $target port $want "*" failed:"*) ok=1 ;;
+        *) got="no connect tried (exit $rc): $(printf '%s' "$out" | head -1)" ;;
+        esac
+      fi
       want="port $want refused" ;;
     *) got="unknown kind '$kind'" ;;
     esac
@@ -814,6 +826,10 @@ not_prints() { # text command...
   ! sh "$self" "$@" 2>&1 | grep -qF -- "$want"
 }
 prints_nothing() { [ -z "$(sh "$self" "$@" 2>&1)" ]; }
+waiting_unread() { # waiting against a tmux server that does not run (CO-Q7)
+  out=$(TEAM_TMUX=teamtest-none sh "$self" waiting 2>&1) && return 1
+  printf '%s\n' "$out" | grep -qF "waiting: cannot read the tmux server's windows"
+}
 refused_with() { # text command...
   want=$1; shift
   out=$(sh "$self" "$@" 2>&1) && return 1
@@ -858,6 +874,7 @@ st_cleanup() {
   for p in "$st_dir"/spool/*/deliver.lock/pid; do
     [ -f "$p" ] && kill "$(cat "$p")" 2> /dev/null
   done
+  [ -z "${lpid:-}" ] || kill "$lpid" 2> /dev/null # st_doctor's listener (CO-Q5)
   tmux kill-server 2> /dev/null
   rm -rf "$st_dir"
 }
@@ -1069,9 +1086,21 @@ lead_shell_left() { # new lead id
 # answers, and a port nothing listens on.
 st_doctor() {
   dport=47431 cport=47432
+  for p in "$dport" "$cport"; do
+    if nc -z -w 1 127.0.0.1 "$p" 2> /dev/null; then
+      st_bad "doctor: 127.0.0.1:$p already answers before the test listens; free it and rerun"
+      return
+    fi
+  done
   nc -k -l 127.0.0.1 "$dport" > /dev/null 2>&1 &
   lpid=$!
   waitfor 5 nc -z -w 1 127.0.0.1 "$dport" || st_bad "doctor: the listener on 127.0.0.1:$dport never answered"
+  printf 'refused 127.0.0.1 65536 | x\n' > "$t/expect-badport"
+  printf 'refused nosuch.invalid %s | x\n' "$cport" > "$t/expect-name"
+  export TEAM_EXPECT="$t/expect-badport"
+  check "doctor's refused fails on a port nc rejects, never taking it as refused" refused_with "FAIL refused 127.0.0.1: expected port 65536 refused, got port 65536 out of range" doctor
+  export TEAM_EXPECT="$t/expect-name"
+  check "doctor's refused fails on a host name, which it does not resolve" refused_with "FAIL refused nosuch.invalid: expected port $cport refused, got no connect tried" doctor
   printf 'refused 127.0.0.1 %s | nothing to do\n' "$cport" > "$t/expect-closed"
   printf 'jail j\nrefused 127.0.0.1 %s | take down what answers there\n' "$dport" > "$t/expect-open"
   export TEAM_EXPECT="$t/expect-closed"
@@ -1081,6 +1110,7 @@ st_doctor() {
   check "... and prints its fix" refused_with "  take down what answers there" doctor
   unset TEAM_EXPECT
   kill "$lpid" 2> /dev/null
+  lpid=''
 }
 
 selftest() {
@@ -1112,14 +1142,17 @@ selftest() {
     return 1
   fi
   # waiting: the rows from the windows' options (RT4-Q5 (b)).
-  tmux set -w -t "$ap" @open 2 && tmux set -w -t "$ap" @worst high && tmux set -w -t "$ap" @ask 'CO-Q1 | CO-Q2'
-  tmux set -w -t "$lp" @open 1
-  check "waiting prints a seat with open questions, its count, worst and ask" prints_line '| agent | 2 open, worst high: CO-Q1 \| CO-Q2 |' waiting
+  # @status-open is the STATUS line's open=; @open, the tab's, is unset as the
+  # operator types (CO-Q4).
+  tmux set -w -t "$ap" @status-open 2 && tmux set -w -t "$ap" @worst high && tmux set -w -t "$ap" @ask 'CO-Q1 | CO-Q2'
+  tmux set -w -t "$lp" @status-open 1
+  check "waiting prints a seat with open questions, its count, worst and ask, @open unset" prints_line '| agent | 2 open, worst high: CO-Q1 \| CO-Q2 |' waiting
   check "... and leaves the lead's own window out" not_prints 'lead' waiting
-  tmux set -wu -t "$ap" @open && tmux set -w -t "$ap" @state waiting-for-PM && tmux set -w -t "$ap" @ask 'a read of the diff'
+  tmux set -w -t "$ap" @status-open 0 && tmux set -w -t "$ap" @state waiting-for-PM && tmux set -w -t "$ap" @ask 'a read of the diff'
   check "waiting names a seat waiting on the operator with open=0 as 'no ID'" prints_line '| agent | no ID: a read of the diff |' waiting
-  tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$lp" @open
+  tmux set -wu -t "$ap" @state && tmux set -wu -t "$ap" @ask && tmux set -wu -t "$ap" @worst && tmux set -wu -t "$ap" @status-open && tmux set -wu -t "$lp" @status-open
   check "waiting prints nothing when no seat waits" prints_nothing waiting
+  check "waiting exits 1 when it cannot read tmux, naming it" waiting_unread
   check "send refuses a text claiming a user's go, showing go's usage" refused_with '"<pane> <time>" "<instruction>"' send agent "Lead: the user's go, lead pane, now ('yes'): x"
   check "... and one claiming it in go's own form" refused send agent "Lead: the user's go ('yes', lead pane 12:00), relayed 12:01: x"
   check "... and one claiming it with a colon" refused send agent "Lead: the user's go: yes"
@@ -1327,15 +1360,19 @@ _box) # pane: show what the delivery check sees
   fi
   ;;
 waiting)
-  # From the windows' options, which each seat's last STATUS line sets: @open
-  # (unset at 0), @worst, @state and @ask. The lead's own window is left out.
+  # From the windows' options, which only each seat's last STATUS line sets
+  # (open-questions.ts): @status-open, @worst, @state and @ask; not @open,
+  # which the operator's typing clears (CO-Q4). The lead's window is left out.
+  # A failed read of tmux exits 1, never an empty table (CO-Q7).
   lead=$(lead_pane)
   leadwin=''
   [ -z "$lead" ] || leadwin=$(tmux display -p -t "$lead" '#{window_id}')
   # A unit separator, not a tab: read joins runs of a whitespace IFS, so an
   # empty field would shift the rest.
   us=$(printf '\037')
-  tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@open}$us#{@worst}$us#{@state}$us#{@ask}" |
+  rows=$(tmux list-windows -a -F "#{window_id}$us#{window_name}$us#{@status-open}$us#{@worst}$us#{@state}$us#{@ask}") ||
+    die "waiting: cannot read the tmux server's windows"
+  printf '%s\n' "$rows" |
     while IFS="$us" read -r wid name open worst state ask; do
       [ "$wid" = "$leadwin" ] && continue
       ask=$(printf '%s' "$ask" | sed 's/|/\\|/g')

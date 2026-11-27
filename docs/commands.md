@@ -29,7 +29,7 @@ From `tools/extensions/`, installed into `~/.pi/agent/extensions/`.
 | `unattended.ts` | the main session | the four unattended-window commands |
 | `ledger.ts` | the main session | appends each session's start and stop to the ledger, `tools/ledger`; sets the pane's `@session-id` and `@session-name`, which `team.sh refresh` reads |
 | `refresh.ts` | the main session | `/refresh` |
-| `beep.ts` | the main session | `/beep-from`, `/mute`; plays `beep` three times at the end of a turn that asks a new question or newly enters `waiting-for-PM`, unless the seat is muted |
+| `beep.ts` | the main session | `/beep-from`, `/mute`; plays `beep` three times at the end of a turn that asks a new question or newly enters `waiting-for-PM`, unless the seat is muted; marks a turn that ends aborted or in error as blocked, its tab red, with a signal |
 
 ## Prompt templates
 
