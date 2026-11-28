@@ -11,42 +11,84 @@ The sandbox column is the sandbox project's tooling (`sandbox`, in its `docs/ins
 
 ## Before the lead starts
 
-Each step side by side, its commands in the rows under it, one per row.
+Each step under its own heading, the host and the sandbox side by side, each command in its own row.
 
-| Step | On your own host | In a sandbox session |
-|---|---|---|
-| **0. Enter** | ⌨️ Open a shell on the host. | ⌨️ Once per project, on the sandbox host, create the project and register each deploy key it prints on the forge: |
-| | | `sandbox project create <project> --repo <src remote> --repo <wiki remote>` |
-| | | Then each time; it opens tmux in the workspace, which is `<root>`: |
-| | | `sandbox start -p <project> -s <session>` |
-| **1. Pi, its packages, `git`, `tmux`** | ⌨️ Install them; on FreeBSD, the sandbox project's `docs/install-pi.md` lists every step. Pi's subagents: | ⚙️ Done by the `agents` template and `sandbox start`. |
-| | `pi install npm:pi-subagents` | |
-| **2. Logins and the reviewer** | ⌨️ Claude's login for pi. For reviews, the Codex CLI logged in, or `OPENAI_API_KEY` set: | ⌨️ Once, on the host, in `/agents/users/<user>/credentials/env`: |
-| | `codex login` | `CLAUDE_CODE_OAUTH_TOKEN=…` |
-| | Check one of them: | Then in the sandbox, and `/login` inside pi, openai-codex: |
-| | `codex login status` | `codex login --device-auth` |
-| | `echo $OPENAI_API_KEY` | |
-| **3. Skills** | ⌨️ Install them: | ⚙️ Done at the first `sandbox start`, from src's `skills-lock.json`; check it lists the same skills. |
-| | `npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling` | |
-| | `npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop` | |
-| | `npx -y skills@latest add humanlayer/skills -g -a pi -y --skill show-me` | |
-| | Check `review-loop` is v1.0.0 or later; this prints a number above 0: | |
-| | `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` | |
-| **4. Lay out `<root>`** | ⌨️ By hand, in `<root>`, with `src` cloned or made there: | ⌨️ One command, in `<root>`, as the sandbox's user. ⚙️ It makes the layout below and links both commit guards (steps 4 and 6): |
-| | `git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git` | `/sandbox/agent-defaults/src/scripts/sandbox-team-root <src remote> <wiki remote>` |
-| | `mkdir worktrees html` | |
-| | `git init wiki` (or a clone of the wiki's private remote) | |
-| | The wiki's commit guard, refusing a file emptied by accident: | |
-| | `ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit` | |
-| | A later release, once its `CHANGELOG.md` section says what it asks: | |
-| | `git -C agentic_workflow checkout <tag>` | |
-| **5. src's agent docs** | ⌨️ Write them (list below), or have a seat draft them once the lead runs. | ⌨️ The same. |
-| **6. The lead's commit guard** | ⌨️ Link it; with no hooks from the `pre-commit` tool, copy it instead, executable, and drop its last line: | ⚙️ Done in step 4. |
-| | `ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit` | |
-| **6. The agents' guards and prompt templates** | ⌨️ Install them; rerun the second after each new release: | ⚙️ Done at every `sandbox start`, from the host's copy at the release the tooling names (`lib/agentic_workflow.sh`); a new release arrives once that tag moves and `sandbox host setup` reruns. |
-| | `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards` | |
-| | `node <root>/agentic_workflow/tools/extensions/install.mjs` | |
-| **7. An expendable environment** | ⌨️ Have one ready (a disposable container or jail, a test VM, a cloud sandbox) and a spending cap you are comfortable with. The first ticket runs there. | ⌨️ The same; seats test in a child jail or a cloud sandbox, not in the session itself. |
+### 0. Enter
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Open a shell on the host. | ⌨️ Once per project, on the sandbox host, create the project and register each deploy key it prints on the forge: |
+| | `sandbox project create <project> --repo <src remote> --repo <wiki remote>` |
+| | ⌨️ Then each time; it opens tmux in the workspace, which is `<root>`: |
+| | `sandbox start -p <project> -s <session>` |
+
+### 1. Pi, its packages, `git`, `tmux`
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Install them; on FreeBSD, the sandbox project's `docs/install-pi.md` lists every step. Pi's subagents: | ⚙️ Done by the `agents` template and `sandbox start`. |
+| `pi install npm:pi-subagents` | |
+
+### 2. Logins and the reviewer
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Claude's login for pi. For reviews, the Codex CLI logged in, or `OPENAI_API_KEY` set: | ⌨️ Once, on the host, in `/agents/users/<user>/credentials/env`: |
+| `codex login` | `CLAUDE_CODE_OAUTH_TOKEN=…` |
+| ⌨️ Check one of them: | ⌨️ Then in the sandbox, and `/login` inside pi, openai-codex: |
+| `codex login status` | `codex login --device-auth` |
+| `echo $OPENAI_API_KEY` | |
+
+### 3. Skills
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Install them: | ⚙️ Done at the first `sandbox start`, from src's `skills-lock.json`; check it lists the same skills. |
+| `npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling` | |
+| `npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop` | |
+| `npx -y skills@latest add humanlayer/skills -g -a pi -y --skill show-me` | |
+| ⌨️ Check `review-loop` is v1.0.0 or later; this prints a number above 0: | |
+| `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` | |
+
+### 4. Lay out `<root>`
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ By hand, in `<root>`, with `src` cloned or made there: | ⌨️ One command, in `<root>`, as the sandbox's user. ⚙️ It makes the layout below and links both commit guards (steps 4 and 6): |
+| `git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git` | `/sandbox/agent-defaults/src/scripts/sandbox-team-root <src remote> <wiki remote>` |
+| `mkdir worktrees html` | |
+| `git init wiki` (or a clone of the wiki's private remote) | |
+| ⌨️ The wiki's commit guard, refusing a file emptied by accident: | |
+| `ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit` | |
+| ⌨️ A later release, once its `CHANGELOG.md` section says what it asks: | |
+| `git -C agentic_workflow checkout <tag>` | |
+
+### 5. src's agent docs
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Write them (list below), or have a seat draft them once the lead runs. | ⌨️ The same. |
+
+### 6. The lead's commit guard
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Link it; with no hooks from the `pre-commit` tool, copy it instead, executable, and drop its last line: | ⚙️ Done in step 4. |
+| `ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit` | |
+
+### 6. The agents' guards and prompt templates
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Install them; rerun the second after each new release: | ⚙️ Done at every `sandbox start`, from the host's copy at the release the tooling names (`lib/agentic_workflow.sh`); a new release arrives once that tag moves and `sandbox host setup` reruns. |
+| `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards` | |
+| `node <root>/agentic_workflow/tools/extensions/install.mjs` | |
+
+### 7. An expendable environment
+
+| On your own host | In a sandbox session |
+|---|---|
+| ⌨️ Have one ready (a disposable container or jail, a test VM, a cloud sandbox) and a spending cap you are comfortable with. The first ticket runs there. | ⌨️ The same; seats test in a child jail or a cloud sandbox, not in the session itself. |
 
 **The layout (step 4).** Every project gets the same layout and tools, filled with its own content: its own wiki and its own docs tooling, never shared with another project. `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
 ```
