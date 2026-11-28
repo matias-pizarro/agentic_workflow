@@ -11,17 +11,22 @@ style  note  shape: none                 text: (size: small, color: theme-muted)
 style  cmd   fill: #000000               border: #555555                          corners: sharp  text: (color: #e8e8e8)
 
 // 0. Enter
-node  s0      "0. Enter" (inside top, size: large)                                                                                                    shape: none  layout: row (gap: wide, align-children: top)
-node  s0.h    "On your own host" (outside top, size: large)                                                                                           style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s0.h.a  "⌨️ Open a shell on your host." (wrap: 60)                                                                                              style: do
-node  s0.s    "In a sandbox session" (outside top, size: large)                                                                                       style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s0.s.a  "⌨️ Once per project, on the sandbox host, create the project:" (wrap: 60)                                                              style: do
-node  s0.s.b  "sandbox project create <project> --repo <src remote> --repo <wiki remote>"                                                             style: cmd
-node  s0.s.c  "It prints one deploy key per repository." (wrap: 70)                                                                                   style: note
-node  s0.s.d  "⌨️ Add each key to its repository on the forge, as a deploy key (on GitHub: the repository's Settings, then Deploy keys)." (wrap: 60)  style: do
-node  s0.s.e  "⌨️ Each time you start work, on the sandbox host, start a session:" (wrap: 60)                                                         style: do
-node  s0.s.f  "sandbox start -p <project> -s <session>"                                                                                               style: cmd
-node  s0.s.g  "You are now in tmux, in the session's workspace. That workspace is <root> in every step below." (wrap: 70)                             style: note
+node  s0       "0. Enter" (inside top, size: large)                                                                                                                                                                                      shape: none  layout: row (gap: wide, align-children: top)
+node  s0.h     "On your own host" (outside top, size: large)                                                                                                                                                                             style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s0.h.a   "⌨️ Open a shell on your host." (wrap: 60)                                                                                                                                                                                style: do
+node  s0.s     "In a sandbox session" (outside top, size: large)                                                                                                                                                                         style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s0.s.a   "⌨️ Once per project, on the sandbox host, create the project:" (wrap: 60)                                                                                                                                                style: do
+node  s0.s.b   "sandbox project create <project> --repo <src remote> --repo <wiki remote>"                                                                                                                                               style: cmd
+node  s0.s.c   "It prints one deploy key per repository." (wrap: 70)                                                                                                                                                                     style: note
+node  s0.s.d   "⌨️ Add each key to its repository on the forge, as a deploy key (on GitHub: the repository's Settings, then Deploy keys)." (wrap: 60)                                                                                    style: do
+node  s0.s.d1  "⌨️ Once per session, before its first start, on the sandbox host: if there is no token in /agents/users/<user>/credentials/teams/<project>/<session>/env or if it's stale, generate a fresh one by running:" (wrap: 60)  style: do
+node  s0.s.d2  "claude setup-token"                                                                                                                                                                                                      style: cmd
+node  s0.s.d3  "⌨️ Put the token in /agents/users/<user>/credentials/teams/<project>/<session>/env:" (wrap: 60)                                                                                                                          style: do
+node  s0.s.d4  "CLAUDE_CODE_OAUTH_TOKEN=<claude_oauth_token>"                                                                                                                                                                            style: cmd
+node  s0.s.d5  "sandbox start mounts that directory only if it exists when the sandbox starts; one made later is used after a sandbox stop and start." (wrap: 70)                                                                        style: note
+node  s0.s.e   "⌨️ Each time you start work, on the sandbox host, start a session:" (wrap: 60)                                                                                                                                           style: do
+node  s0.s.f   "sandbox start -p <project> -s <session>"                                                                                                                                                                                 style: cmd
+node  s0.s.g   "You are now in tmux, in the session's workspace. That workspace is <root> in every step below." (wrap: 70)                                                                                                               style: note
 
 // 1. Pi, its packages, git, tmux
 node  s1      "1. Pi, its packages, git, tmux" (inside top, size: large)                                              shape: none  layout: row (gap: wide, align-children: top)       below s0     left even with s0
@@ -33,24 +38,21 @@ node  s1.s    "In a sandbox session" (outside top, size: large)                 
 node  s1.s.a  "⚙️ Nothing to do: the sandbox comes with pi, its packages, git and tmux." (wrap: 70)                   style: note
 
 // 2. Logins and the reviewer
-node  s2      "2. Logins and the reviewer" (inside top, size: large)                                                                                                                  shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
-node  s2.h    "On your own host" (outside top, size: large)                                                                                                                           style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s2.h.a  "⌨️ Log pi in to Claude, as for any use of pi." (wrap: 60)                                                                                                              style: do
-node  s2.h.b  "⌨️ Log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                                                              style: do
-node  s2.h.c  "codex login"                                                                                                                                                           style: cmd
-node  s2.h.d  "An OPENAI_API_KEY in your environment works for reviews instead." (wrap: 70)                                                                                           style: note
-node  s2.h.e  "⌨️ Check one of the two:" (wrap: 60)                                                                                                                                   style: do
-node  s2.h.f  "codex login status"                                                                                                                                                    style: cmd
-node  s2.h.g  "echo $OPENAI_API_KEY"                                                                                                                                                  style: cmd
-node  s2.s    "In a sandbox session" (outside top, size: large)                                                                                                                       style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s2.s.a  "⌨️ On the host, if there is no token in /agents/users/<user>/credentials/teams/<project>/<session>/env or if it's stale, generate a fresh one by running:" (wrap: 60)  style: do
-node  s2.s.b  "claude setup-token"                                                                                                                                                    style: cmd
-node  s2.s.c  "⌨️ Put the token in /agents/users/<user>/credentials/teams/<project>/<session>/env:" (wrap: 60)                                                                        style: do
-node  s2.s.d  "CLAUDE_CODE_OAUTH_TOKEN=<claude_oauth_token>"                                                                                                                          style: cmd
-node  s2.s.e  "⌨️ In the sandbox, log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                                              style: do
-node  s2.s.f  "codex login --device-auth"                                                                                                                                             style: cmd
-node  s2.s.g  "⌨️ Log pi in to the same account, for its GPT models and web search: inside pi, type this, then choose openai-codex:" (wrap: 60)                                       style: do
-node  s2.s.h  "/login"                                                                                                                                                                style: cmd
+node  s2      "2. Logins and the reviewer" (inside top, size: large)                                                                             shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
+node  s2.h    "On your own host" (outside top, size: large)                                                                                      style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s2.h.a  "⌨️ Log pi in to Claude, as for any use of pi." (wrap: 60)                                                                         style: do
+node  s2.h.b  "⌨️ Log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                         style: do
+node  s2.h.c  "codex login"                                                                                                                      style: cmd
+node  s2.h.d  "An OPENAI_API_KEY in your environment works for reviews instead." (wrap: 70)                                                      style: note
+node  s2.h.e  "⌨️ Check one of the two:" (wrap: 60)                                                                                              style: do
+node  s2.h.f  "codex login status"                                                                                                               style: cmd
+node  s2.h.g  "echo $OPENAI_API_KEY"                                                                                                             style: cmd
+node  s2.s    "In a sandbox session" (outside top, size: large)                                                                                  style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s2.s.a  "⚙️ Nothing to do for Claude: step 0 put its token in the team's env before the sandbox started." (wrap: 70)                       style: note
+node  s2.s.e  "⌨️ In the sandbox, log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                         style: do
+node  s2.s.f  "codex login --device-auth"                                                                                                        style: cmd
+node  s2.s.g  "⌨️ Log pi in to the same account, for its GPT models and web search: inside pi, type this, then choose openai-codex:" (wrap: 60)  style: do
+node  s2.s.h  "/login"                                                                                                                           style: cmd
 
 // 3. Skills
 node  s3      "3. Skills" (inside top, size: large)                                                                                                                                                                                             shape: none  layout: row (gap: wide, align-children: top)       below s2               left even with s0
