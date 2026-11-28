@@ -35,6 +35,13 @@ function tmuxOut(args: string[]): string | undefined {
 }
 
 export default function refresh(pi: ExtensionAPI) {
+	// Nothing in a subagent (CS-Q121): pi-subagents runs a background subagent
+	// as a child process with PI_SUBAGENT_CHILD=1, which inherits the seat's
+	// TMUX_PANE and would write the seat's ledger lines and pane options as its
+	// own. A foreground subagent runs in the seat's process without that marker,
+	// but loads only settings.json's subagents.defaultSubagentOnlyExtensions,
+	// which install.mjs keeps to guards.ts, so this file never runs there.
+	if (process.env.PI_SUBAGENT_CHILD === "1") return;
 	pi.on("input", async (event, ctx) => {
 		if (event.source !== "interactive") return { action: "continue" };
 		const names = refreshOf(event.text);

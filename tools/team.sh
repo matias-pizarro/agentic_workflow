@@ -35,7 +35,7 @@
 #                                            the directory) is missing, unreadable or empty, unless --no-checkout gives a
 #                                            reason, which goes to the log (rules.md, Team mechanics; AW-Q86)
 #   team.sh revive <name>|--all              after a tmux restart, reopen recorded agents in their sessions;
-#                                            --all also reopens the team board in window 0 (board.mjs open)
+#                                            --all also reopens the team board in window 0, the phone bot's pane below it (board.mjs open)
 #   team.sh queue                            undelivered and failed messages
 #   team.sh selftest                         test delivery, go, spawn and revive on tmux -L teamtest
 #   team.sh doctor                           check the host dependencies in tools/expect; print one fix block
@@ -373,9 +373,10 @@ session_exists() { # id
 }
 
 # Open the agent's window running pi in its session; with a prompt file, pi
-# gets its content as the first message. TEAM_ROLE is cleared for the agent.
+# gets its content as the first message. TEAM_ROLE is cleared for the agent, and
+# PI_SUBAGENT_CHILD, which would leave its pane-writing extensions idle (CO-Q38).
 open_window() { # name cwd session-id [session name, prompt file]
-  tmux new-window -d -n "$1" -c "$2" "bash -ic $(q "unset TEAM_ROLE; exec $(shift 2; pi_line "$@")")"
+  tmux new-window -d -n "$1" -c "$2" "bash -ic $(q "unset TEAM_ROLE PI_SUBAGENT_CHILD; exec $(shift 2; pi_line "$@")")"
 }
 
 # The pi command line: a session id, then a session name and a first message
@@ -676,7 +677,7 @@ refresh_run() { # seat words source
   else
     r=$(record "$seat") && cwd=$(printf '%s\n' "$r" | cut -f2) && [ -n "$cwd" ] ||
       refresh_end refresh-failed "respawn: $seat's directory cannot be read from $agents" "failed: respawn: $seat's directory cannot be read from $agents; old session $old_id kept; the registry names the new session $new_id: team.sh revive $seat"
-    cmd="bash -ic $(q "unset TEAM_ROLE; exec $(pi_line "$new_id" "$name" "$(compose_prompt "$seat" "$task")")")"
+    cmd="bash -ic $(q "unset TEAM_ROLE PI_SUBAGENT_CHILD; exec $(pi_line "$new_id" "$name" "$(compose_prompt "$seat" "$task")")")"
   fi
   both="old session $old_id ($old_shown), new $new_id ($name)"
   err=$(tmux respawn-pane -k -t "$pane" -c "$cwd" "$cmd" 2>&1) ||
@@ -1593,10 +1594,11 @@ revive)
     if [ -f "$agents" ]; then
       while IFS="$tab" read -r n _; do revive_one "$n" || rc=1; done < "$agents"
     fi
-    # The team board, back in window 0 unless open (TB-Q29); its failure is
-    # printed, the seats' exit status kept.
+    # The team board, back in window 0 unless open (TB-Q29), and the phone
+    # bot's pane below it (CS-Q117); a failure is printed, the seats' exit
+    # status kept.
     board=$(dirname "$(realpath "$self")")/board.mjs
-    node "$board" open || say_err "revive: the team board was not reopened: node $board open failed"
+    node "$board" open || say_err "revive: the board or the phone bot's pane was not set up (above): node $board open failed"
     exit $rc
   fi
   revive_one "$2"

@@ -68,7 +68,7 @@ node  s3.s.a  "⚙️ Nothing to do: the first sandbox start installs the skills
 node  s4      "4. Lay out <root>" (inside top, size: large)                                                                                                                    shape: none  layout: row (gap: wide, align-children: top)       below s3               left even with s0
 node  s4.h    "On your own host" (outside top, size: large)                                                                                                                    style: step  layout: column (align-children: left, gap: tight)  width: s3.h            gather-children: left
 node  s4.h.a  "⌨️ In <root>, with src already cloned there, run:" (wrap: 60)                                                                                                   style: do
-node  s4.h.b  "git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git"                                                                              style: cmd
+node  s4.h.b  "git clone --branch v2.25.0 https://github.com/matias-pizarro/agentic_workflow.git"                                                                              style: cmd
 node  s4.h.c  "mkdir worktrees html"                                                                                                                                           style: cmd
 node  s4.h.d  "git init wiki"                                                                                                                                                  style: cmd
 node  s4.h.e  "Or clone the wiki's private remote in place of git init." (wrap: 70)                                                                                            style: note
