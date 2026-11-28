@@ -1,0 +1,17 @@
+-- ledger:
+start	seatx	01a22221-ebc2-72bc-9649-aae49dc205d3	
+start	seatx	01a22222-3edf-7193-87f9-b882da5ea852	
+stop	seatx	01a22222-3edf-7193-87f9-b882da5ea852	subagent-delegate-02c676d8-7fcb-4bae-9b3d-c59243385d6f-1
+-- the pane's @session-id: 01a22222-3edf-7193-87f9-b882da5ea852
+-- the pane's @state: idle
+-- sessions seen (debug): event, subagent child env, parentSession set, file:
+   1 agent_settled child="1" 2026-11-28T12-29-38-114Z_01a22221-ebc2-72bc-9649-aae49dc205d3/02c676d8-7fcb-4bae-9b3d-c59243385d6f/run-0/session.jsonl
+   1 agent_settled child=null 2026-11-28T12-29-38-114Z_01a22221-ebc2-72bc-9649-aae49dc205d3.jsonl
+   1 session_shutdown child="1" 2026-11-28T12-29-38-114Z_01a22221-ebc2-72bc-9649-aae49dc205d3/02c676d8-7fcb-4bae-9b3d-c59243385d6f/run-0/session.jsonl
+   1 session_start child="1" 2026-11-28T12-29-38-114Z_01a22221-ebc2-72bc-9649-aae49dc205d3/02c676d8-7fcb-4bae-9b3d-c59243385d6f/run-0/session.jsonl
+   1 session_start child=null 2026-11-28T12-29-38-114Z_01a22221-ebc2-72bc-9649-aae49dc205d3.jsonl
+-- pane:
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+/agents/sessions/freebsd/sandbox/worktrees/aw/fix/subagent-quiet (fix/subagent-quiet)
+↑8 ↓737 R66k W12k CH96.0% 2.4%/1.0M (auto)                                                                                                                      (claude-bridge) claude-opus-5-5 • medium
