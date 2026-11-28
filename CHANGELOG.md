@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.25.2] - 2026-11-28
+
+### Fixed
+
+- `docs/kickoff-setup.svg`, sandbox side: the team's Claude token goes in `/agents/users/<user>/credentials/teams/<project>/<session>/env`, the only file `sandbox start` reads since the sandbox project's team credentials (src 38e54343), and is written in step 0, before `sandbox start`, which mounts the team directory only if it exists then; step 2 has nothing left to do for Claude (librarian's H2 and K1; the operator, CO-Q46 to CO-Q48, 28 Nov 17:21 to 17:30; release CO-Q49, "yes", 17:35). **Act:** nothing; a new sandbox team follows the new step 0.
+
 ## [2.25.1] - 2026-11-28
 
 ### Changed

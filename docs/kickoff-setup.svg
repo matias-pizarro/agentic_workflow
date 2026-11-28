@@ -171,7 +171,7 @@
   <text x="54" y="2323.2" fill="#d9d9d9" text-anchor="start">⌨️ In &lt;root&gt;, with src already cloned there, run:</text>
   </g>
   <path d="M54 2351 H763 V2398 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="408.5" y="2379.4" fill="#e8e8e8" text-anchor="middle">git clone --branch v2.25.1 https://github.com/matias-pizarro/agentic_workflow.git</text>
+  <text x="408.5" y="2379.4" fill="#e8e8e8" text-anchor="middle">git clone --branch v2.25.2 https://github.com/matias-pizarro/agentic_workflow.git</text>
   <path d="M54 2422 H250 V2469 H54 Z" fill="#000000" stroke="#555555"/>
   <text x="152" y="2450.4" fill="#e8e8e8" text-anchor="middle">mkdir worktrees html</text>
   <path d="M54 2493 H192 V2540 H54 Z" fill="#000000" stroke="#555555"/>
