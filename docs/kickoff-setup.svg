@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1876" height="3640" viewBox="0 0 1876 3640" font-family="'DejaVu Sans Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace" font-size="14px">
+<svg xmlns="http://www.w3.org/2000/svg" width="1876" height="3799" viewBox="0 0 1876 3799" font-family="'DejaVu Sans Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace" font-size="14px">
   <title>Kickoff: before the lead starts</title>
   <defs>
   </defs>
-  <rect x="0" y="0" width="1876" height="3640" fill="#111111"/>
+  <rect x="0" y="0" width="1876" height="3799" fill="#111111"/>
   <g font-size="17px">
   <text x="897" y="57.45" fill="#d9d9d9" text-anchor="start">0. Enter</text>
   </g>
@@ -148,7 +148,7 @@
   </g>
   <g font-size="12px">
   <text x="1122" y="1583.2" fill="#8b8b8b" text-anchor="start">⚙️ Nothing to do: the first sandbox start installs the skills listed</text>
-  <text x="1122" y="1599.2" fill="#8b8b8b" text-anchor="start">in src's skills-lock.json.</text>
+  <text x="1122" y="1599.2" fill="#8b8b8b" text-anchor="start">in the sandbox tooling's skills-lock.json.</text>
   </g>
   <g font-size="17px">
   <text x="851" y="2025.45" fill="#d9d9d9" text-anchor="start">4. Lay out &lt;root&gt;</text>
@@ -220,7 +220,7 @@
   <g font-size="17px">
   <text x="764.5" y="2888.45" fill="#d9d9d9" text-anchor="start">6. The guards and prompt templates</text>
   </g>
-  <path d="M40 2937 H1012 V3330 H40 Z" fill="#142814" stroke="#486544"/>
+  <path d="M40 2937 H1012 V3489 H40 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
   <text x="444" y="2921.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
   </g>
@@ -230,18 +230,26 @@
   <path d="M54 2991 H796 V3038 H54 Z" fill="#000000" stroke="#555555"/>
   <text x="425" y="3019.4" fill="#e8e8e8" text-anchor="middle">ln -s ../../../agentic_workflow/tools/src-pre-commit &lt;root&gt;/src/.git/hooks/pre-commit</text>
   <g font-size="12px">
-  <text x="54" y="3074.2" fill="#8b8b8b" text-anchor="start">If the pre-commit tool installed no hooks in src, copy the file</text>
-  <text x="54" y="3090.2" fill="#8b8b8b" text-anchor="start">instead of linking it, make it executable, and delete its last line.</text>
+  <text x="54" y="3074.2" fill="#d9d9d9" text-anchor="start">⌨️ If it says "File exists", the pre-commit tool already</text>
+  <text x="54" y="3090.2" fill="#d9d9d9" text-anchor="start">installed its hook there: keep that hook as</text>
+  <text x="54" y="3106.2" fill="#d9d9d9" text-anchor="start">pre-commit.generated, which the guard runs, then run the</text>
+  <text x="54" y="3122.2" fill="#d9d9d9" text-anchor="start">link again:</text>
+  </g>
+  <path d="M54 3150 H763 V3197 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="408.5" y="3178.4" fill="#e8e8e8" text-anchor="middle">mv -n &lt;root&gt;/src/.git/hooks/pre-commit &lt;root&gt;/src/.git/hooks/pre-commit.generated</text>
+  <g font-size="12px">
+  <text x="54" y="3233.2" fill="#8b8b8b" text-anchor="start">If the pre-commit tool installed no hooks in src, copy the file</text>
+  <text x="54" y="3249.2" fill="#8b8b8b" text-anchor="start">instead of linking it, make it executable, and delete its last line.</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="3130.2" fill="#d9d9d9" text-anchor="start">⌨️ Install the agents' guards and prompt templates:</text>
+  <text x="54" y="3289.2" fill="#d9d9d9" text-anchor="start">⌨️ Install the agents' guards and prompt templates:</text>
   </g>
-  <path d="M54 3158 H654 V3205 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="354" y="3186.4" fill="#e8e8e8" text-anchor="middle">cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards</text>
-  <path d="M54 3229 H561 V3276 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="307.5" y="3257.4" fill="#e8e8e8" text-anchor="middle">node &lt;root&gt;/agentic_workflow/tools/extensions/install.mjs</text>
+  <path d="M54 3317 H654 V3364 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="354" y="3345.4" fill="#e8e8e8" text-anchor="middle">cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards</text>
+  <path d="M54 3388 H561 V3435 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="307.5" y="3416.4" fill="#e8e8e8" text-anchor="middle">node &lt;root&gt;/agentic_workflow/tools/extensions/install.mjs</text>
   <g font-size="12px">
-  <text x="54" y="3312.2" fill="#8b8b8b" text-anchor="start">Run the second command again after each new release.</text>
+  <text x="54" y="3471.2" fill="#8b8b8b" text-anchor="start">Run the second command again after each new release.</text>
   </g>
   <path d="M1108 2937 H1836 V2997 H1108 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
@@ -252,33 +260,33 @@
   <text x="1122" y="2979.2" fill="#8b8b8b" text-anchor="start">every sandbox start installs the agents' guards and templates.</text>
   </g>
   <g font-size="17px">
-  <text x="795" y="3395.45" fill="#d9d9d9" text-anchor="start">7. An expendable environment</text>
+  <text x="795" y="3554.45" fill="#d9d9d9" text-anchor="start">7. An expendable environment</text>
   </g>
-  <path d="M40 3444 H1012 V3600 H40 Z" fill="#142814" stroke="#486544"/>
+  <path d="M40 3603 H1012 V3759 H40 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="444" y="3428.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  <text x="444" y="3587.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="3470.2" fill="#d9d9d9" text-anchor="start">⌨️ Have a place ready where seats run their tests and throw</text>
-  <text x="54" y="3486.2" fill="#d9d9d9" text-anchor="start">it away after: a disposable container or jail, a test VM, or</text>
-  <text x="54" y="3502.2" fill="#d9d9d9" text-anchor="start">a cloud sandbox.</text>
+  <text x="54" y="3629.2" fill="#d9d9d9" text-anchor="start">⌨️ Have a place ready where seats run their tests and throw</text>
+  <text x="54" y="3645.2" fill="#d9d9d9" text-anchor="start">it away after: a disposable container or jail, a test VM, or</text>
+  <text x="54" y="3661.2" fill="#d9d9d9" text-anchor="start">a cloud sandbox.</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="3542.2" fill="#d9d9d9" text-anchor="start">⌨️ Decide a spending cap you accept for it.</text>
+  <text x="54" y="3701.2" fill="#d9d9d9" text-anchor="start">⌨️ Decide a spending cap you accept for it.</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="3582.2" fill="#8b8b8b" text-anchor="start">The first ticket runs there.</text>
+  <text x="54" y="3741.2" fill="#8b8b8b" text-anchor="start">The first ticket runs there.</text>
   </g>
-  <path d="M1108 3444 H1836 V3560 H1108 Z" fill="#142814" stroke="#486544"/>
+  <path d="M1108 3603 H1836 V3719 H1108 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="1370" y="3428.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  <text x="1370" y="3587.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
   </g>
   <g font-size="12px">
-  <text x="1122" y="3470.2" fill="#d9d9d9" text-anchor="start">⌨️ Decide a spending cap you accept for the seats' cloud</text>
-  <text x="1122" y="3486.2" fill="#d9d9d9" text-anchor="start">sandboxes.</text>
+  <text x="1122" y="3629.2" fill="#d9d9d9" text-anchor="start">⌨️ Decide a spending cap you accept for the seats' cloud</text>
+  <text x="1122" y="3645.2" fill="#d9d9d9" text-anchor="start">sandboxes.</text>
   </g>
   <g font-size="12px">
-  <text x="1122" y="3526.2" fill="#8b8b8b" text-anchor="start">Seats run their tests in a child jail or a cloud sandbox, never in the</text>
-  <text x="1122" y="3542.2" fill="#8b8b8b" text-anchor="start">session itself.</text>
+  <text x="1122" y="3685.2" fill="#8b8b8b" text-anchor="start">Seats run their tests in a child jail or a cloud sandbox, never in the</text>
+  <text x="1122" y="3701.2" fill="#8b8b8b" text-anchor="start">session itself.</text>
   </g>
 </svg>

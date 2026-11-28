@@ -24,7 +24,7 @@ Steps 0 to 7 are drawn in [kickoff-setup.svg](kickoff-setup.svg), each step with
   worktrees/         linked worktrees of src
   html/              the pages named to the operator (rules.md, Team mechanics), outside every repo
 ```
-The team script runs from `<root>/agentic_workflow/tools/team.sh` and keeps its queue and agent list beside it, git-ignored.
+The team script runs from `<root>/agentic_workflow/tools/team.sh` and keeps its queue and agent list beside it, git-ignored. In a sandbox session, `<root>/agentic_workflow` and the start's install come at the sandbox tooling's release (`lib/agentic_workflow.sh` in the sandbox project), which moves when Methodology names a release for it and the host's setup reruns.
 
 **The skills (step 3).** `show-me` explains the current topic with diagrams, code-shape sketches and focused HTML pages; it runs only when you type `/skill:show-me`. Where it would `open` an HTML file, the agent names its full path instead (rules.md, Team mechanics). `grilling` stays installed: `grill-with-docs` and `review-loop` load it. `review-loop` before v1.0.0 lacks the impact ratings, backlog, drift question and delete option.
 

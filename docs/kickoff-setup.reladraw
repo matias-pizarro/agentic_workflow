@@ -62,7 +62,7 @@ node  s3.h.d  "npx -y skills@latest add humanlayer/skills -g -a pi -y --skill sh
 node  s3.h.e  "⌨️ Check that review-loop is v1.0.0 or later: this must print a number above 0:" (wrap: 60)                                                                                                                                      style: do
 node  s3.h.f  "grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md"                                                                                                                                                                             style: cmd
 node  s3.s    "In a sandbox session" (outside top, size: large)                                                                                                                                                                                 style: step  layout: column (align-children: left, gap: tight)  width: s4.s            gather-children: left
-node  s3.s.a  "⚙️ Nothing to do: the first sandbox start installs the skills listed in src's skills-lock.json." (wrap: 70)                                                                                                                      style: note
+node  s3.s.a  "⚙️ Nothing to do: the first sandbox start installs the skills listed in the sandbox tooling's skills-lock.json." (wrap: 70)                                                                                                      style: note
 
 // 4. Lay out <root>
 node  s4      "4. Lay out <root>" (inside top, size: large)                                                                                                                    shape: none  layout: row (gap: wide, align-children: top)       below s3               left even with s0
@@ -90,17 +90,19 @@ node  s5.s    "In a sandbox session" (outside top, size: large)                 
 node  s5.s.a  "⌨️ Write src's agent docs, which kickoff.md lists, or have a seat draft them once the lead runs." (wrap: 60)  style: do
 
 // 6. The guards and prompt templates
-node  s6      "6. The guards and prompt templates" (inside top, size: large)                                                                                     shape: none  layout: row (gap: wide, align-children: top)       below s5     left even with s0
-node  s6.h    "On your own host" (outside top, size: large)                                                                                                      style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s6.h.a  "⌨️ Install the lead's commit guard:" (wrap: 60)                                                                                                   style: do
-node  s6.h.b  "ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit"                                                            style: cmd
-node  s6.h.c  "If the pre-commit tool installed no hooks in src, copy the file instead of linking it, make it executable, and delete its last line." (wrap: 70)  style: note
-node  s6.h.d  "⌨️ Install the agents' guards and prompt templates:" (wrap: 60)                                                                                   style: do
-node  s6.h.e  "cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards"                                                                             style: cmd
-node  s6.h.f  "node <root>/agentic_workflow/tools/extensions/install.mjs"                                                                                        style: cmd
-node  s6.h.g  "Run the second command again after each new release." (wrap: 70)                                                                                  style: note
-node  s6.s    "In a sandbox session" (outside top, size: large)                                                                                                  style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s6.s.a  "⚙️ Nothing to do: step 4's command installed the commit guards, and every sandbox start installs the agents' guards and templates." (wrap: 70)    style: note
+node  s6       "6. The guards and prompt templates" (inside top, size: large)                                                                                                                            shape: none  layout: row (gap: wide, align-children: top)       below s5     left even with s0
+node  s6.h     "On your own host" (outside top, size: large)                                                                                                                                             style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s6.h.a   "⌨️ Install the lead's commit guard:" (wrap: 60)                                                                                                                                          style: do
+node  s6.h.b   "ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit"                                                                                                   style: cmd
+node  s6.h.b1  "⌨️ If it says \"File exists\", the pre-commit tool already installed its hook there: keep that hook as pre-commit.generated, which the guard runs, then run the link again:" (wrap: 60)  style: do
+node  s6.h.b2  "mv -n <root>/src/.git/hooks/pre-commit <root>/src/.git/hooks/pre-commit.generated"                                                                                                       style: cmd
+node  s6.h.c   "If the pre-commit tool installed no hooks in src, copy the file instead of linking it, make it executable, and delete its last line." (wrap: 70)                                         style: note
+node  s6.h.d   "⌨️ Install the agents' guards and prompt templates:" (wrap: 60)                                                                                                                          style: do
+node  s6.h.e   "cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards"                                                                                                                    style: cmd
+node  s6.h.f   "node <root>/agentic_workflow/tools/extensions/install.mjs"                                                                                                                               style: cmd
+node  s6.h.g   "Run the second command again after each new release." (wrap: 70)                                                                                                                         style: note
+node  s6.s     "In a sandbox session" (outside top, size: large)                                                                                                                                         style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s6.s.a   "⚙️ Nothing to do: step 4's command installed the commit guards, and every sandbox start installs the agents' guards and templates." (wrap: 70)                                           style: note
 
 // 7. An expendable environment
 node  s7      "7. An expendable environment" (inside top, size: large)                                                                                                shape: none  layout: row (gap: wide, align-children: top)       below s6     left even with s0
