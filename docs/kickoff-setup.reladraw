@@ -3,53 +3,53 @@
 // its own; its text can be selected and copied from the SVG opened in a browser.
 diagram  title: "Kickoff: before the lead starts"
 
-style  step  fill: theme-primary-subtle    border: theme-primary                    corners: sharp
-style  side  shape: none                   text: (size: small, color: theme-muted)
+style  step  fill: theme-primary-subtle  border: theme-primary                    corners: sharp
+style  side  shape: none                 text: (size: small, color: theme-muted)
 style  say   shape: none
-style  cmd   fill: theme-secondary-subtle  border: theme-secondary                  corners: sharp
+style  cmd   fill: #000000               border: #555555                          corners: sharp  text: (color: #e8e8e8)
 
 // 0. Enter
-node  s0      "0. Enter" (inside top, align: left)                                                                     style: step  layout: row (gap: wide, align-children: top)
+node  s0      "0. Enter" (inside top)                                                                                  style: step  layout: row (gap: wide, align-children: top)
 node  s0.h    ""                                                                                                       shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s0.h.t  "On your own host"                                                                                       style: side
+node  s0.h.t  "On your own host"                                                                                       style: side  width: s3.h.b
 node  s0.h.a  "⌨️ Open a shell on the host." (wrap: 60)                                                                style: say
 node  s0.s    ""                                                                                                       shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s0.s.t  "In a sandbox session"                                                                                   style: side
+node  s0.s.t  "In a sandbox session"                                                                                   style: side  width: s4.s.b
 node  s0.s.a  "⌨️ Once per project, on the sandbox host; register each deploy key it prints on the forge:" (wrap: 60)  style: say
 node  s0.s.b  "sandbox project create <project> --repo <src remote> --repo <wiki remote>"                              style: cmd
 node  s0.s.c  "⌨️ Then each time; it opens tmux in the workspace, which is <root>:" (wrap: 60)                         style: say
 node  s0.s.d  "sandbox start -p <project> -s <session>"                                                                style: cmd
 
 // 1. Pi, its packages, git, tmux
-node  s1      "1. Pi, its packages, git, tmux" (inside top, align: left)                                                            style: step  layout: row (gap: wide, align-children: top)       below s0     left even with s0
+node  s1      "1. Pi, its packages, git, tmux" (inside top)                                                                         style: step  layout: row (gap: wide, align-children: top)       below s0     left even with s0
 node  s1.h    ""                                                                                                                    shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s1.h.t  "On your own host"                                                                                                    style: side
+node  s1.h.t  "On your own host"                                                                                                    style: side  width: s3.h.b
 node  s1.h.a  "⌨️ Install them; on FreeBSD, the sandbox project's docs/install-pi.md lists every step. Pi's subagents:" (wrap: 60)  style: say
 node  s1.h.b  "pi install npm:pi-subagents"                                                                                         style: cmd
 node  s1.s    ""                                                                                                                    shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s1.s.t  "In a sandbox session"                                                                                                style: side
+node  s1.s.t  "In a sandbox session"                                                                                                style: side  width: s4.s.b
 node  s1.s.a  "⚙️ Done by the agents template and sandbox start." (wrap: 60)                                                        style: say
 
 // 2. Logins and the reviewer
-node  s2      "2. Logins and the reviewer" (inside top, align: left)                                               style: step  layout: row (gap: wide, align-children: top)       below s1     left even with s0
+node  s2      "2. Logins and the reviewer" (inside top)                                                            style: step  layout: row (gap: wide, align-children: top)       below s1     left even with s0
 node  s2.h    ""                                                                                                   shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s2.h.t  "On your own host"                                                                                   style: side
+node  s2.h.t  "On your own host"                                                                                   style: side  width: s3.h.b
 node  s2.h.a  "⌨️ Claude's login for pi. For reviews, the Codex CLI logged in, or OPENAI_API_KEY set:" (wrap: 60)  style: say
 node  s2.h.b  "codex login"                                                                                        style: cmd
 node  s2.h.c  "⌨️ Check one of them:"                                                                              style: say
 node  s2.h.d  "codex login status"                                                                                 style: cmd
 node  s2.h.e  "echo $OPENAI_API_KEY"                                                                               style: cmd
 node  s2.s    ""                                                                                                   shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s2.s.t  "In a sandbox session"                                                                               style: side
+node  s2.s.t  "In a sandbox session"                                                                               style: side  width: s4.s.b
 node  s2.s.a  "⌨️ Once, on the host, in /agents/users/<user>/credentials/env:" (wrap: 60)                          style: say
 node  s2.s.b  "CLAUDE_CODE_OAUTH_TOKEN=…"                                                                          style: cmd
 node  s2.s.c  "⌨️ Then in the sandbox, and /login inside pi, openai-codex:" (wrap: 60)                             style: say
 node  s2.s.d  "codex login --device-auth"                                                                          style: cmd
 
 // 3. Skills
-node  s3      "3. Skills" (inside top, align: left)                                                                                                                                                                          style: step  layout: row (gap: wide, align-children: top)       below s2               left even with s0
+node  s3      "3. Skills" (inside top)                                                                                                                                                                                       style: step  layout: row (gap: wide, align-children: top)       below s2               left even with s0
 node  s3.h    ""                                                                                                                                                                                                             shape: none  layout: column (align-children: left, gap: tight)  gather-children: left
-node  s3.h.t  "On your own host"                                                                                                                                                                                             style: side
+node  s3.h.t  "On your own host"                                                                                                                                                                                             style: side  width: s3.h.b
 node  s3.h.a  "⌨️ Install them:"                                                                                                                                                                                             style: say
 node  s3.h.b  "npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling"  style: cmd
 node  s3.h.c  "npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop"                                                                                                                     style: cmd
@@ -57,13 +57,13 @@ node  s3.h.d  "npx -y skills@latest add humanlayer/skills -g -a pi -y --skill sh
 node  s3.h.e  "⌨️ Check review-loop is v1.0.0 or later; this prints a number above 0:" (wrap: 60)                                                                                                                            style: say
 node  s3.h.f  "grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md"                                                                                                                                                          style: cmd
 node  s3.s    ""                                                                                                                                                                                                             shape: none  layout: column (align-children: left, gap: tight)  width: s4.s            gather-children: left
-node  s3.s.t  "In a sandbox session"                                                                                                                                                                                         style: side
+node  s3.s.t  "In a sandbox session"                                                                                                                                                                                         style: side  width: s4.s.b
 node  s3.s.a  "⚙️ Done at the first sandbox start, from src's skills-lock.json; check it lists the same skills." (wrap: 60)                                                                                                  style: say
 
 // 4. Lay out <root>
-node  s4      "4. Lay out <root>" (inside top, align: left)                                                                                       style: step  layout: row (gap: wide, align-children: top)       below s3               left even with s0
+node  s4      "4. Lay out <root>" (inside top)                                                                                                    style: step  layout: row (gap: wide, align-children: top)       below s3               left even with s0
 node  s4.h    ""                                                                                                                                  shape: none  layout: column (align-children: left, gap: tight)  width: s3.h            gather-children: left
-node  s4.h.t  "On your own host"                                                                                                                  style: side
+node  s4.h.t  "On your own host"                                                                                                                  style: side  width: s3.h.b
 node  s4.h.a  "⌨️ By hand, in <root>, with src cloned or made there:" (wrap: 60)                                                                  style: say
 node  s4.h.b  "git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git"                                                 style: cmd
 node  s4.h.c  "mkdir worktrees html"                                                                                                              style: cmd
@@ -73,37 +73,37 @@ node  s4.h.f  "ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/h
 node  s4.h.g  "⌨️ A later release, once its CHANGELOG.md section says what it asks:" (wrap: 60)                                                   style: say
 node  s4.h.h  "git -C agentic_workflow checkout <tag>"                                                                                            style: cmd
 node  s4.s    ""                                                                                                                                  shape: none  layout: column (align-children: left, gap: tight)  gather-children: left
-node  s4.s.t  "In a sandbox session"                                                                                                              style: side
+node  s4.s.t  "In a sandbox session"                                                                                                              style: side  width: s4.s.b
 node  s4.s.a  "⌨️ One command, in <root>, as the sandbox's user. ⚙️ It lays out <root> and links both commit guards (steps 4 and 6):" (wrap: 60)  style: say
 node  s4.s.b  "/sandbox/agent-defaults/src/scripts/sandbox-team-root <src remote> <wiki remote>"                                                  style: cmd
 
 // 5. src's agent docs
-node  s5      "5. src's agent docs" (inside top, align: left)                                                    style: step  layout: row (gap: wide, align-children: top)       below s4     left even with s0
+node  s5      "5. src's agent docs" (inside top)                                                                 style: step  layout: row (gap: wide, align-children: top)       below s4     left even with s0
 node  s5.h    ""                                                                                                 shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s5.h.t  "On your own host"                                                                                 style: side
+node  s5.h.t  "On your own host"                                                                                 style: side  width: s3.h.b
 node  s5.h.a  "⌨️ Write them (kickoff.md lists them), or have a seat draft them once the lead runs." (wrap: 60)  style: say
 node  s5.s    ""                                                                                                 shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s5.s.t  "In a sandbox session"                                                                             style: side
+node  s5.s.t  "In a sandbox session"                                                                             style: side  width: s4.s.b
 node  s5.s.a  "⌨️ The same." (wrap: 60)                                                                          style: say
 
 // 6. The guards and prompt templates
-node  s6      "6. The guards and prompt templates" (inside top, align: left)                                                                                                   style: step  layout: row (gap: wide, align-children: top)       below s5     left even with s0
+node  s6      "6. The guards and prompt templates" (inside top)                                                                                                                style: step  layout: row (gap: wide, align-children: top)       below s5     left even with s0
 node  s6.h    ""                                                                                                                                                               shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s6.h.t  "On your own host"                                                                                                                                               style: side
+node  s6.h.t  "On your own host"                                                                                                                                               style: side  width: s3.h.b
 node  s6.h.a  "⌨️ The lead's commit guard; with no hooks from the pre-commit tool, copy it instead, executable, and drop its last line:" (wrap: 60)                            style: say
 node  s6.h.b  "ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit"                                                                          style: cmd
 node  s6.h.c  "⌨️ The agents' guards and prompt templates; rerun the second after each new release:" (wrap: 60)                                                                style: say
 node  s6.h.d  "cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards"                                                                                           style: cmd
 node  s6.h.e  "node <root>/agentic_workflow/tools/extensions/install.mjs"                                                                                                      style: cmd
 node  s6.s    ""                                                                                                                                                               shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s6.s.t  "In a sandbox session"                                                                                                                                           style: side
+node  s6.s.t  "In a sandbox session"                                                                                                                                           style: side  width: s4.s.b
 node  s6.s.a  "⚙️ The commit guards: done in step 4. The agents' guards and templates: done at every sandbox start, at the release lib/agentic_workflow.sh names." (wrap: 60)  style: say
 
 // 7. An expendable environment
-node  s7      "7. An expendable environment" (inside top, align: left)                                                                                                               style: step  layout: row (gap: wide, align-children: top)       below s6     left even with s0
+node  s7      "7. An expendable environment" (inside top)                                                                                                                            style: step  layout: row (gap: wide, align-children: top)       below s6     left even with s0
 node  s7.h    ""                                                                                                                                                                     shape: none  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s7.h.t  "On your own host"                                                                                                                                                     style: side
+node  s7.h.t  "On your own host"                                                                                                                                                     style: side  width: s3.h.b
 node  s7.h.a  "⌨️ Have one ready (a disposable container or jail, a test VM, a cloud sandbox) and a spending cap you are comfortable with. The first ticket runs there." (wrap: 60)  style: say
 node  s7.s    ""                                                                                                                                                                     shape: none  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s7.s.t  "In a sandbox session"                                                                                                                                                 style: side
+node  s7.s.t  "In a sandbox session"                                                                                                                                                 style: side  width: s4.s.b
 node  s7.s.a  "⌨️ The same; seats test in a child jail or a cloud sandbox, not in the session itself." (wrap: 60)                                                                    style: say
