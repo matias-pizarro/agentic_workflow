@@ -587,12 +587,12 @@ function loadConf() {
 	}
 }
 
-// The phone bot's pane (the pane with @role=phone-bot) below the board, in
-// window 0: 4 rows, the window's full width (the operator, CS-Q117, 28 Nov
-// 2026 09:50). Nothing when it is there already, or when no pane has the
-// role (no bot running). Returns the exit status: 1 when tmux fails.
+// The phone bot's pane below the board (CS-Q117): nothing when it is in the
+// board's window already (its size is left as it is), or when no pane has
+// the role. The board is the window at index 0 named board, by its id
+// (CO-Q31). Returns the exit status: 1 when tmux fails.
 function joinPhoneBot(session) {
-	const panes = tmux(["list-panes", "-s", "-t", session, "-F", `#{@role}${SEP}#{pane_id}${SEP}#{window_name}`]);
+	const panes = tmux(["list-panes", "-s", "-t", session, "-F", `#{@role}${SEP}#{pane_id}${SEP}#{window_id}${SEP}#{window_index}${SEP}#{window_name}`]);
 	if (panes === undefined) {
 		console.error("board.mjs open: cannot list the team session's panes, so the phone bot's pane was not moved");
 		return 1;
@@ -603,10 +603,10 @@ function joinPhoneBot(session) {
 		console.log("board: no pane has @role=phone-bot; nothing to move");
 		return 0;
 	}
-	if (bot[2] === "board") return 0;
-	const target = rows.find((p) => p[2] === "board")?.[1];
-	if (!target || tmux(["join-pane", "-d", "-v", "-f", "-l", "4", "-s", bot[1], "-t", target]) === undefined) {
-		console.error(`board.mjs open: tmux join-pane failed; the phone bot's pane ${bot[1]} stays in window ${bot[2]}`);
+	const board = rows.find((p) => p[3] === "0" && p[4] === "board");
+	if (board && bot[2] === board[2]) return 0;
+	if (!board || tmux(["join-pane", "-d", "-v", "-f", "-l", "4", "-s", bot[1], "-t", board[1]]) === undefined) {
+		console.error(`board.mjs open: ${board ? "tmux join-pane failed" : "no board at window 0"}; the phone bot's pane ${bot[1]} stays in window ${bot[4]}`);
 		return 1;
 	}
 	console.log("board: the phone bot's pane joined window 0, below the board");

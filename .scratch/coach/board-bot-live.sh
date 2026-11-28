@@ -21,6 +21,11 @@ echo "-- board closed, the bot back in a window of its own, then revive --all:"
 $T break-pane -d -s "$($T list-panes -s -t team -F '#{@role} #{pane_id}' | awk '$1 == "phone-bot" { print $2 }')" -n phone-bot
 $T kill-window -t team:board
 sh "$2" revive --all 2>&1 | sed 's/^/   /'; sleep 3; layout
+echo "-- a second window named board, the bot in it: open moves the bot to window 0's board (CO-Q31):"
+bot=$($T list-panes -s -t team -F '#{@role} #{pane_id}' | awk '$1 == "phone-bot" { print $2 }')
+$T break-pane -d -s "$bot" -n board
+node "$1" open; echo "   exit $?"; layout
+# The second board held only the bot's pane, so it closed when the pane left.
 echo "-- no pane with @role=phone-bot:"
 bot=$($T list-panes -s -t team -F '#{@role} #{pane_id}' | awk '$1 == "phone-bot" { print $2 }')
 $T break-pane -d -s "$bot" -n phone-bot
