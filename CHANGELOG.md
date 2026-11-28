@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.23.0] - 2026-11-28
+
+### Changed
+
+- Rule 15 and `docs/unattended-windows.md`: in an unattended window, the stop at a failing check (the change's own undo, once, then stop and report 🔴) covers a change on anything the window did not create for that seat alone; on an expendable host the seat made for the window, it keeps trying fixes and reruns within the grill's time and spend caps, and destroys the host after (the operator, "we should not stop at first failure", 28 Nov 01:22; CS-Q116, CO-Q29). **Act:** every seat: from its next window; the lead: name each seat's throwaway in the grill's terms.
+
 ## [2.22.0] - 2026-11-28
 
 ### Changed
