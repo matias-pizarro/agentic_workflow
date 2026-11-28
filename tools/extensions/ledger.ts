@@ -67,6 +67,10 @@ function write(event: "start" | "stop", reason: string, ctx: ExtensionContext) {
 }
 
 export default function ledger(pi: ExtensionAPI) {
+	// Nothing in a subagent: pi-subagents runs each as a child process with
+	// PI_SUBAGENT_CHILD=1, which inherits the seat's TMUX_PANE and would write
+	// the seat's ledger lines and pane options as its own (CS-Q121).
+	if (process.env.PI_SUBAGENT_CHILD === "1") return;
 	pi.on("session_start", async (event, ctx) => {
 		mark(ctx);
 		if (logged(event.reason)) write("start", event.reason, ctx);

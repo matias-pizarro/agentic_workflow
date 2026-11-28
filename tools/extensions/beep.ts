@@ -140,6 +140,10 @@ function replies(ctx: ExtensionContext): { earlier: string[]; turn: string } {
 }
 
 export default function beep(pi: ExtensionAPI) {
+	// Nothing in a subagent: pi-subagents runs each as a child process with
+	// PI_SUBAGENT_CHILD=1, which inherits the seat's TMUX_PANE and would write
+	// the seat's ledger lines and pane options as its own (CS-Q121).
+	if (process.env.PI_SUBAGENT_CHILD === "1") return;
 	pi.on("input", async (event, ctx) => {
 		if (event.source !== "interactive") return { action: "continue" };
 		const cmd = commandOf(event.text);
