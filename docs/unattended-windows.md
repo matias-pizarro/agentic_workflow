@@ -73,7 +73,7 @@ A seat granted temporary credentials makes each one as a ledger line: what, wher
 ## During the window
 
 - The lead writes each reported ledger line, and otherwise waits for reports: nobody polls.
-- On a 🔴 report (a change's own undo run after a failing check), the lead tells every seat working on that component to hold, and marks the line.
+- On a 🔴 report (a change's own undo run after a check failing on something the window did not create for that seat alone), the lead tells every seat working on that component to hold, and marks the line. A failing check on a seat's own throwaway host is no 🔴: the seat keeps trying there, within the grill's caps (rule 15).
 - A seat that has nothing left, its queue included, says so in its report and stops.
 
 ## End: `/end-unattended-window`
