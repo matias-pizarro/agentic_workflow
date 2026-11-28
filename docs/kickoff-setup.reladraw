@@ -33,24 +33,24 @@ node  s1.s    "In a sandbox session" (outside top, size: large)                 
 node  s1.s.a  "⚙️ Nothing to do: the sandbox comes with pi, its packages, git and tmux." (wrap: 70)                   style: note
 
 // 2. Logins and the reviewer
-node  s2      "2. Logins and the reviewer" (inside top, size: large)                                                                                        shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
-node  s2.h    "On your own host" (outside top, size: large)                                                                                                 style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s2.h.a  "⌨️ Log pi in to Claude, as for any use of pi." (wrap: 60)                                                                                    style: do
-node  s2.h.b  "⌨️ Log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                                    style: do
-node  s2.h.c  "codex login"                                                                                                                                 style: cmd
-node  s2.h.d  "An OPENAI_API_KEY in your environment works for reviews instead." (wrap: 70)                                                                 style: note
-node  s2.h.e  "⌨️ Check one of the two:" (wrap: 60)                                                                                                         style: do
-node  s2.h.f  "codex login status"                                                                                                                          style: cmd
-node  s2.h.g  "echo $OPENAI_API_KEY"                                                                                                                        style: cmd
-node  s2.s    "In a sandbox session" (outside top, size: large)                                                                                             style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s2.s.a  "⌨️ On the host, if there is no token in /agents/users/<user>/credentials/env or if it's stale, generate a fresh one by running:" (wrap: 60)  style: do
-node  s2.s.b  "claude setup-token"                                                                                                                          style: cmd
-node  s2.s.c  "⌨️ Put the token in /agents/users/<user>/credentials/env:" (wrap: 60)                                                                        style: do
-node  s2.s.d  "CLAUDE_CODE_OAUTH_TOKEN=<claude_oauth_token>"                                                                                                style: cmd
-node  s2.s.e  "⌨️ In the sandbox, log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                    style: do
-node  s2.s.f  "codex login --device-auth"                                                                                                                   style: cmd
-node  s2.s.g  "⌨️ Log pi in to the same account, for its GPT models and web search: inside pi, type this, then choose openai-codex:" (wrap: 60)             style: do
-node  s2.s.h  "/login"                                                                                                                                      style: cmd
+node  s2      "2. Logins and the reviewer" (inside top, size: large)                                                                                                                  shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
+node  s2.h    "On your own host" (outside top, size: large)                                                                                                                           style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s2.h.a  "⌨️ Log pi in to Claude, as for any use of pi." (wrap: 60)                                                                                                              style: do
+node  s2.h.b  "⌨️ Log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                                                              style: do
+node  s2.h.c  "codex login"                                                                                                                                                           style: cmd
+node  s2.h.d  "An OPENAI_API_KEY in your environment works for reviews instead." (wrap: 70)                                                                                           style: note
+node  s2.h.e  "⌨️ Check one of the two:" (wrap: 60)                                                                                                                                   style: do
+node  s2.h.f  "codex login status"                                                                                                                                                    style: cmd
+node  s2.h.g  "echo $OPENAI_API_KEY"                                                                                                                                                  style: cmd
+node  s2.s    "In a sandbox session" (outside top, size: large)                                                                                                                       style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s2.s.a  "⌨️ On the host, if there is no token in /agents/users/<user>/credentials/teams/<project>/<session>/env or if it's stale, generate a fresh one by running:" (wrap: 60)  style: do
+node  s2.s.b  "claude setup-token"                                                                                                                                                    style: cmd
+node  s2.s.c  "⌨️ Put the token in /agents/users/<user>/credentials/teams/<project>/<session>/env:" (wrap: 60)                                                                        style: do
+node  s2.s.d  "CLAUDE_CODE_OAUTH_TOKEN=<claude_oauth_token>"                                                                                                                          style: cmd
+node  s2.s.e  "⌨️ In the sandbox, log the Codex CLI in to your ChatGPT account, for reviews:" (wrap: 60)                                                                              style: do
+node  s2.s.f  "codex login --device-auth"                                                                                                                                             style: cmd
+node  s2.s.g  "⌨️ Log pi in to the same account, for its GPT models and web search: inside pi, type this, then choose openai-codex:" (wrap: 60)                                       style: do
+node  s2.s.h  "/login"                                                                                                                                                                style: cmd
 
 // 3. Skills
 node  s3      "3. Skills" (inside top, size: large)                                                                                                                                                                                             shape: none  layout: row (gap: wide, align-children: top)       below s2               left even with s0
