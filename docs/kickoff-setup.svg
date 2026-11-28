@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1876" height="3224" viewBox="0 0 1876 3224" font-family="'DejaVu Sans Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace" font-size="14px">
+<svg xmlns="http://www.w3.org/2000/svg" width="1876" height="3208" viewBox="0 0 1876 3208" font-family="'DejaVu Sans Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace" font-size="14px">
   <title>Kickoff: before the lead starts</title>
   <defs>
   </defs>
-  <rect x="0" y="0" width="1876" height="3224" fill="#111111"/>
+  <rect x="0" y="0" width="1876" height="3208" fill="#111111"/>
   <g font-size="17px">
   <text x="897" y="57.45" fill="#d9d9d9" text-anchor="start">0. Enter</text>
   </g>
@@ -69,7 +69,7 @@
   <text x="144" y="932.4" fill="#e8e8e8" text-anchor="middle">codex login status</text>
   <path d="M54 975 H250 V1022 H54 Z" fill="#000000" stroke="#555555"/>
   <text x="152" y="1003.4" fill="#e8e8e8" text-anchor="middle">echo $OPENAI_API_KEY</text>
-  <path d="M1108 723 H1836 V1219 H1108 Z" fill="#142814" stroke="#486544"/>
+  <path d="M1108 723 H1836 V1203 H1108 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
   <text x="1370" y="707.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
   </g>
@@ -79,159 +79,158 @@
   <path d="M1122 777 H1302 V824 H1122 Z" fill="#000000" stroke="#555555"/>
   <text x="1212" y="805.4" fill="#e8e8e8" text-anchor="middle">claude setup-token</text>
   <g font-size="12px">
-  <text x="1122" y="860.2" fill="#d9d9d9" text-anchor="start">⌨️ and put the token in</text>
-  <text x="1122" y="876.2" fill="#d9d9d9" text-anchor="start">/agents/users/&lt;user&gt;/credentials/env:</text>
+  <text x="1122" y="860.2" fill="#d9d9d9" text-anchor="start">⌨️ Put the token in /agents/users/&lt;user&gt;/credentials/env:</text>
   </g>
-  <path d="M1122 904 H1520 V951 H1122 Z" fill="#000000" stroke="#555555"/>
-  <text x="1321" y="932.4" fill="#e8e8e8" text-anchor="middle">CLAUDE_CODE_OAUTH_TOKEN=&lt;claude_oauth_token&gt;</text>
+  <path d="M1122 888 H1520 V935 H1122 Z" fill="#000000" stroke="#555555"/>
+  <text x="1321" y="916.4" fill="#e8e8e8" text-anchor="middle">CLAUDE_CODE_OAUTH_TOKEN=&lt;claude_oauth_token&gt;</text>
   <g font-size="12px">
-  <text x="1122" y="987.2" fill="#d9d9d9" text-anchor="start">⌨️ Then, in the sandbox, log the Codex CLI in to your</text>
-  <text x="1122" y="1003.2" fill="#d9d9d9" text-anchor="start">ChatGPT account, for reviews:</text>
+  <text x="1122" y="971.2" fill="#d9d9d9" text-anchor="start">⌨️ In the sandbox, log the Codex CLI in to your ChatGPT</text>
+  <text x="1122" y="987.2" fill="#d9d9d9" text-anchor="start">account, for reviews:</text>
   </g>
-  <path d="M1122 1031 H1360 V1078 H1122 Z" fill="#000000" stroke="#555555"/>
-  <text x="1241" y="1059.4" fill="#e8e8e8" text-anchor="middle">codex login --device-auth</text>
+  <path d="M1122 1015 H1360 V1062 H1122 Z" fill="#000000" stroke="#555555"/>
+  <text x="1241" y="1043.4" fill="#e8e8e8" text-anchor="middle">codex login --device-auth</text>
   <g font-size="12px">
-  <text x="1122" y="1114.2" fill="#d9d9d9" text-anchor="start">⌨️ and log pi in to the same account, for its GPT models and</text>
-  <text x="1122" y="1130.2" fill="#d9d9d9" text-anchor="start">web search: inside pi, type this, then choose openai-codex:</text>
+  <text x="1122" y="1098.2" fill="#d9d9d9" text-anchor="start">⌨️ Log pi in to the same account, for its GPT models and web</text>
+  <text x="1122" y="1114.2" fill="#d9d9d9" text-anchor="start">search: inside pi, type this, then choose openai-codex:</text>
   </g>
-  <path d="M1122 1158 H1201 V1205 H1122 Z" fill="#000000" stroke="#555555"/>
-  <text x="1161.5" y="1186.4" fill="#e8e8e8" text-anchor="middle">/login</text>
+  <path d="M1122 1142 H1201 V1189 H1122 Z" fill="#000000" stroke="#555555"/>
+  <text x="1161.5" y="1170.4" fill="#e8e8e8" text-anchor="middle">/login</text>
   <g font-size="17px">
-  <text x="892" y="1284.45" fill="#d9d9d9" text-anchor="start">3. Skills</text>
+  <text x="892" y="1268.45" fill="#d9d9d9" text-anchor="start">3. Skills</text>
   </g>
-  <path d="M40 1333 H1012 V1736 H40 Z" fill="#142814" stroke="#486544"/>
+  <path d="M40 1317 H1012 V1720 H40 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="444" y="1317.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  <text x="444" y="1301.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="1359.2" fill="#d9d9d9" text-anchor="start">⌨️ Install them:</text>
+  <text x="54" y="1343.2" fill="#d9d9d9" text-anchor="start">⌨️ Install them:</text>
   </g>
-  <path d="M54 1387 H998 V1453 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="68" y="1415.4" fill="#e8e8e8" text-anchor="start">npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs \</text>
-  <text x="68" y="1434.4" fill="#e8e8e8" text-anchor="start">grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling</text>
-  <path d="M54 1477 H822 V1524 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="438" y="1505.4" fill="#e8e8e8" text-anchor="middle">npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop</text>
-  <path d="M54 1548 H670 V1595 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="362" y="1576.4" fill="#e8e8e8" text-anchor="middle">npx -y skills@latest add humanlayer/skills -g -a pi -y --skill show-me</text>
+  <path d="M54 1371 H998 V1437 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="68" y="1399.4" fill="#e8e8e8" text-anchor="start">npx -y skills@latest add mattpocock/skills -g -a pi -y --skill chief-of-staff grill-with-docs \</text>
+  <text x="68" y="1418.4" fill="#e8e8e8" text-anchor="start">grilling to-spec to-tickets implement implement-spec code-review tdd retro writing-for-agents domain-modeling</text>
+  <path d="M54 1461 H822 V1508 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="438" y="1489.4" fill="#e8e8e8" text-anchor="middle">npx -y skills@latest add matias-pizarro/agentic_workflow -g -a pi -y --skill review-loop</text>
+  <path d="M54 1532 H670 V1579 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="362" y="1560.4" fill="#e8e8e8" text-anchor="middle">npx -y skills@latest add humanlayer/skills -g -a pi -y --skill show-me</text>
   <g font-size="12px">
-  <text x="54" y="1631.2" fill="#d9d9d9" text-anchor="start">⌨️ Check review-loop is v1.0.0 or later; this prints a</text>
-  <text x="54" y="1647.2" fill="#d9d9d9" text-anchor="start">number above 0:</text>
+  <text x="54" y="1615.2" fill="#d9d9d9" text-anchor="start">⌨️ Check review-loop is v1.0.0 or later; this prints a</text>
+  <text x="54" y="1631.2" fill="#d9d9d9" text-anchor="start">number above 0:</text>
   </g>
-  <path d="M54 1675 H511 V1722 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="282.5" y="1703.4" fill="#e8e8e8" text-anchor="middle">grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md</text>
-  <path d="M1108 1333 H1836 V1393 H1108 Z" fill="#142814" stroke="#486544"/>
+  <path d="M54 1659 H511 V1706 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="282.5" y="1687.4" fill="#e8e8e8" text-anchor="middle">grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md</text>
+  <path d="M1108 1317 H1836 V1377 H1108 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="1370" y="1317.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  <text x="1370" y="1301.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
   </g>
   <g font-size="12px">
-  <text x="1122" y="1359.2" fill="#d9d9d9" text-anchor="start">⚙️ Done at the first sandbox start, from src's</text>
-  <text x="1122" y="1375.2" fill="#d9d9d9" text-anchor="start">skills-lock.json; check it lists the same skills.</text>
-  </g>
-  <g font-size="17px">
-  <text x="851" y="1801.45" fill="#d9d9d9" text-anchor="start">4. Lay out &lt;root&gt;</text>
-  </g>
-  <path d="M40 1850 H1012 V2361 H40 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="444" y="1834.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
-  </g>
-  <g font-size="12px">
-  <text x="54" y="1876.2" fill="#d9d9d9" text-anchor="start">⌨️ By hand, in &lt;root&gt;, with src cloned or made there:</text>
-  </g>
-  <path d="M54 1904 H763 V1951 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="408.5" y="1932.4" fill="#e8e8e8" text-anchor="middle">git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git</text>
-  <path d="M54 1975 H250 V2022 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="152" y="2003.4" fill="#e8e8e8" text-anchor="middle">mkdir worktrees html</text>
-  <path d="M54 2046 H192 V2093 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="123" y="2074.4" fill="#e8e8e8" text-anchor="middle">git init wiki</text>
-  <g font-size="12px">
-  <text x="54" y="2129.2" fill="#d9d9d9" text-anchor="start">⌨️ The wiki's commit guard, refusing a file emptied by</text>
-  <text x="54" y="2145.2" fill="#d9d9d9" text-anchor="start">accident:</text>
-  </g>
-  <path d="M54 2173 H754 V2220 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="404" y="2201.4" fill="#e8e8e8" text-anchor="middle">ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit</text>
-  <g font-size="12px">
-  <text x="54" y="2256.2" fill="#d9d9d9" text-anchor="start">⌨️ A later release, once its CHANGELOG.md section says what</text>
-  <text x="54" y="2272.2" fill="#d9d9d9" text-anchor="start">it asks:</text>
-  </g>
-  <path d="M54 2300 H402 V2347 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="228" y="2328.4" fill="#e8e8e8" text-anchor="middle">git -C agentic_workflow checkout &lt;tag&gt;</text>
-  <path d="M1108 1850 H1836 V1981 H1108 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="1370" y="1834.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
-  </g>
-  <g font-size="12px">
-  <text x="1122" y="1876.2" fill="#d9d9d9" text-anchor="start">⌨️ One command, in &lt;root&gt;, as the sandbox's user. ⚙️ It lays</text>
-  <text x="1122" y="1892.2" fill="#d9d9d9" text-anchor="start">out &lt;root&gt; and links both commit guards (steps 4 and 6):</text>
-  </g>
-  <path d="M1122 1920 H1822 V1967 H1122 Z" fill="#000000" stroke="#555555"/>
-  <text x="1472" y="1948.4" fill="#e8e8e8" text-anchor="middle">/sandbox/agent-defaults/src/scripts/sandbox-team-root &lt;src remote&gt; &lt;wiki remote&gt;</text>
-  <g font-size="17px">
-  <text x="841" y="2426.45" fill="#d9d9d9" text-anchor="start">5. src's agent docs</text>
-  </g>
-  <path d="M40 2475 H1012 V2535 H40 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="444" y="2459.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
-  </g>
-  <g font-size="12px">
-  <text x="54" y="2501.2" fill="#d9d9d9" text-anchor="start">⌨️ Write them (kickoff.md lists them), or have a seat draft</text>
-  <text x="54" y="2517.2" fill="#d9d9d9" text-anchor="start">them once the lead runs.</text>
-  </g>
-  <path d="M1108 2475 H1836 V2519 H1108 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="1370" y="2459.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
-  </g>
-  <g font-size="12px">
-  <text x="1122" y="2501.2" fill="#d9d9d9" text-anchor="start">⌨️ The same.</text>
+  <text x="1122" y="1343.2" fill="#d9d9d9" text-anchor="start">⚙️ Done at the first sandbox start, from src's</text>
+  <text x="1122" y="1359.2" fill="#d9d9d9" text-anchor="start">skills-lock.json; check it lists the same skills.</text>
   </g>
   <g font-size="17px">
-  <text x="764.5" y="2600.45" fill="#d9d9d9" text-anchor="start">6. The guards and prompt templates</text>
+  <text x="851" y="1785.45" fill="#d9d9d9" text-anchor="start">4. Lay out &lt;root&gt;</text>
   </g>
-  <path d="M40 2649 H1012 V2994 H40 Z" fill="#142814" stroke="#486544"/>
+  <path d="M40 1834 H1012 V2345 H40 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="444" y="2633.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  <text x="444" y="1818.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="2675.2" fill="#d9d9d9" text-anchor="start">⌨️ The lead's commit guard; with no hooks from the</text>
-  <text x="54" y="2691.2" fill="#d9d9d9" text-anchor="start">pre-commit tool, copy it instead, executable, and drop its</text>
-  <text x="54" y="2707.2" fill="#d9d9d9" text-anchor="start">last line:</text>
+  <text x="54" y="1860.2" fill="#d9d9d9" text-anchor="start">⌨️ By hand, in &lt;root&gt;, with src cloned or made there:</text>
   </g>
-  <path d="M54 2735 H796 V2782 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="425" y="2763.4" fill="#e8e8e8" text-anchor="middle">ln -s ../../../agentic_workflow/tools/src-pre-commit &lt;root&gt;/src/.git/hooks/pre-commit</text>
+  <path d="M54 1888 H763 V1935 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="408.5" y="1916.4" fill="#e8e8e8" text-anchor="middle">git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git</text>
+  <path d="M54 1959 H250 V2006 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="152" y="1987.4" fill="#e8e8e8" text-anchor="middle">mkdir worktrees html</text>
+  <path d="M54 2030 H192 V2077 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="123" y="2058.4" fill="#e8e8e8" text-anchor="middle">git init wiki</text>
   <g font-size="12px">
-  <text x="54" y="2818.2" fill="#d9d9d9" text-anchor="start">⌨️ The agents' guards and prompt templates; rerun the second</text>
-  <text x="54" y="2834.2" fill="#d9d9d9" text-anchor="start">after each new release:</text>
+  <text x="54" y="2113.2" fill="#d9d9d9" text-anchor="start">⌨️ The wiki's commit guard, refusing a file emptied by</text>
+  <text x="54" y="2129.2" fill="#d9d9d9" text-anchor="start">accident:</text>
   </g>
-  <path d="M54 2862 H654 V2909 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="354" y="2890.4" fill="#e8e8e8" text-anchor="middle">cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards</text>
-  <path d="M54 2933 H561 V2980 H54 Z" fill="#000000" stroke="#555555"/>
-  <text x="307.5" y="2961.4" fill="#e8e8e8" text-anchor="middle">node &lt;root&gt;/agentic_workflow/tools/extensions/install.mjs</text>
-  <path d="M1108 2649 H1836 V2725 H1108 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="1370" y="2633.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
-  </g>
+  <path d="M54 2157 H754 V2204 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="404" y="2185.4" fill="#e8e8e8" text-anchor="middle">ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit</text>
   <g font-size="12px">
-  <text x="1122" y="2675.2" fill="#d9d9d9" text-anchor="start">⚙️ The commit guards: done in step 4. The agents' guards and</text>
-  <text x="1122" y="2691.2" fill="#d9d9d9" text-anchor="start">templates: done at every sandbox start, at the release</text>
-  <text x="1122" y="2707.2" fill="#d9d9d9" text-anchor="start">lib/agentic_workflow.sh names.</text>
+  <text x="54" y="2240.2" fill="#d9d9d9" text-anchor="start">⌨️ A later release, once its CHANGELOG.md section says what</text>
+  <text x="54" y="2256.2" fill="#d9d9d9" text-anchor="start">it asks:</text>
   </g>
+  <path d="M54 2284 H402 V2331 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="228" y="2312.4" fill="#e8e8e8" text-anchor="middle">git -C agentic_workflow checkout &lt;tag&gt;</text>
+  <path d="M1108 1834 H1836 V1965 H1108 Z" fill="#142814" stroke="#486544"/>
   <g font-size="17px">
-  <text x="795" y="3059.45" fill="#d9d9d9" text-anchor="start">7. An expendable environment</text>
-  </g>
-  <path d="M40 3108 H1012 V3184 H40 Z" fill="#142814" stroke="#486544"/>
-  <g font-size="17px">
-  <text x="444" y="3092.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  <text x="1370" y="1818.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
   </g>
   <g font-size="12px">
-  <text x="54" y="3134.2" fill="#d9d9d9" text-anchor="start">⌨️ Have one ready (a disposable container or jail, a test</text>
-  <text x="54" y="3150.2" fill="#d9d9d9" text-anchor="start">VM, a cloud sandbox) and a spending cap you are comfortable</text>
-  <text x="54" y="3166.2" fill="#d9d9d9" text-anchor="start">with. The first ticket runs there.</text>
+  <text x="1122" y="1860.2" fill="#d9d9d9" text-anchor="start">⌨️ One command, in &lt;root&gt;, as the sandbox's user. ⚙️ It lays</text>
+  <text x="1122" y="1876.2" fill="#d9d9d9" text-anchor="start">out &lt;root&gt; and links both commit guards (steps 4 and 6):</text>
   </g>
-  <path d="M1108 3108 H1836 V3168 H1108 Z" fill="#142814" stroke="#486544"/>
+  <path d="M1122 1904 H1822 V1951 H1122 Z" fill="#000000" stroke="#555555"/>
+  <text x="1472" y="1932.4" fill="#e8e8e8" text-anchor="middle">/sandbox/agent-defaults/src/scripts/sandbox-team-root &lt;src remote&gt; &lt;wiki remote&gt;</text>
   <g font-size="17px">
-  <text x="1370" y="3092.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  <text x="841" y="2410.45" fill="#d9d9d9" text-anchor="start">5. src's agent docs</text>
+  </g>
+  <path d="M40 2459 H1012 V2519 H40 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="444" y="2443.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
   </g>
   <g font-size="12px">
-  <text x="1122" y="3134.2" fill="#d9d9d9" text-anchor="start">⌨️ The same; seats test in a child jail or a cloud sandbox,</text>
-  <text x="1122" y="3150.2" fill="#d9d9d9" text-anchor="start">not in the session itself.</text>
+  <text x="54" y="2485.2" fill="#d9d9d9" text-anchor="start">⌨️ Write them (kickoff.md lists them), or have a seat draft</text>
+  <text x="54" y="2501.2" fill="#d9d9d9" text-anchor="start">them once the lead runs.</text>
+  </g>
+  <path d="M1108 2459 H1836 V2503 H1108 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="1370" y="2443.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  </g>
+  <g font-size="12px">
+  <text x="1122" y="2485.2" fill="#d9d9d9" text-anchor="start">⌨️ The same.</text>
+  </g>
+  <g font-size="17px">
+  <text x="764.5" y="2584.45" fill="#d9d9d9" text-anchor="start">6. The guards and prompt templates</text>
+  </g>
+  <path d="M40 2633 H1012 V2978 H40 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="444" y="2617.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  </g>
+  <g font-size="12px">
+  <text x="54" y="2659.2" fill="#d9d9d9" text-anchor="start">⌨️ The lead's commit guard; with no hooks from the</text>
+  <text x="54" y="2675.2" fill="#d9d9d9" text-anchor="start">pre-commit tool, copy it instead, executable, and drop its</text>
+  <text x="54" y="2691.2" fill="#d9d9d9" text-anchor="start">last line:</text>
+  </g>
+  <path d="M54 2719 H796 V2766 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="425" y="2747.4" fill="#e8e8e8" text-anchor="middle">ln -s ../../../agentic_workflow/tools/src-pre-commit &lt;root&gt;/src/.git/hooks/pre-commit</text>
+  <g font-size="12px">
+  <text x="54" y="2802.2" fill="#d9d9d9" text-anchor="start">⌨️ The agents' guards and prompt templates; rerun the second</text>
+  <text x="54" y="2818.2" fill="#d9d9d9" text-anchor="start">after each new release:</text>
+  </g>
+  <path d="M54 2846 H654 V2893 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="354" y="2874.4" fill="#e8e8e8" text-anchor="middle">cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards</text>
+  <path d="M54 2917 H561 V2964 H54 Z" fill="#000000" stroke="#555555"/>
+  <text x="307.5" y="2945.4" fill="#e8e8e8" text-anchor="middle">node &lt;root&gt;/agentic_workflow/tools/extensions/install.mjs</text>
+  <path d="M1108 2633 H1836 V2709 H1108 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="1370" y="2617.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  </g>
+  <g font-size="12px">
+  <text x="1122" y="2659.2" fill="#d9d9d9" text-anchor="start">⚙️ The commit guards: done in step 4. The agents' guards and</text>
+  <text x="1122" y="2675.2" fill="#d9d9d9" text-anchor="start">templates: done at every sandbox start, at the release</text>
+  <text x="1122" y="2691.2" fill="#d9d9d9" text-anchor="start">lib/agentic_workflow.sh names.</text>
+  </g>
+  <g font-size="17px">
+  <text x="795" y="3043.45" fill="#d9d9d9" text-anchor="start">7. An expendable environment</text>
+  </g>
+  <path d="M40 3092 H1012 V3168 H40 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="444" y="3076.45" fill="#d9d9d9" text-anchor="start">On your own host</text>
+  </g>
+  <g font-size="12px">
+  <text x="54" y="3118.2" fill="#d9d9d9" text-anchor="start">⌨️ Have one ready (a disposable container or jail, a test</text>
+  <text x="54" y="3134.2" fill="#d9d9d9" text-anchor="start">VM, a cloud sandbox) and a spending cap you are comfortable</text>
+  <text x="54" y="3150.2" fill="#d9d9d9" text-anchor="start">with. The first ticket runs there.</text>
+  </g>
+  <path d="M1108 3092 H1836 V3152 H1108 Z" fill="#142814" stroke="#486544"/>
+  <g font-size="17px">
+  <text x="1370" y="3076.45" fill="#d9d9d9" text-anchor="start">In a sandbox session</text>
+  </g>
+  <g font-size="12px">
+  <text x="1122" y="3118.2" fill="#d9d9d9" text-anchor="start">⌨️ The same; seats test in a child jail or a cloud sandbox,</text>
+  <text x="1122" y="3134.2" fill="#d9d9d9" text-anchor="start">not in the session itself.</text>
   </g>
 </svg>
