@@ -9,14 +9,15 @@ style  say   shape: none
 style  cmd   fill: #000000               border: #555555                          corners: sharp  text: (color: #e8e8e8)
 
 // 0. Enter
-node  s0      "0. Enter" (inside top, size: large)                                                                     shape: none  layout: row (gap: wide, align-children: top)
-node  s0.h    "On your own host" (outside top, size: large)                                                            style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s0.h.a  "⌨️ Open a shell on the host." (wrap: 60)                                                                style: say
-node  s0.s    "In a sandbox session" (outside top, size: large)                                                        style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s0.s.a  "⌨️ Once per project, on the sandbox host; register each deploy key it prints on the forge:" (wrap: 60)  style: say
-node  s0.s.b  "sandbox project create <project> --repo <src remote> --repo <wiki remote>"                              style: cmd
-node  s0.s.c  "⌨️ Then each time; it opens tmux in the workspace, which is <root>:" (wrap: 60)                         style: say
-node  s0.s.d  "sandbox start -p <project> -s <session>"                                                                style: cmd
+node  s0       "0. Enter" (inside top, size: large)                                                                                                                                    shape: none  layout: row (gap: wide, align-children: top)
+node  s0.h     "On your own host" (outside top, size: large)                                                                                                                           style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s0.h.a   "⌨️ Open a shell on the host." (wrap: 60)                                                                                                                               style: say
+node  s0.s     "In a sandbox session" (outside top, size: large)                                                                                                                       style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s0.s.a   "⌨️ Once per project, on the sandbox host, create the project:" (wrap: 60)                                                                                              style: say
+node  s0.s.b   "sandbox project create <project> --repo <src remote> --repo <wiki remote>"                                                                                             style: cmd
+node  s0.s.b2  "⌨️ It prints one deploy key per repository: add each to its repository on the forge, as a deploy key (on GitHub: the repository's Settings, Deploy keys)." (wrap: 60)  style: say
+node  s0.s.c   "⌨️ Each time you start work, on the sandbox host, start a session. It opens tmux in the session's workspace, which is <root> for every step below:" (wrap: 60)         style: say
+node  s0.s.d   "sandbox start -p <project> -s <session>"                                                                                                                               style: cmd
 
 // 1. Pi, its packages, git, tmux
 node  s1      "1. Pi, its packages, git, tmux" (inside top, size: large)                                                            shape: none  layout: row (gap: wide, align-children: top)       below s0     left even with s0
@@ -54,22 +55,22 @@ node  s3.h.d  "npx -y skills@latest add humanlayer/skills -g -a pi -y --skill sh
 node  s3.h.e  "⌨️ Check review-loop is v1.0.0 or later; this prints a number above 0:" (wrap: 60)                                                                                                                                               style: say
 node  s3.h.f  "grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md"                                                                                                                                                                             style: cmd
 node  s3.s    "In a sandbox session" (outside top, size: large)                                                                                                                                                                                 style: step  layout: column (align-children: left, gap: tight)  width: s4.s            gather-children: left
-node  s3.s.a  "⚙️ Done at the first sandbox start, from src's skills-lock.json; check it lists the same skills." (wrap: 60)                                                                                                                     style: say
+node  s3.s.a  "⚙️ Nothing to do: the first sandbox start installs the skills listed in src's skills-lock.json." (wrap: 60)                                                                                                                      style: say
 
 // 4. Lay out <root>
-node  s4      "4. Lay out <root>" (inside top, size: large)                                                                                       shape: none  layout: row (gap: wide, align-children: top)       below s3               left even with s0
-node  s4.h    "On your own host" (outside top, size: large)                                                                                       style: step  layout: column (align-children: left, gap: tight)  width: s3.h            gather-children: left
-node  s4.h.a  "⌨️ By hand, in <root>, with src cloned or made there:" (wrap: 60)                                                                  style: say
-node  s4.h.b  "git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git"                                                 style: cmd
-node  s4.h.c  "mkdir worktrees html"                                                                                                              style: cmd
-node  s4.h.d  "git init wiki"                                                                                                                     style: cmd
-node  s4.h.e  "⌨️ The wiki's commit guard, refusing a file emptied by accident:" (wrap: 60)                                                       style: say
-node  s4.h.f  "ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit"                                                  style: cmd
-node  s4.h.g  "⌨️ A later release, once its CHANGELOG.md section says what it asks:" (wrap: 60)                                                   style: say
-node  s4.h.h  "git -C agentic_workflow checkout <tag>"                                                                                            style: cmd
-node  s4.s    "In a sandbox session" (outside top, size: large)                                                                                   style: step  layout: column (align-children: left, gap: tight)  gather-children: left
-node  s4.s.a  "⌨️ One command, in <root>, as the sandbox's user. ⚙️ It lays out <root> and links both commit guards (steps 4 and 6):" (wrap: 60)  style: say
-node  s4.s.b  "/sandbox/agent-defaults/src/scripts/sandbox-team-root <src remote> <wiki remote>"                                                  style: cmd
+node  s4      "4. Lay out <root>" (inside top, size: large)                                                                                                                                                                                                          shape: none  layout: row (gap: wide, align-children: top)       below s3               left even with s0
+node  s4.h    "On your own host" (outside top, size: large)                                                                                                                                                                                                          style: step  layout: column (align-children: left, gap: tight)  width: s3.h            gather-children: left
+node  s4.h.a  "⌨️ By hand, in <root>, with src cloned or made there:" (wrap: 60)                                                                                                                                                                                     style: say
+node  s4.h.b  "git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git"                                                                                                                                                                    style: cmd
+node  s4.h.c  "mkdir worktrees html"                                                                                                                                                                                                                                 style: cmd
+node  s4.h.d  "git init wiki"                                                                                                                                                                                                                                        style: cmd
+node  s4.h.e  "⌨️ The wiki's commit guard, refusing a file emptied by accident:" (wrap: 60)                                                                                                                                                                          style: say
+node  s4.h.f  "ln -s ../../../agentic_workflow/tools/wiki-pre-commit wiki/.git/hooks/pre-commit"                                                                                                                                                                     style: cmd
+node  s4.h.g  "⌨️ A later release, once its CHANGELOG.md section says what it asks:" (wrap: 60)                                                                                                                                                                      style: say
+node  s4.h.h  "git -C agentic_workflow checkout <tag>"                                                                                                                                                                                                               style: cmd
+node  s4.s    "In a sandbox session" (outside top, size: large)                                                                                                                                                                                                      style: step  layout: column (align-children: left, gap: tight)  gather-children: left
+node  s4.s.a  "⌨️ In the session's tmux, run this once, with your project's two repository addresses. It clones src, the wiki and agentic_workflow into <root>, makes worktrees/ and html/, and installs both commit guards, so steps 4 and 6 are done:" (wrap: 60)  style: say
+node  s4.s.b  "/sandbox/agent-defaults/src/scripts/sandbox-team-root <src remote> <wiki remote>"                                                                                                                                                                     style: cmd
 
 // 5. src's agent docs
 node  s5      "5. src's agent docs" (inside top, size: large)                                                    shape: none  layout: row (gap: wide, align-children: top)       below s4     left even with s0
