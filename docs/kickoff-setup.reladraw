@@ -27,18 +27,20 @@ node  s1.s    "In a sandbox session" (outside top, size: large)                 
 node  s1.s.a  "⚙️ Done by the agents template and sandbox start." (wrap: 60)                                                        style: say
 
 // 2. Logins and the reviewer
-node  s2      "2. Logins and the reviewer" (inside top, size: large)                                               shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
-node  s2.h    "On your own host" (outside top, size: large)                                                        style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
-node  s2.h.a  "⌨️ Claude's login for pi. For reviews, the Codex CLI logged in, or OPENAI_API_KEY set:" (wrap: 60)  style: say
-node  s2.h.b  "codex login"                                                                                        style: cmd
-node  s2.h.c  "⌨️ Check one of them:"                                                                              style: say
-node  s2.h.d  "codex login status"                                                                                 style: cmd
-node  s2.h.e  "echo $OPENAI_API_KEY"                                                                               style: cmd
-node  s2.s    "In a sandbox session" (outside top, size: large)                                                    style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
-node  s2.s.a  "⌨️ Once, on the host, in /agents/users/<user>/credentials/env:" (wrap: 60)                          style: say
-node  s2.s.b  "CLAUDE_CODE_OAUTH_TOKEN=…"                                                                          style: cmd
-node  s2.s.c  "⌨️ Then in the sandbox, and /login inside pi, openai-codex:" (wrap: 60)                             style: say
-node  s2.s.d  "codex login --device-auth"                                                                          style: cmd
+node  s2       "2. Logins and the reviewer" (inside top, size: large)                                               shape: none  layout: row (gap: wide, align-children: top)       below s1     left even with s0
+node  s2.h     "On your own host" (outside top, size: large)                                                        style: step  layout: column (align-children: left, gap: tight)  width: s3.h  gather-children: left
+node  s2.h.a   "⌨️ Claude's login for pi. For reviews, the Codex CLI logged in, or OPENAI_API_KEY set:" (wrap: 60)  style: say
+node  s2.h.b   "codex login"                                                                                        style: cmd
+node  s2.h.c   "⌨️ Check one of them:"                                                                              style: say
+node  s2.h.d   "codex login status"                                                                                 style: cmd
+node  s2.h.e   "echo $OPENAI_API_KEY"                                                                               style: cmd
+node  s2.s     "In a sandbox session" (outside top, size: large)                                                    style: step  layout: column (align-children: left, gap: tight)  width: s4.s  gather-children: left
+node  s2.s.a   "⌨️ Once, on the host, run:" (wrap: 60)                                                              style: say
+node  s2.s.b   "claude setup-token"                                                                                 style: cmd
+node  s2.s.b2  "⌨️ and put the token in /agents/users/<user>/credentials/env:" (wrap: 60)                           style: say
+node  s2.s.b3  "CLAUDE_CODE_OAUTH_TOKEN=<claude_oauth_token>"                                                       style: cmd
+node  s2.s.c   "⌨️ Then in the sandbox, and /login inside pi, openai-codex:" (wrap: 60)                             style: say
+node  s2.s.d   "codex login --device-auth"                                                                          style: cmd
 
 // 3. Skills
 node  s3      "3. Skills" (inside top, size: large)                                                                                                                                                                                             shape: none  layout: row (gap: wide, align-children: top)       below s2               left even with s0
