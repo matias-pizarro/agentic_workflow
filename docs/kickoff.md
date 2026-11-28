@@ -17,13 +17,14 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
    `show-me` explains the current topic with diagrams, code-shape sketches and focused HTML pages; it runs only when you type `/skill:show-me`. Where it would `open` an HTML file, the agent names its full path instead (rules.md, Team mechanics).
    `grilling` stays installed: `grill-with-docs` and `review-loop` load it. `review-loop` must be from `v1.0.0` or later: earlier versions lack the impact ratings, backlog, drift question and delete option. Check: `grep -c DRIFT ~/.agents/skills/review-loop/SKILL.md` prints a number above 0.
 
-4. **Lay out `<root>`.** Every project gets the same layout and tools, filled with its own content: its own wiki and its own docs tooling, never shared with another project. For a team in a sandbox session, `<root>` is the session's workspace (index.md, `<root>`), laid out the same way; the sandbox tooling makes the workspace and leaves this layout to you. `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
+4. **Lay out `<root>`.** Every project gets the same layout and tools, filled with its own content: its own wiki and its own docs tooling, never shared with another project. For a team in a sandbox session, `<root>` is the session's workspace (index.md, `<root>`), laid out the same way; in the sandbox project, `/sandbox/agent-defaults/src/scripts/sandbox-team-root` lays it out. `src`, `wiki` and `agentic_workflow` are three separate git repositories; `worktrees/` holds linked worktrees of `src`, one per branch, made by seats with `git worktree add`:
    ```
    <root>/
      src/               the project repo
      wiki/              the lead's memory: private, never inside src
      agentic_workflow/  a clone of this repo, at a release tag
      worktrees/         linked worktrees of src
+     html/              the pages named to the operator (rules.md, Team mechanics), outside every repo
    ```
    In `<root>`: `git clone --branch v2.23.0 https://github.com/matias-pizarro/agentic_workflow.git`; take a later release with `git -C agentic_workflow checkout <tag>` once its `CHANGELOG.md` section says what it asks. In `<root>/wiki`: `git init`, then give it the commit guard that refuses a file emptied by accident: `ln -s ../../../agentic_workflow/tools/wiki-pre-commit .git/hooks/pre-commit`. The team script runs from `<root>/agentic_workflow/tools/team.sh` and keeps its queue and agent list beside it, git-ignored.
 
@@ -34,7 +35,7 @@ A checklist. `<root>` is defined at the top of [index.md](index.md); the why beh
    - `CODING_STANDARDS.md`: the judgement rules a reviewer enforces; anything mechanical goes in a hook instead;
    - an ADR for the threat model (every agent assumed compromised) and one for simplicity (no option, layer or generality without a concrete second case).
 
-6. **Install the lead's commit guard:** copy `<root>/agentic_workflow/tools/src-pre-commit` to `<root>/src/.git/hooks/pre-commit`, executable. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated` (with none, drop its last line).
+6. **Install the lead's commit guard:** link it, so it follows each release: `ln -s ../../../agentic_workflow/tools/src-pre-commit <root>/src/.git/hooks/pre-commit`. It refuses any commit made with `TEAM_ROLE=lead`, then runs the hooks the `pre-commit` tool installed, kept as `pre-commit.generated`. With no such hooks, copy it instead, executable, and drop its last line.
 
    **Install the agents' guards and prompt templates,** a Pi extension refusing tool calls known to go wrong (the README's "Guards" lists them), and `/open-questions`, which makes a seat reprint in its pane every question of yours it still awaits: `cp -n ~/.pi/agent/settings.json ~/.pi/agent/settings.json.bak-guards`, then `node <root>/agentic_workflow/tools/extensions/install.mjs`. Rerun the second after taking a new release.
 
