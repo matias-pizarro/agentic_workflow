@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.25.0] - 2026-11-28
+
+### Fixed
+
+- ledger.ts, refresh.ts, beep.ts and open-questions.ts register nothing in a subagent (`PI_SUBAGENT_CHILD=1`): a subagent run from a seat's pane inherits that pane, and wrote the seat's ledger lines, session id and tab state, which misnamed postmaster's refresh at 13:04; `team.sh` clears `PI_SUBAGENT_CHILD` for a seat's own pi (the operator, "CS-Q121: Yes", 28 Nov 13:20; review CO-Q37 to CO-Q39; release CO-Q40, "CO-Q40 yes", 28 Nov 14:38). **Act:** every seat and the lead: reload in the turn that receives this (ledger.ts, refresh.ts, beep.ts and open-questions.ts changed).
+
 ## [2.24.0] - 2026-11-28
 
 ### Added
