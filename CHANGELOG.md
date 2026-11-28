@@ -2,6 +2,12 @@
 
 Every release of this repo, newest first, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) as `README.md` defines it for this repo: a major release asks a project to act, and its entries say how.
 
+## [2.25.1] - 2026-11-28
+
+### Changed
+
+- `docs/kickoff.md`: steps 0 to 7 drawn in `docs/kickoff-setup.svg` (source `docs/kickoff-setup.reladraw`), each step with your own host and a sandbox session side by side, every line an action or a note, every command in a box of its own; the page says again how a release reaches a sandbox team (the sandbox tooling's pin); step 6 says what to do when `ln` finds the pre-commit tool's hook. `docs/index.md`: `<root>/html` in `<root>`'s layout (CS-Q96 follow-up; the operator, CO-Q34 and CO-Q41 to CO-Q44, 28 Nov 14:38 to 15:02; release CO-Q45, "yes", 16:34). **Act:** nothing; new teams read the new kickoff.
+
 ## [2.25.0] - 2026-11-28
 
 ### Fixed
