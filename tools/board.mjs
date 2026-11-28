@@ -10,7 +10,9 @@
 //   board.mjs tasks    the tasks table only
 //   board.mjs open     start the board in window 0 of the lead's tmux session, the
 //                      other windows moving up one, unless a window named
-//                      board exists; team.sh revive --all runs it (TB-Q20, TB-Q29)
+//                      board exists; team.sh revive --all runs it (TB-Q20, TB-Q29);
+//                      then moves the pane with @role=phone-bot below the
+//                      board, 4 rows, full width, unless it is there (CS-Q117)
 //
 // Seats (TB-Q1 to TB-Q5, TB-Q16): every seat recorded in team.sh's registry
 // (tools/agents) that has a tmux window, and the lead (the pane with
@@ -585,6 +587,32 @@ function loadConf() {
 	}
 }
 
+// The phone bot's pane below the board (CS-Q117): nothing when it is in the
+// board's window already (its size is left as it is), or when no pane has
+// the role. The board is the window at index 0 named board, by its id
+// (CO-Q31). Returns the exit status: 1 when tmux fails.
+function joinPhoneBot(session) {
+	const panes = tmux(["list-panes", "-s", "-t", session, "-F", `#{@role}${SEP}#{pane_id}${SEP}#{window_id}${SEP}#{window_index}${SEP}#{window_name}`]);
+	if (panes === undefined) {
+		console.error("board.mjs open: cannot list the team session's panes, so the phone bot's pane was not moved");
+		return 1;
+	}
+	const rows = panes.split("\n").map((l) => l.split(SEP));
+	const bot = rows.find((p) => p[0] === "phone-bot");
+	if (!bot) {
+		console.log("board: no pane has @role=phone-bot; nothing to move");
+		return 0;
+	}
+	const board = rows.find((p) => p[3] === "0" && p[4] === "board");
+	if (board && bot[2] === board[2]) return 0;
+	if (!board || tmux(["join-pane", "-d", "-v", "-f", "-l", "4", "-s", bot[1], "-t", board[1]]) === undefined) {
+		console.error(`board.mjs open: ${board ? "tmux join-pane failed" : "no board at window 0"}; the phone bot's pane ${bot[1]} stays in window ${bot[4]}`);
+		return 1;
+	}
+	console.log("board: the phone bot's pane joined window 0, below the board");
+	return 0;
+}
+
 const self = fileURLToPath(import.meta.url);
 if (process.argv[1] === self) {
 	const mode = process.argv[2] ?? "both";
@@ -604,14 +632,15 @@ if (process.argv[1] === self) {
 		}
 		if (names.split("\n").includes("board")) {
 			console.log("board: already open");
-			process.exit(0);
+		} else {
+			const env = CONF_KEYS.concat("TEAM_TMUX").filter((v) => process.env[v] !== undefined).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
+			if (tmux(["new-window", "-b", "-d", "-t", `${session}:0`, "-n", "board", ...env, process.execPath, self]) === undefined) {
+				console.error("board.mjs open: tmux new-window failed");
+				process.exit(1);
+			}
+			console.log("board: opened in window 0");
 		}
-		const env = CONF_KEYS.concat("TEAM_TMUX").filter((v) => process.env[v] !== undefined).flatMap((v) => ["-e", `${v}=${process.env[v]}`]);
-		if (tmux(["new-window", "-b", "-d", "-t", `${session}:0`, "-n", "board", ...env, process.execPath, self]) === undefined) {
-			console.error("board.mjs open: tmux new-window failed");
-			process.exit(1);
-		}
-		console.log("board: opened in window 0");
+		process.exit(joinPhoneBot(session));
 	} else if (mode === "seats") {
 		screen();
 		runSeats();
